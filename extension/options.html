@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job Hunt Agent Autofill: settings</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<main>
+  <h1>Job Hunt Agent Autofill</h1>
+  <p class="lead">Fills job applications with your tailored resume and saved answers. It never clicks Next or Submit.</p>
+
+  <form id="form" autocomplete="off">
+    <fieldset>
+      <legend>Job Hunt Agent</legend>
+      <label for="base">Job Hunt Agent address</label>
+      <input id="base" type="url" placeholder="http://127.0.0.1:8765" required>
+      <p class="hint">On the computer that runs the app: <code>http://127.0.0.1:8765</code>. From another laptop:
+        the address <code>job-hunt-agent serve --lan</code> printed, for example <code>http://192.168.1.20:8765</code>.</p>
+      <label for="token">LAN token</label>
+      <input id="token" type="password" placeholder="the token Job Hunt Agent printed (data/lan_token)">
+      <p class="hint">Leave empty only when Job Hunt Agent runs without <code>--lan</code>.</p>
+      <span class="label">Whose applications</span>
+      <div class="seg" role="radiogroup" aria-label="Profile" id="profiles"></div>
+      <p class="hint" id="profiles-hint">The profiles appear here once the address above answers (press Test connection).</p>
+      <div class="row"><button type="button" id="test">Test connection</button><span id="test-out" role="status"></span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Job-site account</legend>
+      <p class="hint">One email and password used to create or sign in to every Workday (and other) account.
+        Kept only in this browser on this laptop: never sent to Job Hunt Agent, the Sheet, logs or Claude.</p>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="off" spellcheck="false">
+      <label for="password">Password</label>
+      <div class="pw"><input id="password" type="password" autocomplete="new-password">
+        <button type="button" id="show" aria-pressed="false">Show</button></div>
+      <p class="hint">Saved as <span id="masked">nothing yet</span>.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Filling</legend>
+      <label class="check"><input type="checkbox" id="auto" checked> Auto-fill each new page after you click Autofill once
+        (it still never clicks Next)</label>
+    </fieldset>
+
+    <div class="row"><button type="submit" class="primary">Save</button><span id="saved" role="status"></span></div>
+  </form>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

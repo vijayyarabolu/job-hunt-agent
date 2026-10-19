@@ -1,0 +1,26 @@
+:root { color-scheme: light dark; --fg: #1d2129; --muted: #5d6570; --line: #d9dde3; --bg: #f7f8fa; --card: #fff; --accent: #2f6fde; --on-accent: #fff; --bad: #b42318; --good: #1f5fbf; }
+@media (prefers-color-scheme: dark) { :root { --fg: #e8eaee; --muted: #a2a9b4; --line: #39404a; --bg: #15181c; --card: #1d2126; --accent: #6b9cf5; --on-accent: #10203d; --bad: #f97066; --good: #8ab4f8; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+main { max-width: 620px; margin: 0 auto; padding: 28px 18px 60px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.lead { color: var(--muted); margin: 0 0 20px; }
+fieldset { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 16px; margin: 0 0 16px; }
+legend { font-weight: 600; padding: 0 6px; }
+label, .label { display: block; font-weight: 500; margin: 12px 0 4px; }
+input[type=url], input[type=password], input[type=email], input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: inherit; font: inherit; }
+.hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+code { font-size: 12px; }
+.seg { display: flex; gap: 14px; }
+.seg label, .check { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 6px 0; }
+.pw { display: flex; gap: 8px; }
+button { font: inherit; padding: 7px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: inherit; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+button:hover, button:focus-visible, button:active { background: var(--bg); color: var(--fg); border-color: var(--muted); }
+button.primary:hover, button.primary:focus-visible, button.primary:active { background: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--accent); }
+/* every control in every state reads at 4.5:1 (readable with red-green colour blindness): no fading, a dashed edge says disabled */
+button:disabled, button.primary:disabled, input:disabled { opacity: 1; background: var(--bg); color: var(--muted); border: 1px dashed var(--muted); box-shadow: none; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::placeholder { color: var(--muted); opacity: 1; }
+.row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.ok { color: var(--good); } .bad { color: var(--bad); }

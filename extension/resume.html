@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resume · Job Hunt Agent Autofill</title>
+<style>
+  html, body { margin: 0; height: 100%; font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f4f6f9; color: #1d2129; }
+  header { display: flex; gap: 12px; align-items: center; padding: 8px 14px; background: #fff; border-bottom: 1px solid #d5d9df; }
+  header strong { flex: 1; overflow-wrap: anywhere; }
+  iframe { border: 0; width: 100%; height: calc(100% - 44px); display: block; }
+  #msg { padding: 24px; }
+  @media (prefers-color-scheme: dark) { html, body { background: #15181c; color: #e8eaee; } header { background: #1d2126; border-color: #39404a; } a { color: #8db8ff; } }
+</style>
+</head>
+<body>
+<header><strong id="name">Loading the resume…</strong><a id="save" hidden>Download</a></header>
+<div id="msg" hidden></div>
+<iframe id="pdf" title="The resume Autofill uploads for this job" hidden></iframe>
+<script src="resume.js"></script>
+</body>
+</html>
