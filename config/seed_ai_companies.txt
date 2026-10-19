@@ -1,0 +1,349 @@
+# Seed list (b): AI-heavy US companies. One name per line; '#' starts a comment.
+# `job-hunt-agent discover` probes Greenhouse/Lever/Ashby slugs for each; Workday big-tech tenants live in companies.yaml.
+# Optional "Name | domain" pins the company website, so same-name boards (circle.so vs circle.com) get review: true.
+
+# --- AI labs / foundation models
+Anthropic
+OpenAI
+xAI
+Cohere
+Mistral AI
+Perplexity
+Character AI
+Inflection AI
+Adept
+Reka AI
+Together AI
+Fireworks AI
+Contextual AI
+Essential AI
+Imbue
+Magic
+Poolside
+Cartesia
+ElevenLabs
+Runway | runwayml.com
+Midjourney
+Stability AI
+Pika
+Luma AI
+Suno
+Hume AI
+Writer
+AI21 Labs
+Liquid AI
+Physical Intelligence
+Skild AI
+Figure AI
+1X Technologies
+Covariant
+Nomic AI | nomic.ai
+Allen Institute for AI
+Thinking Machines Lab
+Safe Superintelligence
+Reflection AI
+Decagon
+Sierra
+Harvey
+Hebbia
+Glean
+Abridge
+Ambience Healthcare
+Hippocratic AI
+Cresta
+Observe AI
+Moveworks
+Typeface
+Jasper
+Copy AI
+Gamma
+Descript
+Synthesia
+Captions
+Speak
+Otter AI
+Fathom
+Read AI
+Notion
+Coda
+# --- AI infra / MLOps / data platforms
+Databricks
+Snowflake
+Scale AI
+Labelbox
+Snorkel AI
+Weights & Biases
+Hugging Face
+Anyscale
+Modal
+Replicate
+Baseten
+Lambda
+CoreWeave
+Crusoe
+Cerebras
+SambaNova
+Groq
+Etched
+d-Matrix
+Lightmatter
+Tenstorrent
+Modular
+Predibase
+Lamini
+Unstructured
+LlamaIndex
+LangChain
+Pinecone
+Weaviate
+Chroma
+Qdrant
+Zilliz
+Arize AI
+Fiddler AI
+Galileo | galileo.ai
+Humanloop
+Braintrust
+Vellum
+Comet
+Tecton
+Dagster Labs
+Astronomer
+Prefect
+Fivetran
+dbt Labs
+Airbyte
+Hightouch
+Census
+Monte Carlo
+Starburst
+Dremio
+ClickHouse
+MotherDuck
+Confluent
+Redpanda
+Cockroach Labs
+PlanetScale
+Neon | neon.tech
+Supabase
+SingleStore
+MongoDB
+Elastic
+Datadog
+Grafana Labs
+Chronosphere
+Honeycomb
+Sentry
+PagerDuty
+HashiCorp
+Temporal
+Vercel
+Netlify
+Render
+Railway
+Fly.io
+Cloudflare
+Fastly
+DigitalOcean
+Nebius
+Vast Data
+Pure Storage
+DataRobot
+H2O.ai
+Domino Data Lab
+Dataiku
+Alteryx
+Sigma Computing
+Hex
+ThoughtSpot
+# --- devtools / AI coding
+Anysphere
+Cognition
+Replit
+Sourcegraph
+Codeium
+Tabnine
+Warp | warp.dev
+GitLab
+JetBrains
+Postman
+Retool
+Zapier
+Airtable
+Linear
+Asana
+Figma
+Canva
+Miro
+Grammarly
+Duolingo
+Quizlet
+Coursera
+Chegg
+# --- fintech AI
+Stripe
+Plaid
+Ramp
+Brex
+Mercury
+Chime
+SoFi
+Affirm
+Robinhood
+Coinbase
+Kraken
+Gemini
+Circle | circle.com
+Ripple
+Chainalysis
+Marqeta
+Toast
+Block
+Upstart
+Pagaya
+Zest AI
+Socure
+Alloy
+Sardine
+Persona
+Unit21
+Feedzai
+Riskified
+Signifyd
+Forter
+Bolt
+Klarna
+Wealthfront
+Betterment
+Addepar
+Carta
+Rippling
+Gusto
+Deel
+Justworks
+Navan
+Bill
+Melio
+Tipalti
+Pilot
+Two Sigma
+Jane Street
+Citadel
+Hudson River Trading
+Jump Trading
+DE Shaw
+Point72
+Numerai
+Kensho
+Bloomberg
+# --- healthtech AI
+Tempus
+Komodo Health
+Flatiron Health
+Viz.ai
+Aidoc
+PathAI
+Paige
+Insitro
+Recursion
+Isomorphic Labs
+Generate Biomedicines
+Xaira Therapeutics
+Inceptive
+Owkin
+Cedar | cedar.com
+Oscar Health
+Devoted Health
+Cityblock Health
+Color Health
+Ro
+Hims & Hers
+Headway
+Spring Health
+Lyra Health
+Calm
+Headspace
+Zocdoc
+Nuna
+Innovaccer
+Notable Health
+Suki AI
+Nabla
+Commure
+Athelas
+Freenome
+Grail
+Natera
+Benchling
+# --- enterprise SaaS / AI apps / autonomy
+HubSpot
+Zendesk
+Intercom
+Gong
+Clari
+Outreach
+Apollo
+Clay
+Attentive
+Klaviyo
+Braze
+Amplitude
+Mixpanel
+FullStory
+Contentsquare
+Pendo
+Highspot
+Seismic
+Gainsight
+Checkr
+Samsara
+Motive | gomotive.com
+Verkada
+Flock Safety
+Anduril
+Shield AI
+Palantir
+Applied Intuition
+Aurora
+Waymo
+Nuro
+Zoox
+Wayve
+Kodiak Robotics
+Gatik
+Rivian
+Lucid Motors
+Rad AI
+Instacart
+DoorDash
+Uber
+Lyft
+Airbnb
+Pinterest
+Reddit
+Discord
+Roblox
+Unity
+Spotify
+Dropbox
+Box
+Okta
+CrowdStrike
+SentinelOne
+Wiz
+Abnormal Security
+Snyk
+Vanta
+Drata
+1Password
+Arctic Wolf
+Rubrik
+Cohesity
+Twilio
+Faire
+Whatnot
+Thumbtack
+Nextdoor
+Yelp
+Peloton
+Strava

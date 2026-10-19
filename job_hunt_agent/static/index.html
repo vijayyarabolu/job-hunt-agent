@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#edf1ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121816" media="(prefers-color-scheme: dark)">
+  <title>Job Hunt Agent</title>
+  <link rel="preload" href="/fonts/schibsted-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/ds.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/mail.css">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <script type="module" src="/js/app.js"></script>
+  <link rel="modulepreload" href="/js/core.js">
+  <link rel="modulepreload" href="/js/ring.js">
+  <link rel="modulepreload" href="/js/filters.js">
+  <link rel="modulepreload" href="/js/feed.js">
+  <link rel="modulepreload" href="/js/detail.js">
+  <link rel="modulepreload" href="/js/dialogs.js">
+  <link rel="modulepreload" href="/js/inline.js">
+  <link rel="modulepreload" href="/js/tracker.js">
+  <link rel="modulepreload" href="/js/editor.js">
+  <link rel="modulepreload" href="/js/keys.js">
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></symbol>
+    <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M6.5 6.5l11 11"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M7 4h10v16l-5-3.5L7 20z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 6h9v9M18 6L7 17"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path class="fill" d="M12 3.8l2.5 5.3 5.7.7-4.2 3.9 1.1 5.7L12 16.6l-5.1 2.8 1.1-5.7-4.2-3.9 5.7-.7z"/></symbol>
+    <symbol id="i-qmark" viewBox="0 0 24 24"><path d="M9 9.2a3 3 0 1 1 4.6 2.5c-1 .6-1.6 1.3-1.6 2.5v.6"/><path d="M12 18.4v.1"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></symbol>
+    <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 4.5v15a7.5 7.5 0 0 0 0-15z" class="fill"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></symbol>
+    <symbol id="i-feed" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1.5"/><path d="M4 10h16M10 10v9"/></symbol>
+    <symbol id="i-sent" viewBox="0 0 24 24"><path d="M4 12l16-7-6 15-3-6z"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="12" rx="1.5"/><path d="M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15"/></symbol>
+    <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 7L5 11l4 4"/><path d="M5 11h9a5 5 0 0 1 0 10h-2"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-7 7M10 5H5v14h14v-5"/></symbol>
+    <symbol id="i-cols" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1.5"/><path d="M9.5 5v14M14.5 5v14"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="4" rx="1"/><path d="M5.5 9v9.5h13V9M10 13h4"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M9.5 12h6M9.5 15.5h6"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 6h14v9h-9l-4 3.5V15H5z"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M7 16v-5a5 5 0 0 1 10 0v5l1.5 2h-13z"/><path d="M10.5 20.5h3"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M6 19v-8M11 19V6M16 19v-5M4 19.5h16"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M6 6l1.8 1.8M16.2 16.2L18 18M6 18l1.8-1.8M16.2 7.8L18 6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 4l1.8 4.7 4.7 1.8-4.7 1.8L12 17l-1.8-4.7-4.7-1.8 4.7-1.8z"/></symbol>
+    <symbol id="i-keys" viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="17" height="11" rx="1.5"/><path d="M7 10h.01M10 10h.01M13 10h.01M16 10h.01M8 14h8"/></symbol>
+    <symbol id="i-jobs" viewBox="0 0 24 24"><rect x="4" y="7.5" width="16" height="11.5" rx="1.5"/><path d="M9 7.5V5.5h6v2M4 12.5h16"/></symbol>
+  </svg>
+  <a class="skip" href="#list" title="Skip to the job list">Skip to the job list</a>
+
+  <header class="top">
+    <a class="brand" href="/" aria-label="Job Hunt Agent home" title="Job Hunt Agent home">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" class="b-track"/><path d="M12 3.5a8.5 8.5 0 1 1-8.1 11" class="b-arc"/></svg>
+      <span>Job Hunt Agent</span>
+    </a>
+    <span class="view-title" id="view-title" aria-hidden="true"></span>
+    <button class="cmdk" id="cmdk" type="button" title="Search jobs, companies, pages (⌘K)">
+      <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="cmdk-text">Search jobs, companies, pages…</span><kbd>⌘K</kbd>
+    </button>
+    <span class="top-gap"></span>
+    <button class="status" id="status" type="button" aria-haspopup="dialog" aria-expanded="false" title="App status: job boards, scoring, email, Google Sheet">
+      <span class="dot off" aria-hidden="true"></span><span class="status-text">Status</span>
+    </button>
+    <div class="who" id="who" role="group" aria-label="Whose jobs" title="Whose jobs: pick a profile">
+      <span class="who-name sr"></span>
+    </div>
+    <button class="icon-btn" id="theme" type="button" aria-label="Light or dark theme (t)" title="Light or dark theme (t)"><svg class="ic" aria-hidden="true"><use href="#i-theme"/></svg></button>
+    <button class="icon-btn" id="settings-btn" type="button" aria-label="Settings (,)" title="Settings: your answers, filters, daily goal, accounts (,)"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
+  </header>
+
+  <aside class="side" id="side" aria-label="Views">
+    <div id="tabs" role="tablist" aria-orientation="vertical" aria-label="Views">
+      <h2>Jobs</h2>
+      <button type="button" role="tab" data-tab="recommended" title="New jobs that match you (key 1)"><svg class="ic" aria-hidden="true"><use href="#i-feed"/></svg><span class="lbl">Recommended</span><span class="n"></span></button>
+      <button type="button" role="tab" data-tab="saved" title="Jobs you saved for later (key 2)"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span class="lbl">Saved</span><span class="n"></span></button>
+      <button type="button" role="tab" data-tab="archived" title="Jobs you marked Not interested, and rejected / cold applications. Removed (×) jobs are not kept here (key 3)"><svg class="ic" aria-hidden="true"><use href="#i-archive"/></svg><span class="lbl">Archived</span><span class="n"></span></button>
+      <h2>Resumes</h2>
+      <button type="button" role="tab" data-tab="resumes" title="Tailored resumes: queue, ready to apply, done today (key 4)"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg><span class="lbl">Tailored resumes</span><span class="n"></span></button>
+      <h2>Applications</h2>
+      <button type="button" role="tab" data-tab="tracker" title="Every application, like your Google Sheet (key 5)"><svg class="ic" aria-hidden="true"><use href="#i-table"/></svg><span class="lbl">Tracker</span><span class="n"></span></button>
+      <button type="button" role="tab" data-tab="applied" title="Applications waiting for an answer (key 6)"><svg class="ic" aria-hidden="true"><use href="#i-sent"/></svg><span class="lbl">Applied</span><span class="n"></span></button>
+      <button type="button" role="tab" data-tab="interviewing" title="Screens, interviews and offers (key 7)"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span class="lbl">Interviewing</span><span class="n"></span></button>
+      <button type="button" role="tab" data-tab="followups" title="Follow-ups due: who to write to today (key 8)"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><span class="lbl">Follow-ups</span><span class="n hot"></span></button>
+      <h2>Insights</h2>
+      <button type="button" role="tab" data-tab="stats" title="Your numbers: applications, answers, rates (key 9)"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg><span class="lbl">Stats</span><span class="n"></span></button>
+      <h2>Autofill</h2>
+      <button type="button" role="tab" data-tab="answers" title="What the Autofill extension fills into job forms, and the questions it needs you for"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span class="lbl">Answers</span><span class="n hot"></span></button>
+    </div>
+    <div class="side-foot">
+      <a class="nav-link" id="rg-link" href="#settings" title="Accounts and API keys: what is connected, missing or failing"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg><span>Setup and keys</span></a>
+      <button type="button" class="nav-link" id="keys-btn" title="Every keyboard shortcut (?)"><svg class="ic" aria-hidden="true"><use href="#i-keys"/></svg><span>Keyboard shortcuts</span></button>
+    </div>
+  </aside>
+  <div class="banners"><p id="banner" class="banner" role="alert" hidden></p><p id="gbanner" class="banner" role="alert" hidden></p></div>
+  <nav class="subtabs" id="subtabs" aria-label="Views in this section"></nav>
+
+  <div class="filters" role="toolbar" aria-label="Filters" id="filters">
+    <div class="f-scroll" id="fchips"></div>
+    <div class="seg sort" role="group" aria-label="Sort" id="sort"><span class="seg-l">Sort</span><button type="button" data-v="" aria-pressed="true" title="Newest first">Newest</button><button type="button" data-v="match" aria-pressed="false" title="Best match first">Best match</button></div>
+  </div>
+
+  <main class="bench" id="bench">
+    <section class="pane-list" id="pane-list" aria-labelledby="lh-title">
+      <div class="list-head" id="list-head"><div class="lh-top"><h1 id="lh-title">Recommended</h1></div><p class="daily lh-hold" aria-hidden="true">&nbsp;<br>&nbsp;</p><p class="floor lh-hold" aria-hidden="true">&nbsp;</p></div>
+      <div class="list-wrap" id="list-wrap">
+        <span class="sel-bar" id="sel-bar" aria-hidden="true"></span>
+        <ol class="list" id="list" role="listbox" aria-label="Jobs" tabindex="0" title="Jobs: j / k move, Enter opens, ? lists every shortcut"></ol>
+        <div id="list-more"></div>
+        <p class="foot muted" id="foot"></p>
+      </div>
+    </section>
+    <section class="pane-view" id="view" hidden></section>
+    <section class="pane-detail" id="detail" aria-label="Details" tabindex="-1"></section>
+  </main>
+
+  <footer class="keys" id="keys" aria-label="Keyboard shortcuts">
+    <span class="key"><kbd>j</kbd><kbd>k</kbd><span>Move</span></span>
+    <span class="key"><kbd>a</kbd><span>Apply</span></span>
+    <span class="key"><kbd>m</kbd><span>Mark applied</span></span>
+    <span class="key"><kbd>g</kbd><span>Generate resume</span></span>
+    <span class="key"><kbd>s</kbd><span>Save</span></span>
+    <span class="key"><kbd>x</kbd><span>Not interested</span></span>
+    <span class="key"><kbd>c</kbd><span>Copy JD + keywords</span></span>
+    <span class="key"><kbd>?</kbd><span>All keys</span></span>
+  </footer>
+  <nav class="bottom-tabs" id="btabs" aria-label="Sections">
+    <button type="button" data-tab="recommended" title="Jobs: Recommended, Saved, Archived"><svg class="ic" aria-hidden="true"><use href="#i-jobs"/></svg><span>Jobs</span></button>
+    <button type="button" data-tab="resumes" title="Tailored resumes"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg><span>Resumes</span><span class="n"></span></button>
+    <button type="button" data-tab="tracker" title="Applications: Tracker, Applied, Interviewing, Follow-ups"><svg class="ic" aria-hidden="true"><use href="#i-table"/></svg><span>Applications</span><span class="n"></span></button>
+    <button type="button" data-tab="stats" title="Stats"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg><span>Stats</span></button>
+    <button type="button" data-tab="more" aria-haspopup="menu" aria-expanded="false" title="Settings, theme, keyboard shortcuts"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span>More</span></button>
+  </nav>
+
+  <div class="popover" id="pop" hidden></div>
+  <div class="toast-zone" id="toasts" role="status" aria-live="polite"></div>
+
+  <dialog class="palette" id="palette" aria-label="Search">
+    <div class="pal-in"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="pal-q" type="text" placeholder="Search jobs, companies, pages, people" aria-label="Search" title="Search: type a job, company, page or person" aria-controls="pal-list" autocomplete="off"></div>
+    <ul id="pal-list" role="listbox" aria-label="Results"></ul>
+  </dialog>
+  <dialog class="help" id="help" aria-labelledby="help-h">
+    <h2 id="help-h">Keyboard shortcuts</h2>
+    <dl>
+      <dt><kbd>j</kbd><kbd>k</kbd></dt><dd>Next / previous job (↓ ↑ too)</dd>
+      <dt><kbd>↵</kbd></dt><dd>Open the job (phone: full-screen sheet)</dd>
+      <dt><kbd>o</kbd></dt><dd>Open the original posting ↗</dd>
+      <dt><kbd>a</kbd></dt><dd>Apply on the company site</dd>
+      <dt><kbd>m</kbd></dt><dd>Mark applied (asks for the resume used)</dd>
+      <dt><kbd>g</kbd></dt><dd>Generate a tailored resume (the selected jobs, if any)</dd>
+      <dt><kbd>s</kbd></dt><dd>Save for later / unsave</dd>
+      <dt><kbd>x</kbd></dt><dd>Not interested (pick or type the reason in the message)</dd>
+      <dt><kbd>⇧X</kbd></dt><dd>Remove for good: a duplicate or a job you never want (8 s Undo; in the Tracker, the picked rows)</dd>
+      <dt><kbd>l</kbd></dt><dd>Like: similar roles rank a little higher</dd>
+      <dt><kbd>c</kbd></dt><dd>Copy JD + keywords (<kbd>C</kbd>: the JD only)</dd>
+      <dt><kbd>Space</kbd></dt><dd>Select / unselect the job (Shift-click selects a range)</dd>
+      <dt><kbd>b</kbd></dt><dd>Jump to "Why this match"</dd>
+      <dt><kbd>n</kbd></dt><dd>Add a job by link</dd>
+      <dt><kbd>/</kbd></dt><dd>Search the tracker, or search everything</dd>
+      <dt><kbd>⌘K</kbd></dt><dd>Search jobs, companies, pages, people</dd>
+      <dt><kbd>1</kbd> to <kbd>9</kbd></dt><dd>Views in the side menu, top to bottom (1 Recommended … 4 Tailored resumes … 9 Stats)</dd>
+      <dt><kbd>,</kbd></dt><dd>Settings</dd>
+      <dt><kbd>u</kbd></dt><dd>Undo your last tracker edit</dd>
+      <dt><kbd>t</kbd></dt><dd>Light / dark</dd>
+      <dt><kbd>?</kbd></dt><dd>This list</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close the sheet, menu, dialog or Settings</dd>
+    </dl>
+    <form method="dialog"><button class="btn" title="Close (Esc)">Close</button></form>
+  </dialog>
+  <dialog class="form-dialog" id="apply-dlg" aria-labelledby="ad-h">
+    <h2 id="ad-h">Mark applied</h2><p class="muted" id="ad-who"></p><p class="muted small" id="ad-vendor"></p>
+    <label class="field" for="ad-resume"><span>Resume you applied with</span><select id="ad-resume" title="The resume you applied with (goes to your sheet)"></select></label>
+    <label class="field" for="ad-file"><span>Or upload the file you sent (PDF / DOCX)</span><input type="file" id="ad-file" title="The tailored resume file: saved to Drive, linked in your sheet" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
+    <p class="muted small" id="ad-note"></p><p class="small" id="ad-status" role="status"></p>
+    <div class="row-btns"><button type="button" class="btn ghost" id="ad-cancel" title="Cancel: nothing changes (Esc)">Cancel</button><button type="button" class="btn" id="ad-without" title="Mark applied now, add the file later">Mark applied without file</button><button type="button" class="btn primary" id="ad-upload" title="Upload the file and mark applied">Upload &amp; mark applied</button></div>
+  </dialog>
+  <dialog class="ask" id="ask" aria-labelledby="ask-h">
+    <h2 id="ask-h"></h2><p id="ask-p"></p>
+    <form method="dialog" class="row-btns"><button class="btn ghost" value="no" title="Cancel: nothing is spent (Esc)">Cancel</button><button class="btn primary" value="yes" id="ask-ok" title="Go ahead">OK</button></form>
+  </dialog>
+</body>
+</html>

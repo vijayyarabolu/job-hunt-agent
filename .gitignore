@@ -1,0 +1,22 @@
+# Everything personal lives in ~/.job-hunt-agent (or JOB_HUNT_AGENT_HOME), never in the repo.
+# These patterns are a second line of defence in case someone points the home at the checkout.
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.DS_Store
+data/
+profiles/
+applications/
+config/secrets.yaml*
+config/settings.yaml
+config/local.yaml
+config/google_client.json
+*_token*.json
+.env
+*.db
+*.docx
+*.xlsx
+*.pdf
+.chrome-prof-*/
+node_modules/

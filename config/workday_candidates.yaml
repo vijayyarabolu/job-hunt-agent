@@ -1,0 +1,75 @@
+# Big-tech / enterprise Workday tenants to verify live (`job-hunt-agent discover --workday`).
+# Each is checked with a POST search; failures are dropped and reported. Verified ones go to companies.yaml.
+tenants:
+  - {name: NVIDIA, token: nvidia, wd: wd5, site: NVIDIAExternalCareerSite}
+  - {name: Salesforce, token: salesforce, wd: wd12, site: External_Career_Site}
+  - {name: Adobe, token: adobe, wd: wd5, site: external_experienced}
+  - {name: Intel, token: intel, wd: wd1, site: External}
+  - {name: Walmart, token: walmart, wd: wd5, site: WalmartExternal}
+  - {name: Target, token: target, wd: wd5, site: targetcareers}
+  - {name: Mastercard, token: mastercard, wd: wd1, site: CorporateCareers}
+  - {name: Visa, token: visa, wd: wd5, site: Visa_Careers}
+  - {name: PayPal, token: paypal, wd: wd1, site: jobs}
+  - {name: Autodesk, token: autodesk, wd: wd1, site: Ext}
+  - {name: Dell Technologies, token: dell, wd: wd1, site: External}
+  - {name: HP, token: hp, wd: wd5, site: ExternalCareerSite}
+  - {name: Hewlett Packard Enterprise, token: hpe, wd: wd5, site: Jobsathpe}
+  - {name: Micron, token: micron, wd: wd1, site: External}
+  - {name: Qualcomm, token: qualcomm, wd: wd12, site: External}
+  - {name: Broadcom, token: broadcom, wd: wd1, site: External_Career}
+  - {name: Applied Materials, token: amat, wd: wd1, site: External}
+  - {name: Boeing, token: boeing, wd: wd1, site: EXTERNAL_CAREERS}
+  - {name: Comcast, token: comcast, wd: wd5, site: Comcast_Careers}
+  - {name: Disney, token: disney, wd: wd5, site: disneycareer}
+  - {name: Warner Bros Discovery, token: warnerbros, wd: wd5, site: global}
+  - {name: Fidelity, token: fmr, wd: wd1, site: FidelityCareers}
+  - {name: State Street, token: statestreet, wd: wd1, site: Global}
+  - {name: BlackRock, token: blackrock, wd: wd1, site: BlackRock_Professional}
+  - {name: Capital One, token: capitalone, wd: wd12, site: Capital_One}
+  - {name: Bank of America, token: ghr, wd: wd1, site: Lateral-US}
+  - {name: Citi, token: citi, wd: wd5, site: "2"}
+  - {name: Humana, token: humana, wd: wd5, site: Humana_External_Career_Site}
+  - {name: CVS Health, token: cvshealth, wd: wd1, site: CVS_Health_Careers}
+  - {name: Elevance Health, token: elevancehealth, wd: wd1, site: ANT}
+  - {name: Cigna, token: cigna, wd: wd5, site: cignacareers}
+  - {name: Pfizer, token: pfizer, wd: wd1, site: PfizerCareers}
+  - {name: Moderna, token: modernatx, wd: wd1, site: M_tx}
+  - {name: Johnson & Johnson, token: jj, wd: wd5, site: JJ}
+  - {name: Eli Lilly, token: lilly, wd: wd5, site: LLY}
+  - {name: Merck, token: msd, wd: wd5, site: SearchJobs}
+  - {name: Bristol Myers Squibb, token: bristolmyerssquibb, wd: wd5, site: BMS}
+  - {name: Medtronic, token: medtronic, wd: wd1, site: MedtronicCareers}
+  - {name: Abbott, token: abbott, wd: wd5, site: abbottcareers}
+  - {name: Labcorp, token: labcorp, wd: wd1, site: External}
+  - {name: Garmin, token: garmin, wd: wd1, site: Garmin}
+  - {name: T-Mobile, token: tmobile, wd: wd1, site: External}
+  - {name: Verizon, token: verizon, wd: wd12, site: verizon-careers}
+  - {name: Accenture, token: accenture, wd: wd103, site: AccentureCareers}
+  - {name: PwC, token: pwc, wd: wd3, site: Global_Experienced_Careers}
+  - {name: Nasdaq, token: nasdaq, wd: wd1, site: Global_External_Site}
+  - {name: General Motors, token: generalmotors, wd: wd5, site: Careers_GM}
+  - {name: Chewy, token: chewy, wd: wd5, site: External}
+  - {name: Zillow, token: zillow, wd: wd5, site: Zillow_Group_External}
+  - {name: Workday, token: workday, wd: wd5, site: Workday}
+  - {name: CrowdStrike, token: crowdstrike, wd: wd5, site: crowdstrikecareers}
+  - {name: Red Hat, token: redhat, wd: wd5, site: jobs}
+  - {name: KLA, token: kla, wd: wd1, site: Search}
+  - {name: Marvell, token: marvell, wd: wd1, site: MarvellCareers}
+  - {name: Analog Devices, token: analogdevices, wd: wd1, site: External}
+  - {name: Motorola Solutions, token: motorolasolutions, wd: wd5, site: Careers}
+  - {name: Cardinal Health, token: cardinalhealth, wd: wd1, site: EXT}
+  - {name: McKesson, token: mckesson, wd: wd3, site: External_Careers}
+  - {name: Centene, token: centene, wd: wd5, site: Centene_External}
+  - {name: 3M, token: 3m, wd: wd1, site: Search}
+  - {name: Morgan Stanley, token: ms, wd: wd5, site: External}
+  - {name: Progressive, token: progressive, wd: wd5, site: Progressive}
+  - {name: USAA, token: usaa, wd: wd1, site: USAAJOBSWD}
+  - {name: Discover, token: discover, wd: wd5, site: Discover}
+  - {name: Allstate, token: allstate, wd: wd5, site: allstate_careers}
+  - {name: Wells Fargo, token: wf, wd: wd1, site: WellsFargoJobs}
+  - {name: Kaiser Permanente, token: kp, wd: wd5, site: KP_External_Careers}
+  - {name: GE HealthCare, token: gehc, wd: wd5, site: GEHC_ExternalSite}
+  - {name: Philips, token: philips, wd: wd3, site: jobs-and-careers}
+  - {name: Charter Communications, token: spectrum, wd: wd5, site: Spectrum}
+  - {name: Lockheed Martin, token: lmco, wd: wd1, site: LMCareers}
+  - {name: Cerner Oracle Health, token: oracle, wd: wd1, site: External}
