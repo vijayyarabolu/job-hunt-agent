@@ -1,0 +1,10 @@
+[
+ {"name": "greenhouse-fixture", "board": "greenhouse", "step": "apply", "url": "https://job-boards.greenhouse.io/doordashusa/jobs/3623888", "file": "boards/greenhouse.html", "expected": 3},
+ {"name": "lever-fixture", "board": "lever", "step": "apply", "url": "https://jobs.lever.co/shieldai/2394368a-67ff-441c-83c3-e998446327e7/apply", "file": "boards/lever.html", "expected": 16},
+ {"name": "ashby-fixture", "board": "ashby", "step": "apply", "url": "https://jobs.ashbyhq.com/ramp/4e64ab86-4e30-403b-b1b9-41dc052570ce/application", "file": "boards/ashby.html", "expected": 4},
+ {"name": "workable-fixture", "board": "workable", "step": "apply", "url": "https://apply.workable.com/j/19A136F8E2/apply", "file": "boards/workable.html", "expected": 9},
+ {"name": "bamboohr-fixture", "board": "bamboohr", "step": "apply", "url": "https://mhc.bamboohr.com/careers/81", "file": "boards/bamboohr.html", "expected": 11},
+ {"name": "jazzhr-fixture", "board": "jazzhr", "step": "apply", "url": "https://focuskpi.applytojob.com/apply/o5qywsQUco/AdministrativeProject-Assistant", "file": "boards/jazzhr.html", "expected": 7},
+ {"name": "generic-fixture", "board": "generic", "step": "apply", "url": "https://careers.zzcanary.example/apply/1", "file": "generic_skills.html", "expected": 5},
+ {"name": "workday-sim", "board": "workday", "step": "info", "url": "https://zzcanary.wd5.myworkdayjobs.com/en-US/External/job/Foster-City-CA/AI-Engineer_JR0001/apply/applyManually?fx=flow&step=info", "file": "", "sim": "workday", "expected": 11}
+]

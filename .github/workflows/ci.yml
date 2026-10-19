@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        run: pip install -e .
+      - name: Unit tests (offline; browser tests skip without Chrome)
+        run: python -m unittest discover -s tests -t .
+      - name: Offline eval (54 labelled job emails through the rules classifier)
+        run: python -m unittest tests.test_mail_rules 2>&1 | grep "mail fixtures"
+      - name: Demo seeds and serves
+        run: |
+          python - <<'PY'
+          import os, tempfile
+          os.environ["JOB_HUNT_AGENT_DEMO"] = "1"
+          from pathlib import Path
+          from job_hunt_agent import demo
+          out = demo.seed(Path(tempfile.mkdtemp()))
+          assert out["jobs"] > 20, out
+          print(out)
+          PY

@@ -1,0 +1,519 @@
+[
+ {
+  "id": "rej-greenhouse",
+  "from": "Acme Robotics <no-reply@us.greenhouse-mail.io>",
+  "subject": "Your application to Acme Robotics",
+  "body": "Hi Jane,\n\nThank you for your interest in the Machine Learning Engineer role at Acme Robotics and for taking the time to apply. We received a large number of applications.\n\nAfter careful review, we have decided to move forward with other candidates whose experience more closely matches our needs at this time.\n\nWe wish you the best in your search.\n\nAcme Robotics Talent Team",
+  "kind": "rejected",
+  "company": "Acme Robotics",
+  "outcome": "applied"
+ },
+ {
+  "id": "rej-lever",
+  "from": "Ramp <no-reply@hire.lever.co>",
+  "subject": "Ramp - Applied AI Engineer",
+  "body": "Hi Jane,\n\nThanks so much for applying to the Applied AI Engineer position at Ramp. We really appreciate the time you took to ramp up on what we do.\n\nUnfortunately, we won't be moving forward with your application at this time. We'll keep your information on file should another role open up.\n\nBest,\nThe Ramp Recruiting Team",
+  "kind": "rejected",
+  "company": "Ramp",
+  "outcome": "applied"
+ },
+ {
+  "id": "rej-workday-filled",
+  "from": "Northwind Health <northwindhealth@myworkday.com>",
+  "subject": "Update on your application - R-20431 Senior Data Scientist",
+  "body": "Dear Jane Doe,\n\nThank you for applying for the Senior Data Scientist position (R-20431) at Northwind Health. We wanted to let you know that the position has been filled.\n\nWe encourage you to visit our careers site for future opportunities.\n\nSincerely,\nNorthwind Health Talent Acquisition",
+  "kind": "rejected",
+  "company": "Northwind Health",
+  "title": "Senior Data Scientist",
+  "outcome": "applied"
+ },
+ {
+  "id": "rej-icims",
+  "from": "Globex Careers <careers@globex.icims.com>",
+  "subject": "Globex: Data Engineer II",
+  "body": "Dear Jane,\n\nThank you for your interest in employment with Globex. We regret to inform you that we will not be advancing your candidacy for the Data Engineer II requisition 2026-4471.\n\nPlease continue to check our career site.\n\nRegards,\nGlobex Recruiting",
+  "kind": "rejected",
+  "company": "Globex",
+  "outcome": "applied"
+ },
+ {
+  "id": "rej-ashby",
+  "from": "Lumen Labs <no-reply@ashbyhq.com>",
+  "subject": "Thank you from Lumen Labs",
+  "body": "Hi Jane,\n\nThank you for applying to Lumen Labs. After reviewing your background for the AI Engineer role, our team has decided not to proceed with your application.\n\nWe appreciate your interest and hope our paths cross again.\n\nLumen Labs",
+  "kind": "rejected",
+  "company": "Lumen Labs",
+  "outcome": "applied"
+ },
+ {
+  "id": "rej-after-panel",
+  "from": "Hannah Kim <hannah.kim@tidewater.ai>",
+  "subject": "Tidewater AI - next steps",
+  "body": "Hi Jane,\n\nThank you for your time during the panel interview last week; the team enjoyed meeting you.\n\nAfter a lot of discussion we have decided to move forward with another candidate for the ML Platform Engineer role. This was a difficult decision.\n\nAll the best,\nHannah\nRecruiting, Tidewater AI",
+  "kind": "rejected",
+  "company": "Tidewater AI",
+  "outcome": "applied",
+  "start": "interview"
+ },
+ {
+  "id": "rej-smartrecruiters",
+  "from": "Pinnacle Bank <noreply@smartrecruiters.com>",
+  "subject": "Your application for Machine Learning Engineer at Pinnacle Bank",
+  "body": "Dear Jane,\n\nThank you for taking the time to apply for the Machine Learning Engineer position. After careful consideration we will not be proceeding with your application.\n\nKind regards,\nPinnacle Bank Recruitment",
+  "kind": "rejected",
+  "company": "Pinnacle Bank",
+  "outcome": "applied"
+ },
+ {
+  "id": "rej-not-selected",
+  "from": "Orbital Systems Recruiting <jobs@orbitalsystems.com>",
+  "subject": "Your Orbital Systems application",
+  "body": "Hello Jane,\n\nWe appreciate your interest in the Data Scientist position. You have not been selected to continue in the hiring process for this role.\n\nThank you,\nOrbital Systems Talent",
+  "kind": "rejected",
+  "company": "Orbital Systems",
+  "outcome": "applied"
+ },
+ {
+  "id": "rej-capone-titled",
+  "from": "Capital One <capitalone@myworkday.com>",
+  "subject": "Your Capital One application: Senior Data Scientist",
+  "body": "Hi Jane,\n\nThank you for your interest in the Senior Data Scientist role at Capital One. Unfortunately, we have decided to pursue other candidates for this position.\n\nCapital One Recruiting",
+  "kind": "rejected",
+  "company": "Capital One",
+  "title": "Senior Data Scientist",
+  "outcome": "applied"
+ },
+ {
+  "id": "rej-capone-untitled",
+  "from": "Capital One <capitalone@myworkday.com>",
+  "subject": "An update from Capital One",
+  "body": "Hi Jane,\n\nThank you for applying to Capital One. Unfortunately, we have decided to pursue other candidates at this time.\n\nCapital One Recruiting",
+  "kind": "rejected",
+  "company": "Capital One",
+  "outcome": "needs"
+ },
+ {
+  "id": "rej-unknown",
+  "from": "Kestrel Insurance <noreply@smartrecruiters.com>",
+  "subject": "Your application to Kestrel Insurance",
+  "body": "Dear Jane,\n\nThank you for applying for the Actuarial Data Analyst position. Unfortunately we will not be moving forward with your application.\n\nKestrel Insurance",
+  "kind": "rejected",
+  "company": null,
+  "outcome": "needs"
+ },
+ {
+  "id": "rej-hand-set",
+  "from": "Delta Freight <no-reply@us.greenhouse-mail.io>",
+  "subject": "Delta Freight application update",
+  "body": "Hi Jane,\n\nThank you for applying for the Data Analyst position. Unfortunately, we have decided to move forward with other candidates.\n\nDelta Freight",
+  "kind": "rejected",
+  "company": "Delta Freight",
+  "outcome": "recorded",
+  "start": "interview",
+  "hand_after": true
+ },
+ {
+  "id": "rej-offer-held",
+  "from": "Juniper Grid <no-reply@hire.lever.co>",
+  "subject": "Juniper Grid: position update",
+  "body": "Hi Jane,\n\nThank you for applying for the Data Engineer role. The position has been filled.\n\nJuniper Grid",
+  "kind": "rejected",
+  "company": "Juniper Grid",
+  "outcome": "needs",
+  "start": "offer"
+ },
+ {
+  "id": "scr-hackerrank",
+  "from": "Arbor Logic via HackerRank <support@hackerrankforwork.com>",
+  "subject": "Arbor Logic has invited you to take a test",
+  "body": "Hi Jane,\n\nArbor Logic has invited you to complete the Machine Learning Engineer coding assessment on HackerRank. The test takes 90 minutes. Please complete it within 7 days.\n\nStart test: https://www.hackerrank.com/test/abc123\n\nGood luck!",
+  "kind": "screen",
+  "company": "Arbor Logic",
+  "outcome": "applied"
+ },
+ {
+  "id": "scr-codesignal",
+  "from": "Brightline <no-reply@codesignal.com>",
+  "subject": "Brightline: your General Coding Assessment",
+  "body": "Hi Jane,\n\nThanks for applying to Brightline for the Data Engineer role. As a next step please take our CodeSignal General Coding Assessment within 5 days.\n\nhttps://app.codesignal.com/invite/xyz",
+  "kind": "screen",
+  "company": "Brightline",
+  "outcome": "applied"
+ },
+ {
+  "id": "scr-karat",
+  "from": "Karat Scheduling <scheduling@karat.io>",
+  "subject": "Schedule your Karat interview for Quantia",
+  "body": "Hello Jane,\n\nQuantia has partnered with Karat to conduct the first technical step for the Applied Scientist position. Please choose a time for your Karat session.\n\nhttps://karat.io/schedule/q1",
+  "kind": "screen",
+  "company": "Quantia",
+  "outcome": "applied"
+ },
+ {
+  "id": "scr-takehome",
+  "from": "Maya Ortiz <maya@fernway.com>",
+  "subject": "Fernway - take-home exercise",
+  "body": "Hi Jane,\n\nThanks for your application for the Data Scientist role at Fernway. The next step is a short take-home exercise; please send it back within a week.\n\nBest,\nMaya, Recruiting",
+  "kind": "screen",
+  "company": "Fernway",
+  "outcome": "applied"
+ },
+ {
+  "id": "scr-recruiter-call",
+  "from": "Sam Lee <sam.lee@vantagepoint.io>",
+  "subject": "Vantage Point - Machine Learning Engineer",
+  "body": "Hi Jane,\n\nI'm a recruiter at Vantage Point and I came across your application for our Machine Learning Engineer opening. Do you have time this week for a quick call to learn more about you?\n\nThanks,\nSam",
+  "kind": "screen",
+  "company": "Vantage Point",
+  "outcome": "applied"
+ },
+ {
+  "id": "scr-online-assessment",
+  "from": "Helix Bio <talent@helixbio.com>",
+  "subject": "Helix Bio online assessment",
+  "body": "Dear Jane,\n\nThank you for applying to Helix Bio. We would like you to complete an online assessment for the Bioinformatics Data Scientist position. The link expires in 72 hours.\n\nHelix Bio Talent Acquisition",
+  "kind": "screen",
+  "company": "Helix Bio",
+  "outcome": "applied"
+ },
+ {
+  "id": "int-goodtime",
+  "from": "Stripe Recruiting <recruiting@stripe.com>",
+  "subject": "Stripe: schedule your interviews",
+  "body": "Hi Jane,\n\nGreat news, the Data Engineer team would like to move you forward. Please pick times for your interviews here: https://stripe.goodtime.io/schedule/abc\n\nThanks,\nStripe Recruiting",
+  "kind": "interview",
+  "company": "Stripe",
+  "outcome": "applied"
+ },
+ {
+  "id": "int-calendly",
+  "from": "Priya Shah <priya@cobaltdata.co>",
+  "subject": "Cobalt Data - interview with our Head of ML",
+  "body": "Hi Jane,\n\nThanks for applying for the ML Engineer role. Our Head of ML would love to meet you. Please grab 45 minutes on her calendar: https://calendly.com/cobalt-ml/45min\n\nPriya, Talent at Cobalt Data",
+  "kind": "interview",
+  "company": "Cobalt Data",
+  "outcome": "applied"
+ },
+ {
+  "id": "int-onsite",
+  "from": "Notion <no-reply@ashbyhq.com>",
+  "subject": "Notion - Data Scientist, Growth: onsite interview",
+  "body": "Hi Jane,\n\nWe're excited to invite you to a virtual onsite interview for the Data Scientist, Growth role. The loop is four 45-minute conversations with the team.\n\nPlease reply with your availability for next week.\n\nNotion Recruiting",
+  "kind": "interview",
+  "company": "Notion",
+  "outcome": "applied"
+ },
+ {
+  "id": "int-next-round",
+  "from": "Quantia Talent <talent@quantia.com>",
+  "subject": "Quantia: next round",
+  "body": "Hi Jane,\n\nCongratulations on passing the technical screen! We would like to invite you to the next round, a technical interview with two engineers from the Applied Scientist team.\n\nQuantia Talent",
+  "kind": "interview",
+  "company": "Quantia",
+  "outcome": "applied",
+  "start": "screen"
+ },
+ {
+  "id": "int-modernloop",
+  "from": "Brightline Recruiting <scheduling@modernloop.io>",
+  "subject": "Your Brightline interview is confirmed",
+  "body": "Hi Jane,\n\nYour hiring manager interview for the Data Engineer position at Brightline is confirmed for Tuesday at 11:00 AM CT. Join via Zoom. Manage your interview: https://app.modernloop.io/candidate/123",
+  "kind": "interview",
+  "company": "Brightline",
+  "outcome": "applied",
+  "start": "screen"
+ },
+ {
+  "id": "int-availability",
+  "from": "Northstar Analytics Recruiting <recruiting@northstaranalytics.com>",
+  "subject": "Northstar Analytics - Data Scientist",
+  "body": "Hi Jane,\n\nThank you for your application. The hiring team would like to set up a technical interview. Could you share your availability for the next few days?\n\nBest,\nNorthstar Analytics",
+  "kind": "interview",
+  "company": "Northstar Analytics",
+  "outcome": "applied"
+ },
+ {
+  "id": "int-behind",
+  "from": "Stripe Recruiting <recruiting@stripe.com>",
+  "subject": "Stripe: interview reminder",
+  "body": "Hi Jane, this is a reminder about your panel interview for the Data Engineer role tomorrow at 10:00. Stripe Recruiting",
+  "kind": "interview",
+  "company": "Stripe",
+  "outcome": "recorded",
+  "start": "offer"
+ },
+ {
+  "id": "off-pleased",
+  "from": "Fernway People Team <people@fernway.com>",
+  "subject": "Your offer from Fernway",
+  "body": "Dear Jane,\n\nWe are pleased to offer you the position of Data Scientist at Fernway! Your offer letter is attached; please review it and let us know by Friday.\n\nWelcome aboard,\nFernway People Team",
+  "kind": "offer",
+  "company": "Fernway",
+  "outcome": "applied",
+  "start": "interview"
+ },
+ {
+  "id": "off-verbal",
+  "from": "Sam Lee <sam.lee@vantagepoint.io>",
+  "subject": "Great news from Vantage Point",
+  "body": "Hi Jane,\n\nThe team loved meeting you during the onsite and I'm thrilled to extend a verbal offer for the Machine Learning Engineer role. The written offer will follow tomorrow.\n\nSam",
+  "kind": "offer",
+  "company": "Vantage Point",
+  "outcome": "applied",
+  "start": "interview"
+ },
+ {
+  "id": "off-letter",
+  "from": "Helix Bio HR <hr@helixbio.com>",
+  "subject": "Helix Bio - offer letter",
+  "body": "Dear Jane,\n\nCongratulations! Attached is your offer letter for the Bioinformatics Data Scientist role. Please sign by Monday.\n\nHelix Bio HR",
+  "kind": "offer",
+  "company": "Helix Bio",
+  "outcome": "applied",
+  "start": "interview"
+ },
+ {
+  "id": "rec-workday",
+  "from": "Northwind Health <northwindhealth@myworkday.com>",
+  "subject": "Thank you for applying to Northwind Health",
+  "body": "Dear Jane Doe,\n\nThank you for applying to the Machine Learning Engineer (R-20500) position at Northwind Health. We have received your application and our team will review it. You can check the status in your candidate home.\n\nNorthwind Health Talent Acquisition",
+  "kind": "received",
+  "company": "Northwind Health",
+  "title": "Machine Learning Engineer",
+  "outcome": "recorded"
+ },
+ {
+  "id": "rec-greenhouse",
+  "from": "Orbital Systems <no-reply@us.greenhouse-mail.io>",
+  "subject": "Thank you for applying to Orbital Systems",
+  "body": "Hi Jane,\n\nThanks for applying to Orbital Systems! Your application has been received and we will review it right away. If your experience is a match we'll be in touch.\n\nOrbital Systems Recruiting",
+  "kind": "received",
+  "company": "Orbital Systems",
+  "outcome": "recorded"
+ },
+ {
+  "id": "rec-lever",
+  "from": "Cobalt Data <no-reply@hire.lever.co>",
+  "subject": "Cobalt Data: application received",
+  "body": "Hi Jane,\n\nThank you for your interest in Cobalt Data! We've received your application for ML Engineer and will reach out if there is a fit.\n\nCobalt Data",
+  "kind": "received",
+  "company": "Cobalt Data",
+  "outcome": "recorded"
+ },
+ {
+  "id": "rec-icims",
+  "from": "Globex Careers <careers@globex.icims.com>",
+  "subject": "Thank you for submitting your application",
+  "body": "Dear Jane,\n\nThank you for submitting your application for the position of Data Engineer II at Globex. We have received your materials.\n\nGlobex Recruiting",
+  "kind": "received",
+  "company": "Globex",
+  "outcome": "recorded"
+ },
+ {
+  "id": "rec-revives-cold",
+  "from": "Silverline <no-reply@ashbyhq.com>",
+  "subject": "Silverline - application received",
+  "body": "Hi Jane,\n\nThanks for applying to Silverline for the Analytics Engineer role. Your application was submitted successfully.\n\nSilverline",
+  "kind": "received",
+  "company": "Silverline",
+  "outcome": "applied",
+  "start": "ghosted"
+ },
+ {
+  "id": "rec-unknown",
+  "from": "Zephyr Motors <no-reply@us.greenhouse-mail.io>",
+  "subject": "Thank you for applying to Zephyr Motors",
+  "body": "Hi Jane,\n\nThanks for applying to Zephyr Motors! Your application has been received.\n\nZephyr Motors Talent",
+  "kind": "received",
+  "company": null,
+  "outcome": "needs"
+ },
+ {
+  "id": "llm-followup",
+  "from": "Dana Wu <dana.wu@meridianai.com>",
+  "subject": "Re: Meridian AI - ML Engineer",
+  "body": "Hi Jane,\n\nFollowing up on your application for the ML Engineer role. Are you still interested? If so, please send me a few times that work for a 30-minute conversation with me this week.\n\nDana, Meridian AI",
+  "kind": "screen",
+  "company": "Meridian AI",
+  "outcome": "needs",
+  "llm": "screen"
+ },
+ {
+  "id": "not-bank",
+  "from": "Capital One <capitalone@notification.capitalone.com>",
+  "subject": "Your payment is scheduled",
+  "body": "Hi Jane, unfortunately your automatic payment of $45.10 could not be processed. Please sign in to update your bank account.",
+  "kind": "other",
+  "company": null,
+  "outcome": "ignored"
+ },
+ {
+  "id": "not-alert",
+  "from": "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+  "subject": "30+ new jobs for Machine Learning Engineer",
+  "body": "Machine Learning Engineer\nStripe - San Francisco, CA\nApply now\n\nSenior Data Scientist\nCapital One - McLean, VA\n\nApplied AI Engineer\nRamp - New York, NY\n\nData Scientist, Growth\nNotion - Remote\n\nSee all jobs",
+  "kind": "other",
+  "company": null,
+  "outcome": "ignored"
+ },
+ {
+  "id": "not-newsletter",
+  "from": "Stripe <newsletter@stripe.com>",
+  "subject": "Stripe Sessions: the product updates you missed",
+  "body": "Hi Jane, here is everything we launched this quarter: faster payouts, new billing APIs and more. Read the recap on our blog.",
+  "kind": "other",
+  "company": null,
+  "outcome": "ignored"
+ },
+ {
+  "id": "not-order",
+  "from": "Shop Orders <orders@shopmail.com>",
+  "subject": "Your order has shipped",
+  "body": "Your order #1123 has shipped and will arrive Thursday. Track your package here.",
+  "kind": "other",
+  "company": null,
+  "outcome": "ignored"
+ },
+ {
+  "id": "not-ramp-up",
+  "from": "Tech Weekly <hello@techweekly.dev>",
+  "subject": "How teams ramp up on AI",
+  "body": "This week: how engineering teams ramp up on AI tooling, a deep dive into the notion of agents, and the best scale-up stories.",
+  "kind": "other",
+  "company": null,
+  "outcome": "ignored"
+ },
+ {
+  "id": "rej-not-chosen-ats-local-part",
+  "from": "OrbitalSystems@myworkday.com",
+  "subject": "Orbital Systems Thanks You!",
+  "body": "Dear Jane,\n\nThank you for your interest in the R19850 Data Scientist. We are writing to inform you that you have not been chosen to move forward in the selection process.\n\nOnce again, thank you and we encourage you to pursue other positions that interest you at Orbital Systems. Good luck in your future endeavors!\n\nKind regards,\nOrbital Systems Talent Acquisition",
+  "kind": "rejected",
+  "company": "Orbital Systems",
+  "outcome": "applied",
+  "real": true
+ },
+ {
+  "id": "rej-not-chosen-not-in-tracker",
+  "from": "KPC@myworkday.com",
+  "subject": "KPC Thanks You!",
+  "body": "Dear Jane,\n\nThank you for your interest in the R19850 Data Scientist. We are writing to inform you that you have not been chosen to move forward in the selection process.\n\nGood luck in your future endeavors!\n\nKPC Talent Acquisition",
+  "kind": "rejected",
+  "outcome": "needs",
+  "real": true
+ },
+ {
+  "id": "rcv-ats-name-is-not-the-company",
+  "from": "KPC@myworkday.com",
+  "subject": "Thank you for applying to KPC!",
+  "body": "Dear Jane,\n\nThank you for applying for the role of Data Scientist. We will review your application and resume as soon as possible. If your skillset and qualifications meet the needs of the position, KPC will follow-up with you.\n\nKPC Talent Acquisition",
+  "kind": "received",
+  "outcome": "needs",
+  "real": true
+ },
+ {
+  "id": "rcv-if-selected-schedule-interview",
+  "from": "Pinnacle Bank Recruiting Team <notification@jobvite.com>",
+  "subject": "Your application for Machine Learning Engineer at Pinnacle Bank",
+  "body": "Dear Jane,\n\nThank you for your interest in a career with Pinnacle Bank! We have received your application for our Machine Learning Engineer position. Our hiring team is currently reviewing all applications. If you are selected to move forward in the recruitment process, a member of our team will contact you to schedule an interview. In the meantime, to view the status of your application, please visit the following link: Application Status\n\nSincerely,\nPinnacle Bank Recruiting",
+  "kind": "received",
+  "company": "Pinnacle Bank",
+  "outcome": "recorded",
+  "real": true
+ },
+ {
+  "id": "rej-req-id-only-links-it",
+  "from": "NWH@myworkday.com",
+  "subject": "NWH Thanks You!",
+  "body": "Dear Jane,\n\nThank you for your interest in the R-20431 Senior Data Scientist. We are writing to inform you that you have not been chosen to move forward in the selection process.\n\nKind regards,\nNWH Talent Acquisition",
+  "kind": "rejected",
+  "company": "Northwind Health",
+  "title": "Senior Data Scientist",
+  "outcome": "applied",
+  "real": true
+ },
+ {
+  "id": "real-v1-aep-rejection",
+  "real": true,
+  "from": "NWH@myworkday.com",
+  "subject": "NWH Thanks You!",
+  "body": "Dear Jane,\n\nThank you for your interest in the R-20431 Senior Data Scientist. We are writing to inform you that you have not been chosen to move forward in the selection process.\n\nOnce again, thank you and we encourage you to pursue other positions that interest you at NWH. Good luck in your future endeavors!\n\nKind regards,\nNWH Talent Acquisition\n\nThis email was intended for jane.doe@example.com",
+  "kind": "rejected",
+  "company": "Northwind Health",
+  "title": "Senior Data Scientist",
+  "outcome": "applied"
+ },
+ {
+  "id": "real-v2-workday-received-if-profile-corresponds",
+  "real": true,
+  "from": "Workday Globex <globex@myworkday.com>",
+  "subject": "You've applied to a position at Globex - Data Engineer II",
+  "body": "Dear Jane,\n\nWe have received your application for the position of Data Engineer II and are currently reviewing your experience and qualifications. If your profile corresponds to our requirements, a member of our Talent Acquisition Department will contact you soon.\n\nWe thank you for your interest in Globex.\n\nBest regards,\nGlobex Talent Acquisition\n\nReplies to this message are undeliverable and will not reach the Human Resources Department. Please do not reply. This email box is not monitored.\n\nThis email was intended for jane.doe@example.com",
+  "kind": "received",
+  "company": "Globex",
+  "title": "Data Engineer II",
+  "outcome": "recorded"
+ },
+ {
+  "id": "real-v3-workday-received-follow-up-next-steps",
+  "real": true,
+  "from": "OrbitalSystems@myworkday.com",
+  "subject": "Thank you for applying to Orbital Systems!",
+  "body": "Dear Jane,\n\nThank you for applying for the role of Data Scientist. We will review your application and resume as soon as possible. If your skillset and qualifications meet the needs of the position, Orbital Systems will follow-up with you regarding next steps in the recruiting process.\n\nPlease note that regardless of the outcome, your application and resume will remain on file for future reference in accordance with your local privacy laws.\n\nKind regards,\nOrbital Systems Talent Acquisition\n\nThis email was intended for jane.doe@example.com",
+  "kind": "received",
+  "company": "Orbital Systems",
+  "title": "Data Scientist",
+  "outcome": "recorded"
+ },
+ {
+  "id": "real-v4-workday-received-if-selected-phone-call",
+  "real": true,
+  "from": "lumenlabs@myworkday.com",
+  "subject": "Thank You for Your Application: AI Engineer at Lumen Labs",
+  "body": "Dear Jane ,\n\nWe would like to thank you for your interest in a career at Lumen Labs.\n\nWhat happens next?\nWe will review your application and if you are selected for an interview, you can expect a phone call from our Lumen Labs Recruiting Team.\n\nThank you again for your interest in our company and we appreciate the time you have taken to complete this application.\n\nSincerely,\nThe Lumen Labs Recruiting Team\n\nThis email was intended for jane.doe@example.com",
+  "kind": "received",
+  "company": "Lumen Labs",
+  "title": "AI Engineer",
+  "outcome": "recorded"
+ },
+ {
+  "id": "real-v5-own-site-received-interview-resources",
+  "real": true,
+  "from": "noreply@mail.quantia.jobs",
+  "subject": "Thank you for Applying to Quantia!",
+  "body": "Hi jane,\n\nThanks for applying to Quantia! We've received your application for the Applied Scientist (ID: 10572496) position.\n\nWhat happens next?\nIf we decide to move forward with your application, the Quantia recruiting team will reach out to discuss next steps. Any updates to your application status will be reflected on your Application dashboard, so be sure to check back regularly.\n\nGo to your application dashboard\n\nExplore our interview resources for more information on the hiring process and how to prepare for interviews.\n\nBest regards,\nQuantia Recruiting Team\n\nQuantia is an equal opportunity employer. Please don't reply to this email, as we can't review or respond to messages at this address.",
+  "kind": "received",
+  "company": "Quantia",
+  "title": "Applied Scientist",
+  "outcome": "recorded"
+ },
+ {
+  "id": "real-v6-jobvite-received-if-selected-schedule",
+  "real": true,
+  "from": "Helix Bio Recruiting Team <notification@jobvite.com>",
+  "subject": "Your application for Bioinformatics Data Scientist at Helix Bio",
+  "body": "Dear jane,\n\nThank you for your interest in a career with Helix Bio! We have received your application for our Bioinformatics Data Scientist position. Our hiring team is currently reviewing all applications. If you are selected to move forward in the recruitment process, a member of our team will contact you to schedule an interview.\n\nIn the meantime, to view the status of your application, please visit the following link: Application Status\n\nSincerely,\nHelix Bio Recruiting\n\nYou can reply directly to this message or click here to reply via your Jobvite user account. Email Preferences | Powered by Jobvite",
+  "kind": "received",
+  "company": "Helix Bio",
+  "title": "Bioinformatics Data Scientist",
+  "outcome": "recorded"
+ },
+ {
+  "id": "real-v7-offer-letter-no-application",
+  "real": true,
+  "from": "Hr Northbeam <hr@northbeamtech.example>",
+  "subject": "Jane_Stem Opt Offer Letter",
+  "body": "Hi Jane,\n\nWe are pleased to offer you a position at NORTHBEAM TECH INC. as outlined in the attached STEM OPT Offer Letter. We are excited about the possibility of you joining our team and contributing to our ongoing success.\n\nTo formalize your acceptance, please review the attached offer letter and provide your countersignature. Once signed, kindly return a copy to us.\n\nIf you have any questions or need any further information, please feel free to reach out to me.\n\nThanks & Regards\nA Person\nHR Manager",
+  "kind": "offer",
+  "outcome": "needs"
+ },
+ {
+  "id": "real-v8-linkedin-job-alert",
+  "real": true,
+  "from": "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+  "subject": "You may be a fit for Ramp's AI/ML Engineer role",
+  "body": "Your job alert for software engineer\nManage your job alerts: https://www.linkedin.com/comm/jobs/alerts\n\nAI/ML Engineer\nRamp\nNew York\nView job: https://www.linkedin.com/comm/jobs/view/1/\n---------------------------------------------------------\nAssociate AI/ML Engineer\nGlobex\nRemote\nView job: https://www.linkedin.com/comm/jobs/view/2/",
+  "kind": "other",
+  "outcome": "ignored"
+ }
+]

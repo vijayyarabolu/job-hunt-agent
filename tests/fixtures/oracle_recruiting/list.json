@@ -1,0 +1,1217 @@
+{
+ "items": [
+  {
+   "SearchId": 1,
+   "Keyword": "machine learning",
+   "CorrectedKeyword": null,
+   "UseExactKeywordFlag": false,
+   "SuggestedKeyword": null,
+   "ExecuteSpellCheckFlag": true,
+   "Location": null,
+   "LocationId": null,
+   "Radius": 0,
+   "RadiusUnit": "MI",
+   "SelectedTitlesFacet": null,
+   "SelectedCategoriesFacet": null,
+   "SelectedPostingDatesFacet": null,
+   "SelectedLocationsFacet": null,
+   "LastSelectedFacet": null,
+   "Facets": "TITLES;LOCATIONS;LOCATION_LEVEL1;LOCATION_LEVEL2;LOCATION_LEVEL3;CATEGORIES;POSTING_DATES;WORK_LOCATIONS;FLEX_FIELDS;ORGANIZATIONS;WORKPLACE_TYPES",
+   "Offset": 0,
+   "Limit": 25,
+   "SortBy": "POSTING_DATES_DESC",
+   "TotalJobsCount": 608,
+   "Latitude": null,
+   "Longitude": null,
+   "SiteNumber": "CX_1001",
+   "JobFamilyId": null,
+   "PostingStartDate": null,
+   "PostingEndDate": null,
+   "SelectedWorkLocationsFacet": null,
+   "RequisitionId": null,
+   "CandidateNumber": null,
+   "WorkLocationZipCode": null,
+   "WorkLocationCountryCode": null,
+   "SelectedFlexFieldsFacets": null,
+   "OrganizationId": null,
+   "SelectedOrganizationsFacet": null,
+   "UserTargetFacetName": null,
+   "UserTargetFacetInputTerm": null,
+   "HotJobFlag": null,
+   "WorkplaceType": null,
+   "SelectedWorkplaceTypesFacet": null,
+   "BotQRShortCode": null,
+   "requisitionList": [
+    {
+     "Id": "210789358",
+     "Title": "Artificial Intelligence Research, Business Operations Lead",
+     "PostedDate": "2026-10-08",
+     "PostingEndDate": null,
+     "Language": "US",
+     "PrimaryLocationCountry": "US",
+     "GeographyId": 300000020694566,
+     "HotJobFlag": false,
+     "WorkplaceTypeCode": null,
+     "JobFamily": "Analytics Solutions & Delivery",
+     "JobFunction": "Data & Analytics",
+     "WorkerType": null,
+     "ContractType": null,
+     "ManagerLevel": null,
+     "JobSchedule": null,
+     "JobShift": null,
+     "JobType": null,
+     "StudyLevel": null,
+     "DomesticTravelRequired": null,
+     "InternationalTravelRequired": null,
+     "WorkDurationYears": null,
+     "WorkDurationMonths": null,
+     "WorkHours": null,
+     "WorkDays": null,
+     "LegalEmployer": null,
+     "BusinessUnit": null,
+     "Department": null,
+     "Organization": null,
+     "BusinessUnitId": 300000086610244,
+     "LegalEmployerId": 300000087185180,
+     "OrganizationId": 300011323767899,
+     "MediaThumbURL": null,
+     "ShortDescriptionStr": "Seeking a Business Operations Lead in Artificial Intelligence Research team at CDAO",
+     "PrimaryLocation": "New York, NY, United States",
+     "Distance": 1791417600000.0,
+     "TrendingFlag": false,
+     "BeFirstToApplyFlag": false,
+     "Relevancy": 11.341974258422852,
+     "WorkplaceType": "",
+     "ExternalQualificationsStr": null,
+     "ExternalResponsibilitiesStr": null,
+     "secondaryLocations": []
+    },
+    {
+     "Id": "210792707",
+     "Title": "Lead Solutions Engineer, Financial Forecasting & Analytics - Vice President",
+     "PostedDate": "2026-10-07",
+     "PostingEndDate": null,
+     "Language": "US",
+     "PrimaryLocationCountry": "US",
+     "GeographyId": 300000020685544,
+     "HotJobFlag": false,
+     "WorkplaceTypeCode": null,
+     "JobFamily": "Analytics Solutions & Delivery",
+     "JobFunction": "Data & Analytics",
+     "WorkerType": null,
+     "ContractType": null,
+     "ManagerLevel": null,
+     "JobSchedule": null,
+     "JobShift": null,
+     "JobType": null,
+     "StudyLevel": null,
+     "DomesticTravelRequired": null,
+     "InternationalTravelRequired": null,
+     "WorkDurationYears": null,
+     "WorkDurationMonths": null,
+     "WorkHours": null,
+     "WorkDays": null,
+     "LegalEmployer": null,
+     "BusinessUnit": null,
+     "Department": null,
+     "Organization": null,
+     "BusinessUnitId": 300000086610244,
+     "LegalEmployerId": 300000087185180,
+     "OrganizationId": 300000165139918,
+     "MediaThumbURL": null,
+     "ShortDescriptionStr": "Modernize macroeconomic forecasting workflows with strong controls, transparency, and scalable delivery.",
+     "PrimaryLocation": "Jersey City, NJ, United States",
+     "Distance": 1791331200000.0,
+     "TrendingFlag": false,
+     "BeFirstToApplyFlag": false,
+     "Relevancy": 13.657196044921875,
+     "WorkplaceType": "",
+     "ExternalQualificationsStr": null,
+     "ExternalResponsibilitiesStr": null,
+     "secondaryLocations": []
+    },
+    {
+     "Id": "210795601",
+     "Title": "Software Engineer III \u2013 MLOps",
+     "PostedDate": "2026-10-07",
+     "PostingEndDate": null,
+     "Language": "US",
+     "PrimaryLocationCountry": "US",
+     "GeographyId": 300000020709331,
+     "HotJobFlag": false,
+     "WorkplaceTypeCode": null,
+     "JobFamily": "Software Engineering",
+     "JobFunction": "Technology",
+     "WorkerType": null,
+     "ContractType": null,
+     "ManagerLevel": null,
+     "JobSchedule": null,
+     "JobShift": null,
+     "JobType": null,
+     "StudyLevel": null,
+     "DomesticTravelRequired": null,
+     "InternationalTravelRequired": null,
+     "WorkDurationYears": null,
+     "WorkDurationMonths": null,
+     "WorkHours": null,
+     "WorkDays": null,
+     "LegalEmployer": null,
+     "BusinessUnit": null,
+     "Department": null,
+     "Organization": null,
+     "BusinessUnitId": 300000086610208,
+     "LegalEmployerId": 300000087185180,
+     "OrganizationId": 300000165256799,
+     "MediaThumbURL": null,
+     "ShortDescriptionStr": "Build and run an AWS-based MLOps platform for model delivery, monitoring, and governance across environments.",
+     "PrimaryLocation": "Plano, TX, United States",
+     "Distance": 1791331200000.0,
+     "TrendingFlag": false,
+     "BeFirstToApplyFlag": false,
+     "Relevancy": 13.548397064208984,
+     "WorkplaceType": "",
+     "ExternalQualificationsStr": null,
+     "ExternalResponsibilitiesStr": null,
+     "secondaryLocations": []
+    },
+    {
+     "Id": "210749510",
+     "Title": "Software Engineer III (Full Stack Java)",
+     "PostedDate": "2026-10-07",
+     "PostingEndDate": null,
+     "Language": "US",
+     "PrimaryLocationCountry": "US",
+     "GeographyId": 300000020694566,
+     "HotJobFlag": false,
+     "WorkplaceTypeCode": null,
+     "JobFamily": "Software Engineering",
+     "JobFunction": "Technology",
+     "WorkerType": null,
+     "ContractType": null,
+     "ManagerLevel": null,
+     "JobSchedule": null,
+     "JobShift": null,
+     "JobType": null,
+     "StudyLevel": null,
+     "DomesticTravelRequired": null,
+     "InternationalTravelRequired": null,
+     "WorkDurationYears": null,
+     "WorkDurationMonths": null,
+     "WorkHours": null,
+     "WorkDays": null,
+     "LegalEmployer": null,
+     "BusinessUnit": null,
+     "Department": null,
+     "Organization": null,
+     "BusinessUnitId": 300000086610208,
+     "LegalEmployerId": 300000087185180,
+     "OrganizationId": 300037441232463,
+     "MediaThumbURL": null,
+     "ShortDescriptionStr": "Design and deliver market-leading technology products in a secure and scalable way as a seasoned member of an agile team",
+     "PrimaryLocation": "New York, NY, United States",
+     "Distance": 1791331200000.0,
+     "TrendingFlag": false,
+     "BeFirstToApplyFlag": false,
+     "Relevancy": 12.101324081420898,
+     "WorkplaceType": "",
+     "ExternalQualificationsStr": null,
+     "ExternalResponsibilitiesStr": null,
+     "secondaryLocations": []
+    },
+    {
+     "Id": "210776653",
+     "Title": "Software Engineer III - Java AWS",
+     "PostedDate": "2026-10-08",
+     "PostingEndDate": null,
+     "Language": "US",
+     "PrimaryLocationCountry": "IN",
+     "GeographyId": 300000081145775,
+     "HotJobFlag": false,
+     "WorkplaceTypeCode": null,
+     "JobFamily": "Software Engineering",
+     "JobFunction": "Technology",
+     "WorkerType": null,
+     "ContractType": null,
+     "ManagerLevel": null,
+     "JobSchedule": null,
+     "JobShift": null,
+     "JobType": null,
+     "StudyLevel": null,
+     "DomesticTravelRequired": null,
+     "InternationalTravelRequired": null,
+     "WorkDurationYears": null,
+     "WorkDurationMonths": null,
+     "WorkHours": null,
+     "WorkDays": null,
+     "LegalEmployer": null,
+     "BusinessUnit": null,
+     "Department": null,
+     "Organization": null,
+     "BusinessUnitId": 300000086610172,
+     "LegalEmployerId": 300000087164225,
+     "OrganizationId": 300000165316295,
+     "MediaThumbURL": null,
+     "ShortDescriptionStr": "Design and deliver market-leading technology products in a secure and scalable way as a seasoned member of an agile team",
+     "PrimaryLocation": "Bengaluru, Karnataka, India",
+     "Distance": 1791417600000.0,
+     "TrendingFlag": false,
+     "BeFirstToApplyFlag": false,
+     "Relevancy": 11.971761703491211,
+     "WorkplaceType": "",
+     "ExternalQualificationsStr": null,
+     "ExternalResponsibilitiesStr": null,
+     "secondaryLocations": []
+    }
+   ],
+   "categoriesFacet": [
+    {
+     "Id": 300000086152753,
+     "Name": "Software Engineering",
+     "TotalCount": 254
+    },
+    {
+     "Id": 300000086152508,
+     "Name": "Predictive Science",
+     "TotalCount": 109
+    },
+    {
+     "Id": 300000086144371,
+     "Name": "Architecture",
+     "TotalCount": 28
+    },
+    {
+     "Id": 300000086249650,
+     "Name": "Quant Analytics",
+     "TotalCount": 19
+    },
+    {
+     "Id": 300000086153391,
+     "Name": "Associates",
+     "TotalCount": 18
+    },
+    {
+     "Id": 300000086144003,
+     "Name": "Data Management",
+     "TotalCount": 16
+    },
+    {
+     "Id": 300000086251864,
+     "Name": "Product Management",
+     "TotalCount": 16
+    },
+    {
+     "Id": 300000086250134,
+     "Name": "Analytics Solutions & Delivery",
+     "TotalCount": 14
+    },
+    {
+     "Id": 300000086249821,
+     "Name": "Infrastructure Engineering",
+     "TotalCount": 12
+    },
+    {
+     "Id": 300000086153065,
+     "Name": "Analysts",
+     "TotalCount": 11
+    },
+    {
+     "Id": 300000086144116,
+     "Name": "Seasonal Employee",
+     "TotalCount": 10
+    },
+    {
+     "Id": 300000086153256,
+     "Name": "Risk Analytics/Modeling",
+     "TotalCount": 10
+    },
+    {
+     "Id": 300026872751543,
+     "Name": "Security Engineering",
+     "TotalCount": 10
+    },
+    {
+     "Id": 300000921822354,
+     "Name": "Trading Services",
+     "TotalCount": 6
+    },
+    {
+     "Id": 300000086249991,
+     "Name": "Control Officers",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300000086251636,
+     "Name": "Strategy",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300056769267812,
+     "Name": "Algo Trading",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300000086143850,
+     "Name": "AI Research",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000086250151,
+     "Name": "Portfolio Management",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300049451194835,
+     "Name": "User Experience Design",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300049452668353,
+     "Name": "Technical Program Delivery",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300004511421921,
+     "Name": "Applied Research",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300009195519534,
+     "Name": "CCOR LOB/CF/Country Coverage",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300035862339235,
+     "Name": "Product Portfolio & Delivery",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000086143741,
+     "Name": "Treasury",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300000086144364,
+     "Name": "Controls",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300000086152685,
+     "Name": "Business Analysis",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300000086153239,
+     "Name": "Operations Management",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300000086249994,
+     "Name": "Controller",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300000086251835,
+     "Name": "Market Risk",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300007929924867,
+     "Name": "Program & Project Management",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300021172603596,
+     "Name": "Firmwide Risk and Compliance",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300049452668649,
+     "Name": "Technology Risk & Services",
+     "TotalCount": 2
+    },
+    {
+     "Id": 300000086144020,
+     "Name": "Product",
+     "TotalCount": 1
+    },
+    {
+     "Id": 300000086144190,
+     "Name": "Auditing",
+     "TotalCount": 1
+    },
+    {
+     "Id": 300000086152512,
+     "Name": "Program Management",
+     "TotalCount": 1
+    },
+    {
+     "Id": 300000086152593,
+     "Name": "Business Management",
+     "TotalCount": 1
+    },
+    {
+     "Id": 300000086152826,
+     "Name": "Financial Analysis",
+     "TotalCount": 1
+    },
+    {
+     "Id": 300000086153325,
+     "Name": "Data Doc & Trans Processing",
+     "TotalCount": 1
+    },
+    {
+     "Id": 300000086249595,
+     "Name": "Data & Analytics",
+     "TotalCount": 1
+    }
+   ],
+   "locationsFacet": [
+    {
+     "Id": 300000000289738,
+     "Name": "United States",
+     "TotalCount": 390
+    },
+    {
+     "Id": 300000020657198,
+     "Name": "NJ, United States",
+     "TotalCount": 134
+    },
+    {
+     "Id": 300000020685544,
+     "Name": "Jersey City, NJ, United States",
+     "TotalCount": 134
+    },
+    {
+     "Id": 300000020657211,
+     "Name": "TX, United States",
+     "TotalCount": 120
+    },
+    {
+     "Id": 300000000289276,
+     "Name": "United Kingdom",
+     "TotalCount": 114
+    },
+    {
+     "Id": 300000020709331,
+     "Name": "Plano, TX, United States",
+     "TotalCount": 114
+    },
+    {
+     "Id": 300000020657200,
+     "Name": "NY, United States",
+     "TotalCount": 113
+    },
+    {
+     "Id": 300000020694566,
+     "Name": "New York, NY, United States",
+     "TotalCount": 104
+    },
+    {
+     "Id": 300000020657203,
+     "Name": "OH, United States",
+     "TotalCount": 76
+    },
+    {
+     "Id": 300000057005324,
+     "Name": "LONDON, United Kingdom",
+     "TotalCount": 67
+    },
+    {
+     "Id": 300000020694866,
+     "Name": "Columbus, OH, United States",
+     "TotalCount": 67
+    },
+    {
+     "Id": 300000020657175,
+     "Name": "DE, United States",
+     "TotalCount": 64
+    },
+    {
+     "Id": 300000020683471,
+     "Name": "Wilmington, DE, United States",
+     "TotalCount": 54
+    },
+    {
+     "Id": 300000057005335,
+     "Name": "LANARKSHIRE, United Kingdom",
+     "TotalCount": 46
+    },
+    {
+     "Id": 300000057008413,
+     "Name": "GLASGOW, LANARKSHIRE, United Kingdom",
+     "TotalCount": 46
+    },
+    {
+     "Id": 300000020657172,
+     "Name": "CA, United States",
+     "TotalCount": 43
+    },
+    {
+     "Id": 300000020696877,
+     "Name": "Palo Alto, CA, United States",
+     "TotalCount": 40
+    },
+    {
+     "Id": 300000057007721,
+     "Name": "LONDON, LONDON, United Kingdom",
+     "TotalCount": 40
+    },
+    {
+     "Id": 300000000289360,
+     "Name": "India",
+     "TotalCount": 39
+    },
+    {
+     "Id": 300000020657215,
+     "Name": "WA, United States",
+     "TotalCount": 36
+    },
+    {
+     "Id": 300000020691811,
+     "Name": "Seattle, WA, United States",
+     "TotalCount": 36
+    },
+    {
+     "Id": 300000020657181,
+     "Name": "IL, United States",
+     "TotalCount": 30
+    },
+    {
+     "Id": 300000020701539,
+     "Name": "Chicago, IL, United States",
+     "TotalCount": 30
+    },
+    {
+     "Id": 300000081134215,
+     "Name": "Karnataka, India",
+     "TotalCount": 24
+    },
+    {
+     "Id": 300000081145775,
+     "Name": "Bengaluru, Karnataka, India",
+     "TotalCount": 24
+    },
+    {
+     "Id": 300000020657177,
+     "Name": "FL, United States",
+     "TotalCount": 22
+    },
+    {
+     "Id": 300000000289639,
+     "Name": "Singapore",
+     "TotalCount": 21
+    },
+    {
+     "Id": 300000020688371,
+     "Name": "Tampa, FL, United States",
+     "TotalCount": 18
+    },
+    {
+     "Id": 300000000289081,
+     "Name": "Argentina",
+     "TotalCount": 17
+    },
+    {
+     "Id": 300000081134219,
+     "Name": "Maharashtra, India",
+     "TotalCount": 14
+    },
+    {
+     "Id": 300000081151360,
+     "Name": "Mumbai, Maharashtra, India",
+     "TotalCount": 13
+    },
+    {
+     "Id": 300000020361020,
+     "Name": "Buenos Aires, Argentina",
+     "TotalCount": 12
+    },
+    {
+     "Id": 300000000289330,
+     "Name": "Hong Kong",
+     "TotalCount": 11
+    },
+    {
+     "Id": 300000020705781,
+     "Name": "Newark, DE, United States",
+     "TotalCount": 11
+    },
+    {
+     "Id": 300000057005290,
+     "Name": "DORSET, United Kingdom",
+     "TotalCount": 9
+    },
+    {
+     "Id": 300000057007350,
+     "Name": "BOURNEMOUTH, DORSET, United Kingdom",
+     "TotalCount": 9
+    },
+    {
+     "Id": 300000020678161,
+     "Name": "Houston, TX, United States",
+     "TotalCount": 8
+    },
+    {
+     "Id": 300000020694784,
+     "Name": "Brooklyn, NY, United States",
+     "TotalCount": 8
+    },
+    {
+     "Id": 300000000289351,
+     "Name": "Ireland",
+     "TotalCount": 6
+    },
+    {
+     "Id": 300000020278331,
+     "Name": "Dublin, Ireland",
+     "TotalCount": 6
+    }
+   ],
+   "postingDatesFacet": [
+    {
+     "Id": 7,
+     "Name": "Less than 7 days",
+     "TotalCount": 85
+    },
+    {
+     "Id": 30,
+     "Name": "Less than 30 days",
+     "TotalCount": 270
+    },
+    {
+     "Id": 31,
+     "Name": "Greater than 30 days",
+     "TotalCount": 338
+    }
+   ],
+   "titlesFacet": [
+    {
+     "Id": "TEC",
+     "Name": "Technology",
+     "TotalCount": 314
+    },
+    {
+     "Id": "D&A",
+     "Name": "Data & Analytics",
+     "TotalCount": 157
+    },
+    {
+     "Id": "PAA",
+     "Name": "Program Analysts & Associate",
+     "TotalCount": 35
+    },
+    {
+     "Id": "PRO",
+     "Name": "Product",
+     "TotalCount": 23
+    },
+    {
+     "Id": "PIM",
+     "Name": "Product/Investment Mgmt",
+     "TotalCount": 22
+    },
+    {
+     "Id": "OPS",
+     "Name": "Operations",
+     "TotalCount": 15
+    },
+    {
+     "Id": "RSK",
+     "Name": "Risk",
+     "TotalCount": 15
+    },
+    {
+     "Id": "FIN",
+     "Name": "Finance",
+     "TotalCount": 6
+    },
+    {
+     "Id": "O&C",
+     "Name": "Oversight & Control",
+     "TotalCount": 5
+    },
+    {
+     "Id": "CMP",
+     "Name": "Compliance",
+     "TotalCount": 4
+    },
+    {
+     "Id": "S&D",
+     "Name": "Strategy & Development",
+     "TotalCount": 4
+    },
+    {
+     "Id": "ADM",
+     "Name": "Administration",
+     "TotalCount": 2
+    },
+    {
+     "Id": "AUD",
+     "Name": "Internal Audit",
+     "TotalCount": 1
+    },
+    {
+     "Id": "CLM",
+     "Name": "Client Management",
+     "TotalCount": 1
+    },
+    {
+     "Id": "GS",
+     "Name": "General Services",
+     "TotalCount": 1
+    },
+    {
+     "Id": "LGL",
+     "Name": "Legal",
+     "TotalCount": 1
+    },
+    {
+     "Id": "MKT",
+     "Name": "Marketing & Communications",
+     "TotalCount": 1
+    },
+    {
+     "Id": "PPM",
+     "Name": "Project & Process Mgmt",
+     "TotalCount": 1
+    }
+   ],
+   "workLocationsFacet": [
+    {
+     "Id": 300000161064890,
+     "Name": "02969-NOC 5",
+     "TotalCount": 69
+    },
+    {
+     "Id": 300000161128701,
+     "Name": "60631-Legacy West F",
+     "TotalCount": 69
+    },
+    {
+     "Id": 300000161110891,
+     "Name": "54101-1111 Polaris",
+     "TotalCount": 61
+    },
+    {
+     "Id": 300000161064854,
+     "Name": "02968-NOC 4",
+     "TotalCount": 46
+    },
+    {
+     "Id": 300000161078910,
+     "Name": "32173-25 Bank Street",
+     "TotalCount": 43
+    },
+    {
+     "Id": 300000161072438,
+     "Name": "33489-Argyle Street Glasgow",
+     "TotalCount": 42
+    },
+    {
+     "Id": 300000161067221,
+     "Name": "03354-5 Manhattan West",
+     "TotalCount": 30
+    },
+    {
+     "Id": 300000161122000,
+     "Name": "59179-Delaware Tech Center",
+     "TotalCount": 24
+    },
+    {
+     "Id": 300000161067083,
+     "Name": "03363-277 Park",
+     "TotalCount": 22
+    },
+    {
+     "Id": 300000161065225,
+     "Name": "10468-Chase Tower Chicago",
+     "TotalCount": 21
+    },
+    {
+     "Id": 300000161126808,
+     "Name": "60064-270 Park",
+     "TotalCount": 21
+    },
+    {
+     "Id": 300000161100439,
+     "Name": "52381-One Christina Center",
+     "TotalCount": 20
+    },
+    {
+     "Id": 300000161093804,
+     "Name": "44337-JPMorganChase Center Seattle",
+     "TotalCount": 18
+    },
+    {
+     "Id": 300000161082803,
+     "Name": "33436-JPMorgan Chase & Co Towers A ",
+     "TotalCount": 15
+    },
+    {
+     "Id": 300000161072552,
+     "Name": "33171-OneChangi",
+     "TotalCount": 14
+    },
+    {
+     "Id": 300000161072482,
+     "Name": "33212-San Ignacio Building",
+     "TotalCount": 12
+    },
+    {
+     "Id": 300000161127611,
+     "Name": "59635-Legacy West B",
+     "TotalCount": 12
+    },
+    {
+     "Id": 300000161124720,
+     "Name": "60205-3223 Hanover",
+     "TotalCount": 11
+    },
+    {
+     "Id": 300034459227849,
+     "Name": "00865-FRB 2100 El Camino Real",
+     "TotalCount": 11
+    },
+    {
+     "Id": 300000161067288,
+     "Name": "03619-John Carpenter Street",
+     "TotalCount": 10
+    },
+    {
+     "Id": 300000161121910,
+     "Name": "59199-NOC 7",
+     "TotalCount": 10
+    },
+    {
+     "Id": 300034459227574,
+     "Name": "00856-Rockefeller Center",
+     "TotalCount": 10
+    },
+    {
+     "Id": 300000161091610,
+     "Name": "42771-Third and University",
+     "TotalCount": 9
+    },
+    {
+     "Id": 300000161127581,
+     "Name": "59693-Legacy West A",
+     "TotalCount": 9
+    },
+    {
+     "Id": 300040160872204,
+     "Name": "01055-3203 Hanover",
+     "TotalCount": 9
+    },
+    {
+     "Id": 300000161082606,
+     "Name": "33432-CapitaSpring",
+     "TotalCount": 8
+    },
+    {
+     "Id": 300000161116342,
+     "Name": "59572-159572 Legacy West",
+     "TotalCount": 8
+    },
+    {
+     "Id": 300000161117503,
+     "Name": "59636-Legacy West C",
+     "TotalCount": 8
+    },
+    {
+     "Id": 300035128317753,
+     "Name": "00997-One Cabot Square",
+     "TotalCount": 8
+    },
+    {
+     "Id": 300000161065556,
+     "Name": "01530-JPMorgan Chase Tower Houston",
+     "TotalCount": 6
+    },
+    {
+     "Id": 300000161082797,
+     "Name": "33492-JPMorgan Chase & Co Towers, M",
+     "TotalCount": 6
+    },
+    {
+     "Id": 300000161019396,
+     "Name": "00766-NCC4",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300000161067054,
+     "Name": "03357-4 Metrotech",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300000161067703,
+     "Name": "02978-Fountain Square 3",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300000161082689,
+     "Name": "33437-Embassy Tech Village - Parcel",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300000161082731,
+     "Name": "33416-Capital Dock",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300000159300484,
+     "Name": "01212-Hampshire Building",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000161064896,
+     "Name": "02974-Highland Oaks 2",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000161079411,
+     "Name": "41037-237 Park",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000161082713,
+     "Name": "33435-JPMorgan Chase & Co Towers, H",
+     "TotalCount": 4
+    }
+   ],
+   "flexFieldsFacet": [],
+   "organizationsFacet": [
+    {
+     "Id": 300000164461811,
+     "Name": "319909-NET HC-AR-OPERATIONS",
+     "TotalCount": 10
+    },
+    {
+     "Id": 300000164852218,
+     "Name": "299691-PT-DARC: DATA ANALYTICS",
+     "TotalCount": 9
+    },
+    {
+     "Id": 300000165237998,
+     "Name": "377426-GT SEP PROGRAM - UK",
+     "TotalCount": 9
+    },
+    {
+     "Id": 300000164961474,
+     "Name": "151087-CCB RISK - ML DELIVERY AMERICAS",
+     "TotalCount": 7
+    },
+    {
+     "Id": 300004199054856,
+     "Name": "390493-NAPIER IPB UK",
+     "TotalCount": 7
+    },
+    {
+     "Id": 300076721306365,
+     "Name": "130802-DGT_AI/ML",
+     "TotalCount": 7
+    },
+    {
+     "Id": 300050210623988,
+     "Name": "540108-AGENT BUILDER PLATFORM US",
+     "TotalCount": 6
+    },
+    {
+     "Id": 300000164421302,
+     "Name": "240771-CAO CDO - NAMR",
+     "TotalCount": 5
+    },
+    {
+     "Id": 300000164604385,
+     "Name": "216008-CCB AI MODELING D&A",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000164659211,
+     "Name": "002441-JPMORGAN CHASE BANK NA",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000165072005,
+     "Name": "036721-RT-CREDIT RISK-NY METRO",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000165253712,
+     "Name": "189174-DACS TECH -NY/DE",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000165303350,
+     "Name": "431545-QTR - EQUITIES NEW YORK",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300009579572930,
+     "Name": "402859-GT SEP PROGRAM - US",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300018437226150,
+     "Name": "447540-AI INFRA PLATFORM US",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300043233808805,
+     "Name": "493363-DEPOSITS 2.0 TECH  US",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300046308681659,
+     "Name": "495721-CDAO AI SDK &MODEL TRAINING US",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300067469201760,
+     "Name": "567328-IP ENG PRACTICES UK",
+     "TotalCount": 4
+    },
+    {
+     "Id": 300000164112429,
+     "Name": "478662-PRODUCT MGMT & STRAT",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164146724,
+     "Name": "372444-QTR - MACHINE LEARNING - EMEA - 3305",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164216014,
+     "Name": "173547-GFT LABOR LIQ MGT  - EMEA",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164358084,
+     "Name": "183243-US TECH ORM",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164416913,
+     "Name": "237825-FICC E-TRADING - UK",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164501946,
+     "Name": "372442-QTR - MACHINE LEARNING - APAC - 3800",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164560439,
+     "Name": "211690-SALES & CLIENT MGT US TECH",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164595270,
+     "Name": "299709-PT-DARC: DATA ANALYTICS",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164603496,
+     "Name": "320084-ARTIFICIAL INTELLIGENCE RESEARCH - NA",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000164735017,
+     "Name": "162304-PNCI PRODUCT US",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000165010459,
+     "Name": "215036-MLCOE ENGINEERING NAMR",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000165076212,
+     "Name": "124957-QTR - MANAGEMENT - NA - 0802",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000165138685,
+     "Name": "039026-AI FOR TECH NAMR",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000165249953,
+     "Name": "322877-PAYMENT SERVICES FX - UK",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000165263013,
+     "Name": "187347-PNCI TECH US",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000522585502,
+     "Name": "136385-ESP JET - CONT INTEGRATION US",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300000811985209,
+     "Name": "134009-QTR - X-ASSET SINGAPORE",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300005498259385,
+     "Name": "395627-DCE SSE",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300012184866585,
+     "Name": "406210-CCB DGT_MLIO MODELING_US",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300013421571396,
+     "Name": "406628-APPLIED AI & ML MARKET OPS EMEA",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300025688226294,
+     "Name": "454859-GFT - TIG NA",
+     "TotalCount": 3
+    },
+    {
+     "Id": 300044815280812,
+     "Name": "494499-TECH COHORT HIRING - US",
+     "TotalCount": 3
+    }
+   ],
+   "workplaceTypesFacet": [
+    {
+     "Id": "ORA_ON_SITE",
+     "Name": "On-site",
+     "TotalCount": 608
+    }
+   ]
+  }
+ ],
+ "count": 1,
+ "hasMore": false,
+ "limit": 200,
+ "offset": 0,
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://jpmc.fa.oraclecloud.com:443/hcmRestApi/resources/11.13.18.05/recruitingCEJobRequisitions",
+   "name": "recruitingCEJobRequisitions",
+   "kind": "collection"
+  },
+  {
+   "rel": "action",
+   "href": "https://jpmc.fa.oraclecloud.com:443/hcmRestApi/resources/11.13.18.05/recruitingCEJobRequisitions/action/getRequisitionsLocationCoordinates",
+   "name": "getRequisitionsLocationCoordinates",
+   "kind": "other"
+  },
+  {
+   "rel": "action",
+   "href": "https://jpmc.fa.oraclecloud.com:443/hcmRestApi/resources/11.13.18.05/recruitingCEJobRequisitions/action/getRequisitionDetailsForMap",
+   "name": "getRequisitionDetailsForMap",
+   "kind": "other"
+  }
+ ]
+}

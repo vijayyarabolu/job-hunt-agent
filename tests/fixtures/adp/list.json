@@ -1,0 +1,221 @@
+{
+ "jobRequisitions": [
+  {
+   "itemID": "9201849983032_1",
+   "postingInstructions": [],
+   "links": [],
+   "additionalProperties": {},
+   "requisitionTitle": "Maintenance Mechanic III",
+   "postDate": "2026-10-08T18:31:00.000-04:00",
+   "screeningRequirements": [],
+   "organizationalUnits": [],
+   "payGradeRange": {
+    "minimumRate": {
+     "amountValue": 33.65,
+     "currencyCode": "USD"
+    },
+    "maximumRate": {
+     "amountValue": 36.06,
+     "currencyCode": "USD"
+    }
+   },
+   "workLevelCode": {
+    "shortName": "Regular Full Time"
+   },
+   "sponsoredVisaTypeCodes": [],
+   "clientRequisitionID": "1470",
+   "requisitionLocations": [
+    {
+     "aliasNames": [],
+     "address": {
+      "cityName": "Newton",
+      "countrySubdivisionLevel1": {
+       "codeValue": "MA"
+      },
+      "postalCode": "02466"
+     },
+     "nameCode": {
+      "shortName": " Newton, MA, US"
+     }
+    },
+    {
+     "aliasNames": [],
+     "address": {
+      "cityName": "Waltham",
+      "countrySubdivisionLevel1": {
+       "codeValue": "MA"
+      },
+      "postalCode": "02453"
+     },
+     "nameCode": {
+      "shortName": " Waltham, MA, US"
+     }
+    }
+   ]
+  },
+  {
+   "itemID": "9201849977836_1",
+   "postingInstructions": [],
+   "links": [],
+   "additionalProperties": {},
+   "requisitionTitle": "Senior Events Manager",
+   "postDate": "2026-10-08T18:10:00.000-04:00",
+   "screeningRequirements": [],
+   "organizationalUnits": [],
+   "payGradeRange": {
+    "minimumRate": {
+     "amountValue": 85000.0,
+     "currencyCode": "USD"
+    },
+    "maximumRate": {
+     "amountValue": 95000.0,
+     "currencyCode": "USD"
+    }
+   },
+   "workLevelCode": {
+    "shortName": "Regular Full Time"
+   },
+   "sponsoredVisaTypeCodes": [],
+   "clientRequisitionID": "1469",
+   "requisitionLocations": [
+    {
+     "aliasNames": [],
+     "address": {
+      "cityName": "Boston",
+      "countrySubdivisionLevel1": {
+       "codeValue": "MA"
+      },
+      "postalCode": "02135"
+     },
+     "nameCode": {
+      "shortName": " Boston, MA, US"
+     }
+    }
+   ]
+  },
+  {
+   "itemID": "9201849660634_1",
+   "postingInstructions": [],
+   "links": [],
+   "additionalProperties": {},
+   "requisitionTitle": "Maintenance Custodian",
+   "postDate": "2026-10-07T16:32:00.000-04:00",
+   "screeningRequirements": [],
+   "organizationalUnits": [],
+   "payGradeRange": {
+    "minimumRate": {
+     "amountValue": 20.0,
+     "currencyCode": "USD"
+    },
+    "maximumRate": {
+     "amountValue": 23.0,
+     "currencyCode": "USD"
+    }
+   },
+   "workLevelCode": {
+    "shortName": "Regular Full Time"
+   },
+   "sponsoredVisaTypeCodes": [],
+   "clientRequisitionID": "1468",
+   "requisitionLocations": [
+    {
+     "aliasNames": [],
+     "address": {
+      "cityName": "Newton",
+      "countrySubdivisionLevel1": {
+       "codeValue": "MA"
+      },
+      "postalCode": "02461"
+     },
+     "nameCode": {
+      "shortName": " Newton, MA, US"
+     }
+    }
+   ]
+  },
+  {
+   "itemID": "9201848118346_1",
+   "postingInstructions": [],
+   "links": [],
+   "additionalProperties": {},
+   "requisitionTitle": "Occupancy Specialist II",
+   "postDate": "2026-10-02T11:53:00.000-04:00",
+   "screeningRequirements": [],
+   "organizationalUnits": [],
+   "payGradeRange": {
+    "minimumRate": {
+     "amountValue": 55000.0,
+     "currencyCode": "USD"
+    },
+    "maximumRate": {
+     "amountValue": 65000.0,
+     "currencyCode": "USD"
+    }
+   },
+   "workLevelCode": {
+    "shortName": "Regular Full Time"
+   },
+   "sponsoredVisaTypeCodes": [],
+   "clientRequisitionID": "1467",
+   "requisitionLocations": [
+    {
+     "aliasNames": [],
+     "address": {
+      "cityName": "Boston",
+      "countrySubdivisionLevel1": {
+       "codeValue": "MA"
+      },
+      "postalCode": "02135"
+     },
+     "nameCode": {
+      "shortName": " Boston, MA, US"
+     }
+    }
+   ]
+  },
+  {
+   "itemID": "9201847354304_1",
+   "postingInstructions": [],
+   "links": [],
+   "additionalProperties": {},
+   "requisitionTitle": "Maintenance Custodian",
+   "postDate": "2026-09-30T09:05:00.000-04:00",
+   "screeningRequirements": [],
+   "organizationalUnits": [],
+   "payGradeRange": {
+    "minimumRate": {
+     "amountValue": 19.0,
+     "currencyCode": "USD"
+    },
+    "maximumRate": {
+     "amountValue": 21.0,
+     "currencyCode": "USD"
+    }
+   },
+   "workLevelCode": {
+    "shortName": "Regular Full Time"
+   },
+   "sponsoredVisaTypeCodes": [],
+   "clientRequisitionID": "1466",
+   "requisitionLocations": [
+    {
+     "aliasNames": [],
+     "address": {
+      "cityName": "Newton",
+      "countrySubdivisionLevel1": {
+       "codeValue": "MA"
+      },
+      "postalCode": "02466"
+     },
+     "nameCode": {
+      "shortName": " Newton, MA, US"
+     }
+    }
+   ]
+  }
+ ],
+ "meta": {
+  "totalNumber": 5,
+  "startSequence": 1
+ }
+}

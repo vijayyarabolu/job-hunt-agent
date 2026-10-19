@@ -1,0 +1,82 @@
+{
+ "hits": {
+  "total": {
+   "value": 285,
+   "relation": "eq"
+  },
+  "hits": [
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "999c8d02da4a83dd3182ad682cf6ee7d7d3bc41c43731d94acf30b3cffab8aaf",
+    "_score": 84.37738,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=132433",
+     "dcdate": "2026-09-25",
+     "title": "Quantum Algorithms and Quantum Machine Learning Intern 2027",
+     "description": "IBM Research is seeking an intern to conduct research in quantum algorithms and quantum AI. The work combines quantum computing, machine learning, and scientific computing to develop new methods for learning and simulation and to identify problems where...",
+     "body": "IBM Research is seeking an intern to conduct research in quantum algorithms and quantum AI. The work combines quantum computing, machine learning, and scientific computing to develop new methods for learning and simulation and to identify problems where quantum resources may provide advantage over classical counterparts. You will work in a collaborative environment with researchers across quantum algorithms, AI, and the physical sciences. As a research intern, you will develop and evaluate quantum algorithms and quantum-classical methods at the intersection of quantum computing and AI. Your project will be defined with your mentor and may involve quantum models for classical or quantum data, hybrid learning workflows, algorithms for simulating physical systems, or theory and benchmarking of quantum and classical learning methods. You will: Develop quantum and hybrid algorithms for scientifically meaningful learning or simulation tasks. Implement research prototypes and benchmark accuracy, resource requirements, and scalability against strong classical methods. Apply these methods to problems involving classical or quantum data in physics, chemistry, materials science, or related domains. Analyze when quantum resources may offer a meaningful advantage and clearly state the assumptions and costs. Present results through technical reports, talks, open-source code, and, where appropriate, a publication or conference submission. Enrollment in a graduate program in quantum computin",
+     "field_keyword_05": "United States",
+     "field_keyword_08": "Research",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Chicago, US",
+     "field_text_01": 132433
+    }
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "72b55b12b23daa1ced2c00f6011fc5614bbfa6991569ac385b28754bdb6299e8",
+    "_score": 61.282867,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=135193",
+     "dcdate": "2026-10-05",
+     "title": "Data Engineer-Machine Learning - 2",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You\u00e2\u20ac\u2122ll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "body": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You\u00e2\u20ac\u2122ll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic partners, robust IBM technology, and Red Hat, you\u00e2\u20ac\u2122ll have the tools to drive meaningful change and accelerate client impact. At IBM Consulting, curiosity fuels success. You\u00e2\u20ac\u2122ll be encouraged to challenge the norm, explore new ideas, and create innovative solutions that deliver real results. Our culture of growth and empathy focuses on your long-term career development while valuing your unique skills and experiences. As a Data Engineer with expertise in Machine Learning, you will apply Machine Learning concepts and techniques to address business challenges. You will leverage your skills to drive informed decision-making in the organization. Your primary responsibilities will include: \u2022 Develop Machine Learning Solutions: Design and implement Machine Learning models to solve complex business problems, selecting relevant features and algorithms to achieve desired outcomes. \u2022 Evaluate Algorithm Performance: Assess the effectiveness of Machine Learning algorithms using relevant metrics, identifying areas for improvement and optimizing model performance. \u2022 Interpret Statistical Data: Analyze and interpret complex statistical data to inform business decisions, communicating insights and recommendations to stakeholders. \u2022 Communicate Re",
+     "field_keyword_05": "United States",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Professional",
+     "field_keyword_19": "Multiple Cities",
+     "field_text_01": 135193
+    }
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "e0ecfc1019924e0af0965129866a99e79c5aa9d297632dd5955b6c214dd4c3cf",
+    "_score": 61.101856,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=135191",
+     "dcdate": "2026-10-05",
+     "title": "Data Engineer-Machine Learning - 1",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You\u00e2\u20ac\u2122ll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "body": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You\u00e2\u20ac\u2122ll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic partners, robust IBM technology, and Red Hat, you\u00e2\u20ac\u2122ll have the tools to drive meaningful change and accelerate client impact. At IBM Consulting, curiosity fuels success. You\u00e2\u20ac\u2122ll be encouraged to challenge the norm, explore new ideas, and create innovative solutions that deliver real results. Our culture of growth and empathy focuses on your long-term career development while valuing your unique skills and experiences. As a Data Engineer with expertise in Machine Learning, you will apply Machine Learning concepts and techniques to address business challenges. You will leverage your skills to drive informed decision-making in the organization. Your primary responsibilities will include: \u2022 Develop Machine Learning Solutions: Design and implement Machine Learning models to solve complex business problems, selecting relevant features and algorithms to achieve desired outcomes. \u2022 Evaluate Algorithm Performance: Assess the effectiveness of Machine Learning algorithms using relevant metrics, identifying areas for improvement and optimizing model performance. \u2022 Interpret Statistical Data: Analyze and interpret complex statistical data to inform business decisions, communicating insights and recommendations to stakeholders. \u2022 Communicate Re",
+     "field_keyword_05": "United States",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Professional",
+     "field_keyword_19": "Multiple Cities",
+     "field_text_01": 135191
+    }
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "315201fb5e33152f2c523ffe044a8e616a125fb61682c5424d47972542e2a898",
+    "_score": 60.878365,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=135194",
+     "dcdate": "2026-10-05",
+     "title": "Data Engineer-Machine Learning - 3",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You\u00e2\u20ac\u2122ll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "body": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You\u00e2\u20ac\u2122ll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic partners, robust IBM technology, and Red Hat, you\u00e2\u20ac\u2122ll have the tools to drive meaningful change and accelerate client impact. At IBM Consulting, curiosity fuels success. You\u00e2\u20ac\u2122ll be encouraged to challenge the norm, explore new ideas, and create innovative solutions that deliver real results. Our culture of growth and empathy focuses on your long-term career development while valuing your unique skills and experiences. As a Data Engineer with expertise in Machine Learning, you will apply Machine Learning concepts and techniques to address business challenges. You will leverage your skills to drive informed decision-making in the organization. Your primary responsibilities will include: \u2022 Develop Machine Learning Solutions: Design and implement Machine Learning models to solve complex business problems, selecting relevant features and algorithms to achieve desired outcomes. \u2022 Evaluate Algorithm Performance: Assess the effectiveness of Machine Learning algorithms using relevant metrics, identifying areas for improvement and optimizing model performance. \u2022 Interpret Statistical Data: Analyze and interpret complex statistical data to inform business decisions, communicating insights and recommendations to stakeholders. \u2022 Communicate Re",
+     "field_keyword_05": "United States",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Professional",
+     "field_keyword_19": "Multiple Cities",
+     "field_text_01": 135194
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- GOAL24 test fixture: an application form on a site with no adapter (generic) asking both sponsorship questions. -->
+<html lang="en"><head><meta charset="utf-8"><title>Apply: Machine Learning Engineer</title>
+<style>body{font:14px sans-serif;padding:20px}.field{margin:10px 0}label{display:block;font-weight:600}fieldset{margin:10px 0}</style></head>
+<body><h1>Apply: Machine Learning Engineer at Acme Robotics</h1>
+<form id="apply" onsubmit="return false">
+<div class="field"><label for="fn">First name *</label><input id="fn" name="first_name" required></div>
+<div class="field"><label for="em">Email *</label><input id="em" name="email" type="email" required></div>
+<fieldset id="fut"><legend>Will you now or in the future require visa sponsorship? *</legend>
+  <label><input type="radio" name="future" value="Yes" required> Yes</label>
+  <label><input type="radio" name="future" value="No"> No</label></fieldset>
+<fieldset id="now"><legend>Do you require sponsorship to work in the US? *</legend>
+  <label><input type="radio" name="now" value="Yes" required> Yes</label>
+  <label><input type="radio" name="now" value="No"> No</label></fieldset>
+<div class="field"><label for="cv">Resume *</label><input id="cv" name="resume" type="file" accept=".pdf"></div>
+<button type="submit" id="send">Submit application</button>
+</form>
+<script>window.__submitted = 0; document.getElementById("send").addEventListener("click", () => window.__submitted++);</script>
+</body></html>

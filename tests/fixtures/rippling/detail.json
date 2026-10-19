@@ -1,0 +1,381 @@
+{
+ "uuid": "1cda6c1a-ec72-4356-afd4-15e13c45d015",
+ "name": "AI Solutions Developer",
+ "description": {
+  "company": "<div><body><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><i><em style=\"font-size:14pt;white-space:pre-wrap;\">About Anthony &amp; Sylvan</em></i></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><span style=\"font-size:11pt;white-space:pre-wrap;\">Looking to build something that lasts—literally? At Anthony &amp; Sylvan Pools, your skills create</span><span style=\"white-space:pre-wrap;\"> </span><span style=\"font-size:11pt;white-space:pre-wrap;\">real impact. For nearly 80 years, we’ve been turning backyard dreams into reality as the nation’s largest and most recognizable name in swimming pools. Founded in 1946, we design and build quality inground pools across the U.S., while also offering renovations, modernizations, and ongoing maintenance services. We’re growing fast and seeking candidates who take pride in craftsmanship, value teamwork and safety, and are ready to grow with us. Learn more at </span><a href=\"http://www.anthonysylvan.com\" target=\"_blank\" class=\"css-173makr-linkStyle\" style=\"color:rgb(30,74,169);cursor:pointer;\"><span style=\"color:windowtext;white-space:pre-wrap;\">anthonysylvan.com.</span></a></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><br></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><i><em style=\"font-size:14pt;white-space:pre-wrap;\">About the Role</em></i></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><span style=\"white-space:pre-wrap;\">Anthony &amp; Sylvan Pools is seeking an </span><b><strong style=\"white-space",
+  "role": "<div><body><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><br></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:14pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><i><b><strong style=\"color:rgb(54,95,145);font-size:14pt;font-style:italic;white-space:pre-wrap;\">General Summary of Position</strong></b></i></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><span style=\"white-space:pre-wrap;\">This is not a traditional entry-level development role focused on maintaining existing applications. You will have the opportunity to work directly on real business problems and build AI-powered applications, agents, automations, and integrations that are put into production and used across the company.</span></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><br></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><span style=\"font-size:11pt;white-space:pre-wrap;\">The ideal candidate enjoys experimenting with emerging technology, learns quickly, and is equally interested in understanding </span><b><strong style=\"font-size:11pt;white-space:pre-wrap;\">what problem should be solved</strong></b><span style=\"font-size:11pt;white-space:pre-wrap;\"> as they are in writing the code to solve it.</span></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><br></p><p style='font-family:\"Basel Grotesk\",Arial,sans-serif;font-size:11pt;font-weight:400;line-height:1.6;letter-spacing:0.25px;margin:4px 0px;padding:0px;'><i><b><s"
+ },
+ "workLocations": [
+  "Warminster, PA"
+ ],
+ "department": {
+  "name": "IT",
+  "base_department": "IT",
+  "department_tree": [
+   "IT"
+  ]
+ },
+ "employmentType": {
+  "label": "SALARIED_FT",
+  "id": "Salaried, full-time"
+ },
+ "createdOn": "2026-07-31T15:31:52.343000-07:00",
+ "activeJobApplication": {
+  "additionalQuestions": [
+   {
+    "form": {
+     "questions": [
+      {
+       "uniqueKey": "f833552f-d9f5-4653-9630-6bbd39ac772b",
+       "title": "Are you legally authorized to work in the United States on a permanent basis without requiring employer sponsorship now or in the future?",
+       "description": "",
+       "tags": [],
+       "dataType": "select",
+       "questionType": "KNOCKOUT",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "Yes",
+        "No"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": true,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "924142fd-17f0-4983-bd46-b3808881069b",
+       "title": "This role will be based in our Warminster, PA office with hybrid flexibility. Is that commutable for you?",
+       "tags": [],
+       "dataType": "select",
+       "questionType": "KNOCKOUT",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "Yes",
+        "No"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": true,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "8059796f-dd3b-421f-ae85-19fa07a984c8",
+       "title": "Were you referred to this role by an Anthony & Sylvan employee? If yes, please indicate the name below.",
+       "tags": [],
+       "dataType": "Text",
+       "questionType": "SHORT_ANSWER",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "6dc4268c-4d10-4441-9edb-d8d257fb21dc",
+       "title": "What is your highest level of completed education? Please specify the focus of your degree, if applicable.",
+       "tags": [],
+       "dataType": "Text",
+       "questionType": "SHORT_ANSWER",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "2b781851-caca-4854-8709-afa594e5a6d6",
+       "title": "How many years of experience do you have in application development, systems integrations, or solution engineering?",
+       "tags": [],
+       "dataType": "enum",
+       "questionType": "SINGLE_SELECT_RADIO",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "Less than 2 years",
+        "2-4 years",
+        "5-7 years",
+        "8+ years"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "79f46f42-1189-4bb6-a120-1902dafd7f00",
+       "title": "Which of the following AI technologies have you used in a project, internship, research assignment, or professional setting? Please check all that apply.",
+       "tags": [],
+       "dataType": "select",
+       "questionType": "MULTI_SELECT_CHECKBOX",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "OpenAI / Azure OpenAI",
+        "Anthropic Claude",
+        "Google Gemini",
+        "LangChain, LangGraph, CrewAI, AutoGen, or similar frameworks",
+        "Retrieval-Augmented Generation (RAG)",
+        "Vector Databases (Pinecone, Chroma, Weaviate, etc.)",
+        "Prompt Engineering",
+        "AI Agents / Multi-Step Workflows",
+        "Machine Learning Models"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": true,
+       "isOtherEnabled": true
+      },
+      {
+       "uniqueKey": "094fdffe-8ae2-459c-92a3-7250efe770df",
+       "title": "How would you rate your proficiency in Python development?",
+       "tags": [],
+       "dataType": "enum",
+       "questionType": "SINGLE_SELECT_RADIO",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "Beginner (completed coursework or tutorials)",
+        "Basic (built small projects independently)",
+        "Intermediate (developed multiple applications/projects)",
+        "Advanced (built production-ready solutions or significant projects)",
+        "Expert (professional-level development experience)"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "5a282ed7-329d-4283-bc67-fa44ae59310f",
+       "title": "What is your level of experience working with APIs and system integrations?",
+       "tags": [],
+       "dataType": "enum",
+       "questionType": "SINGLE_SELECT_RADIO",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "No experience",
+        "Basic (used APIs but didn’t build them)",
+        "Hands-on experience integrating with APIs",
+        "Advanced (designed and maintained complex integrations across systems)"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "28498bc3-a96f-427f-8057-44fd448fe074",
+       "title": "What best describes your experience with SQL and relational databases?",
+       "tags": [],
+       "dataType": "enum",
+       "questionType": "SINGLE_SELECT_RADIO",
+       "isRequired": false,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "Minimal; Not comfortable",
+        "Some experience",
+        "Comfortable and experienced",
+        "Very experienced leading solution discussions"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "42a4faa8-c79d-451f-8b96-a8905d6fabfd",
+       "title": "What is your experience with AI-powered applications or workflows?",
+       "tags": [],
+       "dataType": "enum",
+       "questionType": "SINGLE_SELECT_RADIO",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "No experience",
+        "Experimented personally",
+        "Built AI features or prototypes",
+        "Developed production-level AI solutions"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "51c0fd05-305f-43e7-9624-ac9e7fd5ebcb",
+       "title": "What best describes the most advanced AI or software solution you've built?",
+       "tags": [],
+       "dataType": "enum",
+       "questionType": "SINGLE_SELECT_RADIO",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "Coursework assignment only",
+        "Personal project or hackathon submission",
+        "Capstone or research project",
+        "Internship, co-op, or freelance project",
+        "Production application used by an organization or customers"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "97d31be3-6e08-4cfe-b0c9-939dd204d33a",
+       "title": "Which of the following have you worked with when building applications? Please select all that apply.",
+       "tags": [],
+       "dataType": "select",
+       "questionType": "MULTI_SELECT_CHECKBOX",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "REST APIs",
+        "SQL Databases",
+        "Cloud Platforms (Azure, AWS, GCP)",
+        "GitHub / Version Control",
+        "CRM Systems (Salesforce, HubSpot, etc.)",
+        "ERP Systems",
+        "Workflow Automation Platforms",
+        "Data Pipelines / Data Engineering Tools"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": true,
+       "isOtherEnabled": true
+      },
+      {
+       "uniqueKey": "fa757f70-74a7-496b-8154-9ee20b34cdb7",
+       "title": "How confident are you in identifying business processes that could be improved through AI or automation and proposing a solution?",
+       "tags": [],
+       "dataType": "enum",
+       "questionType": "SINGLE_SELECT_RADIO",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [
+        "Not Yet Experienced",
+        "Some Exposure Through Coursework or Projects",
+        "Comfortable Identifying Opportunities",
+        "Strong Ability to Design Potential Solutions",
+        "Highly Confident; Have Successfully Delivered AI Solutions"
+       ],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      },
+      {
+       "uniqueKey": "714851be-3665-49c0-b5a0-98df24591e78",
+       "title": "What is your salary range expectation?",
+       "tags": [],
+       "dataType": "Text",
+       "questionType": "SHORT_ANSWER",
+       "isRequired": true,
+       "allowComments": false,
+       "canEdit": false,
+       "isPrivate": false,
+       "strChoices": [],
+       "intChoices": [],
+       "isMultiSelectEnabled": false,
+       "isOtherEnabled": false
+      }
+     ],
+     "deletedQuestions": [],
+     "sections": [],
+     "deletedSections": [],
+     "skipLogic": []
+    },
+    "name": "AI Solutions Developer",
+    "id": "6ac3bf9c014e92be06368c33"
+   }
+  ],
+  "basicQuestions": [
+   {
+    "oid": "first_name",
+    "fieldType": "SHORT_ANSWER",
+    "title": "First name",
+    "required": true
+   },
+   {
+    "oid": "last_name",
+    "fieldType": "SHORT_ANSWER",
+    "title": "Last name",
+    "required": true
+   },
+   {
+    "oid": "email",
+    "fieldType": "SHORT_ANSWER",
+    "title": "Email",
+    "required": true
+   },
+   {
+    "oid": "current_company",
+    "fieldType": "SHORT_ANSWER",
+    "title": "Current company",
+    "required": false
+   },
+   {
+    "oid": "phone_number",
+    "fieldType": "PHONE_NUMBER",
+    "title": "Phone number",
+    "required": true
+   },
+   {
+    "oid": "location",
+    "fieldType": "SHORT_ANSWER",
+    "title": "Location (city only)",
+    "required": true
+   },
+   {
+    "oid": "linkedin_link",
+    "fieldType": "SHORT_ANSWER",
+    "title": "LinkedIn link",
+    "required": false
+   },
+   {
+    "oid": "resume",
+    "fieldType": "FILE",
+    "title": "Resume",
+    "required": true
+   },
+   {
+    "oid": "cover_letter",
+    "fieldType": "FILE",
+    "title": "Cover letter",
+    "required": false
+   }
+  ]
+ },
+ "eeocQuestionnaireEnabled": true,
+ "eeocQuestionnaireEnabledForJobPost": true,
+ "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/1cda6c1a-ec72-4356-afd4-15e13c45d015",
+ "board": {
+  "slug": "anthony-sylvan-pools"
+ },
+ "payRangeDetails": [],
+ "applicationConfirmationTemplate": "68ffa7225cc1a19c699ec2a5",
+ "hasAIEvaluationsEnabled": true,
+ "companyName": "Anthony & Sylvan Pools",
+ "unlistedFromSearch": false,
+ "jsonLd": null
+}

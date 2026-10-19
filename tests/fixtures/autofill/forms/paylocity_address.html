@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- Test fixture (user 2026-10-14): Paylocity's address fields with its exact labels (Postal Code, Administrative
+     Area, Locality, StateSelect) and a Cover Letter box: none of them may ever be a question. -->
+<html lang="en"><head><meta charset="utf-8"><title>Apply: ML Engineer</title>
+<style>body{font:14px sans-serif;padding:20px;max-width:640px}.form-group{margin:10px 0}label{display:block;font-weight:600}</style></head>
+<body><h1>Application: ML Engineer</h1>
+<form id="apply" onsubmit="return false">
+<div class="form-group"><label for="fn">First Name</label><input id="fn" name="FirstName" required></div>
+<div class="form-group"><label for="addr">Street Address</label><input id="addr" name="Address1" required></div>
+<div class="form-group"><label for="loc">Locality</label><input id="loc" name="Locality" required></div>
+<div class="form-group"><label for="aa">Administrative Area</label>
+  <select id="aa" name="AdministrativeArea" required><option value="">Select</option><option>Illinois</option><option>Kansas</option><option>Missouri</option><option>Virginia</option></select></div>
+<div class="form-group"><label for="ss">StateSelect</label>
+  <select id="ss" name="StateSelect"><option value="">--</option><option value="IL">IL</option><option value="KS">KS</option><option value="MO">MO</option><option value="VA">VA</option></select></div>
+<div class="form-group"><label for="pc">Postal Code</label><input id="pc" name="PostalCode" required></div>
+<!-- labels that show the dropdown's pick inside them (read as "CountryUnited States", "StateSelect a state") -->
+<div class="form-group"><label for="co">Country<span class="shown">United States</span></label>
+  <select id="co" name="Country"><option>Canada</option><option selected>United States</option></select></div>
+<div class="form-group"><label for="st2">State<span class="shown">Select a state</span></label>
+  <select id="st2" name="MailingState" required><option value="">Select a state</option><option>Illinois</option><option>Missouri</option></select></div>
+<div class="form-group"><label for="cl">Cover Letter</label><textarea id="cl" name="CoverLetter" required></textarea></div>
+<button type="button">Next</button>
+</form></body></html>

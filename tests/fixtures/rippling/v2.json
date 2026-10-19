@@ -1,0 +1,108 @@
+{
+ "items": [
+  {
+   "id": "1cda6c1a-ec72-4356-afd4-15e13c45d015",
+   "name": "AI Solutions Developer",
+   "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/1cda6c1a-ec72-4356-afd4-15e13c45d015",
+   "department": {
+    "name": "IT"
+   },
+   "locations": [
+    {
+     "name": "Warminster, PA",
+     "country": "United States",
+     "countryCode": "US",
+     "state": "Pennsylvania",
+     "stateCode": "PA",
+     "city": "Warminster",
+     "workplaceType": "ON_SITE"
+    }
+   ],
+   "language": "en-US"
+  },
+  {
+   "id": "04cefde4-ddf0-47e9-8561-db3c61e47c6f",
+   "name": "Construction Manager",
+   "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/04cefde4-ddf0-47e9-8561-db3c61e47c6f",
+   "department": {
+    "name": "Operations"
+   },
+   "locations": [
+    {
+     "name": "Dallas, TX",
+     "country": "United States",
+     "countryCode": "US",
+     "state": "Texas",
+     "stateCode": "TX",
+     "city": "Dallas",
+     "workplaceType": "HYBRID"
+    }
+   ],
+   "language": "en-US"
+  },
+  {
+   "id": "7afa5009-66ce-482c-848a-cbf740cf19be",
+   "name": "Construction Scheduler",
+   "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/7afa5009-66ce-482c-848a-cbf740cf19be",
+   "department": {
+    "name": "Operations"
+   },
+   "locations": [
+    {
+     "name": "Ashland, VA",
+     "country": "United States",
+     "countryCode": "US",
+     "state": "Virginia",
+     "stateCode": "VA",
+     "city": "Ashland",
+     "workplaceType": "ON_SITE"
+    }
+   ],
+   "language": "en-US"
+  },
+  {
+   "id": "b136df80-0795-44f8-b4c7-c7a5e9a95517",
+   "name": "Divisional Leadership/General Manager Talent Network (Future Opportunities)",
+   "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/b136df80-0795-44f8-b4c7-c7a5e9a95517",
+   "department": {
+    "name": "Operations"
+   },
+   "locations": [
+    {
+     "name": "United States",
+     "country": "United States",
+     "countryCode": "US",
+     "state": null,
+     "stateCode": null,
+     "city": null,
+     "workplaceType": "REMOTE"
+    }
+   ],
+   "language": "en-US"
+  },
+  {
+   "id": "cf8ae954-4332-40e2-a184-ba3282ffa32c",
+   "name": "Swimming Pool Renovations Plumbing Technician",
+   "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/cf8ae954-4332-40e2-a184-ba3282ffa32c",
+   "department": {
+    "name": "Operations"
+   },
+   "locations": [
+    {
+     "name": "Warminster, PA",
+     "country": "United States",
+     "countryCode": "US",
+     "state": "Pennsylvania",
+     "stateCode": "PA",
+     "city": "",
+     "workplaceType": "HYBRID"
+    }
+   ],
+   "language": "en-US"
+  }
+ ],
+ "page": 0,
+ "pageSize": 20,
+ "totalItems": 43,
+ "totalPages": 3
+}

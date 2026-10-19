@@ -1,0 +1,87 @@
+{
+ "meta": {
+  "totalCount": 4
+ },
+ "result": [
+  {
+   "id": "52",
+   "jobOpeningName": "Localization Project Manager",
+   "departmentId": "18720",
+   "departmentLabel": "Operations",
+   "employmentStatusLabel": "Full-Time",
+   "employmentType": null,
+   "location": {
+    "city": null,
+    "state": null
+   },
+   "atsLocation": {
+    "country": "Argentina",
+    "state": null,
+    "province": null,
+    "city": "Remote Worldwide"
+   },
+   "isRemote": null,
+   "locationType": "1"
+  },
+  {
+   "id": "105",
+   "jobOpeningName": "Night time Localization & Interpreting Project Manager",
+   "departmentId": "18720",
+   "departmentLabel": "Operations",
+   "employmentStatusLabel": "Full-Time",
+   "employmentType": null,
+   "location": {
+    "city": null,
+    "state": null
+   },
+   "atsLocation": {
+    "country": "United States",
+    "state": "Florida",
+    "province": null,
+    "city": "Tampa"
+   },
+   "isRemote": null,
+   "locationType": "1"
+  },
+  {
+   "id": "108",
+   "jobOpeningName": "Social Media and Community Manager",
+   "departmentId": "18725",
+   "departmentLabel": "Marketing",
+   "employmentStatusLabel": "Contractor",
+   "employmentType": null,
+   "location": {
+    "city": null,
+    "state": null
+   },
+   "atsLocation": {
+    "country": null,
+    "state": null,
+    "province": null,
+    "city": null
+   },
+   "isRemote": null,
+   "locationType": "1"
+  },
+  {
+   "id": "113",
+   "jobOpeningName": "Graphic Designer",
+   "departmentId": "18725",
+   "departmentLabel": "Marketing",
+   "employmentStatusLabel": "Contractor",
+   "employmentType": null,
+   "location": {
+    "city": null,
+    "state": null
+   },
+   "atsLocation": {
+    "country": null,
+    "state": null,
+    "province": null,
+    "city": null
+   },
+   "isRemote": null,
+   "locationType": "1"
+  }
+ ]
+}

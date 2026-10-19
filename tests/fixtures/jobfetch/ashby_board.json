@@ -1,0 +1,95 @@
+{
+ "jobs": [
+  {
+   "id": "b583bb71-2f09-4ecb-a0a8-f15ab648da79",
+   "title": "Data Scientist Coach (Director+)",
+   "department": "Coaches (Contract)",
+   "team": "Coaches (Contract)",
+   "employmentType": "Contract",
+   "location": "Remote - US",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [],
+   "publishedAt": "2024-12-09T15:28:05.025+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Remote",
+   "address": {
+    "postalAddress": {
+     "addressRegion": "California",
+     "addressCountry": "United States",
+     "addressLocality": "San Francisco"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/mento/b583bb71-2f09-4ecb-a0a8-f15ab648da79",
+   "applyUrl": "https://jobs.ashbyhq.com/mento/b583bb71-2f09-4ecb-a0a8-f15ab648da79/application",
+   "descriptionPlain": "ABOUT THE ROLE\n\nWe are looking for senior leaders in data science roles who have experience within technology companies or tech-adjacent environments, value learning, growth, and community and who are passionate about developing and coaching people in their field.\n\n\n\nAs a Mento coach, you will form 1:1 partnerships with our members to help them identify & track clear goals, become a better leader, communicate more effectively, problem-solve issues at work, and help them feel happy, fulfilled, and engaged at work and beyond.\n\n\n\nAll Mento coaches, regardless of coaching experience, are required to participate in our ICF-certified coach training program to learn Mento\u2019s coaching methodology pri",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  },
+  {
+   "id": "16bc640e-7f26-4ef6-9071-0f34b554d82b",
+   "title": "AI Engineer",
+   "department": "Engineering, Product & Design",
+   "team": "Engineering, Product & Design",
+   "employmentType": "FullTime",
+   "location": "Remote",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [],
+   "publishedAt": "2024-10-23T00:40:14.750+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Remote",
+   "address": {
+    "postalAddress": {
+     "addressRegion": "California",
+     "addressCountry": "United States",
+     "addressLocality": "San Francisco"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/mento/16bc640e-7f26-4ef6-9071-0f34b554d82b",
+   "applyUrl": "https://jobs.ashbyhq.com/mento/16bc640e-7f26-4ef6-9071-0f34b554d82b/application",
+   "descriptionPlain": "ABOUT MENTO\n\nMento is a career technology company that helps people be exceptional and thrive at work through human, AI, and software-based coaching.\u00a0 We\u2019re on a mission to provide people access to the best support, advice, and mentorship at work and empower them to take action on it. In a world where jobs and careers are rapidly changing, we believe that transformational growth and continuous improvement is mandatory for people and companies to thrive. We believe that coaching is the best way to unlock this growth, and we believe everyone deserves access to coaching. We are on a mission to bring our unique model of coaching to every member of the global workforce.\u00a0\u00a0\n\nWe strive to create a f",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  },
+  {
+   "id": "d2150e27-6c73-4eb7-8932-380f2c1de3da",
+   "title": "Finance Coach (VP+)",
+   "department": "Coaches (Contract)",
+   "team": "Coaches (Contract)",
+   "employmentType": "Contract",
+   "location": "Remote",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [],
+   "publishedAt": "2025-08-22T17:08:13.192+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Remote",
+   "address": {
+    "postalAddress": {
+     "addressRegion": "California",
+     "addressCountry": "United States",
+     "addressLocality": "San Francisco"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/mento/d2150e27-6c73-4eb7-8932-380f2c1de3da",
+   "applyUrl": "https://jobs.ashbyhq.com/mento/d2150e27-6c73-4eb7-8932-380f2c1de3da/application",
+   "descriptionPlain": "ABOUT THE ROLE\n\nWe are looking for senior leaders in finance roles who bring experience from technology or tech-adjacent environments, value learning, growth, and community, and are passionate about developing and coaching people in their field.\n\nAs a Mento coach, you will form 1:1 partnerships with our members to help them identify & track clear goals, become a better leader, communicate more effectively, problem-solve issues at work, and help them feel happy, fulfilled, and engaged at work and beyond.\n\n\n\nAll Mento coaches, regardless of coaching experience, are required to participate in our ICF-certified coach training program to learn Mento\u2019s coaching methodology prior to working with ou",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  }
+ ],
+ "apiVersion": "1"
+}

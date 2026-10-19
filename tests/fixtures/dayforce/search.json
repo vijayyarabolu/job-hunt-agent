@@ -1,0 +1,177 @@
+{
+ "jobPostings": [
+  {
+   "clientNamespace": "gbank",
+   "jobBoardId": 1,
+   "jobPostingId": 121,
+   "jobReqId": 37,
+   "jobTitle": "Treasury Management Coordinator",
+   "jobDescription": "The position of Treasury Management Coordinator provides assistance to the SVP/Treasury Operations Manager by performing various functions to provide a full range of technical and general support pertaining to Treasury Management services and their corresponding features. This position performs basic treasury activities, expense management activities, and accounting and reporting for related entities leveraging resources to maximize productivity and delivering high quality service. This position reports directly to the SVP/Treasury Operations Manager and works closely with internal teams and other stakeholders to complete requests. This individual adheres to policies and procedures related to treasury and expense activities, accounting, and reporting.\nESSENTIAL DUTIES\n1. &nbsp; &nbsp;Upholds, at all times, the Bank&rsquo;s Core Values of: Integrity, Respect, Positive Attitude, Empowerment, Accountability, and Excellence.\n2. &nbsp; &nbsp;Delivers on the Bank&rsquo;s tagline of &ldquo;Your Best Banking Experience &ndash; Ever!&rdquo; by reinforcing the application of superior customer service through own example along with appropriate follow through with involved customers and employees; actively participates in specific periodic meetings and presentations on this topic with all staff members.\n3. &nbsp; &nbsp;Provides assistance to sales team and clients when meeting with new and existing clients for online banking and Treasury Management Services and Products.\n4. &nbsp; &nbsp;",
+   "hasVirtualLocation": false,
+   "postingStartTimestampUTC": "2026-10-01T07:00:00+00:00",
+   "postingExpiryTimestampUTC": "2026-11-04T07:59:00+00:00",
+   "isEvergreen": false,
+   "reapplyPeriodDays": null,
+   "postingLocations": [
+    {
+     "formattedAddress": "Nevada, USA",
+     "locationId": 3,
+     "locationType": 2,
+     "isoCountryCode": "US",
+     "stateCode": "NV",
+     "cityName": null,
+     "coordinates": "lat:38.8026097;lng:-116.419389"
+    }
+   ],
+   "postingAppliedStatus": {
+    "jobPostingId": 121,
+    "hasApplied": false,
+    "canApplyAgain": true
+   },
+   "searchScore": 0
+  },
+  {
+   "clientNamespace": "gbank",
+   "jobBoardId": 1,
+   "jobPostingId": 119,
+   "jobReqId": 36,
+   "jobTitle": "Client Service Associate",
+   "jobDescription": "The position of Client Service Associate I is responsible for processing all new account transactions; assisting customers in their selection of various accounts and financial services; cross-selling the Bank&rsquo;s products and services; opening, maintaining and closing of all account types; promoting business for the Bank by maintaining good customer service and referring customers to appropriate staff for new services.\nESSENTIAL DUTIES\n1. &nbsp; &nbsp;Upholds, at all times, the Bank&rsquo;s Core Values of: Integrity, Respect, Positive Attitude, Empowerment, Accountability and Excellence.\n2. &nbsp; &nbsp;Delivers on the Bank&rsquo;s tagline of &ldquo;Your Best Banking Experience &ndash; Ever!&rdquo; by reinforcing the application of superior customer service through own example along with appropriate follow through with involved customers and employees; actively participates in specific periodic meetings and presentations on this topic with all staff members.\n3. &nbsp; &nbsp;Greets and interviews consumer and business customers to determine financial needs. Suggests and explains appropriate accounts, products and financial services available.\n4. &nbsp; &nbsp;Responds and researches customer inquiries, investigates and corrects errors, and resolves problems or other issues.&nbsp;\n5. &nbsp; &nbsp;Responsible for opening new accounts, establishing proper identification of new customers, assigning account numbers, completing forms, accepting initial deposits, preparing all doc",
+   "hasVirtualLocation": false,
+   "postingStartTimestampUTC": "2026-09-18T07:00:00+00:00",
+   "postingExpiryTimestampUTC": null,
+   "isEvergreen": false,
+   "reapplyPeriodDays": null,
+   "postingLocations": [
+    {
+     "formattedAddress": "Nevada, USA",
+     "locationId": 3,
+     "locationType": 2,
+     "isoCountryCode": "US",
+     "stateCode": "NV",
+     "cityName": null,
+     "coordinates": "lat:38.8026097;lng:-116.419389"
+    }
+   ],
+   "postingAppliedStatus": {
+    "jobPostingId": 119,
+    "hasApplied": false,
+    "canApplyAgain": true
+   },
+   "searchScore": 0
+  },
+  {
+   "clientNamespace": "gbank",
+   "jobBoardId": 1,
+   "jobPostingId": 117,
+   "jobReqId": 35,
+   "jobTitle": "SBA Loan Operations Specialist",
+   "jobDescription": "The SBA Loan Operations Specialist is responsible for the SBA Loan Operation Department functions. SBA, USDA and Commercial Loan boarding in compliance and adherence with SBA SOP, state and federal laws and regulations, as well as Bank lending policies and procedures; Processes payments and advances on the SBA Loan System: Prepares monthly SBA 1502 report and the monthly USDA remittances. Reviews and balances daily SBA General Ledger accounts. Organizes and prepares original note files for retention. Manages Vendor payments, as needed. Ensure SBA loan ticklers are properly documented during the loan boarding process. Assumes responsibility for various department functions as necessary or in the absences of staff members. Promote business for the Bank by maintaining good customer relations and referring customers to appropriate staff for new services. Some direct customer contact and cross-training for other positions within the SBA Department is to be expected. Primary responsibilities are defined below and not all inclusive and is subject to change based on management decisions regarding the needs of the department and the bank.\nESSENTIAL DUTIES\n1. &nbsp; &nbsp;Upholds, at all times, the Bank&rsquo;s Core Values of: Integrity, Respect, Positive Attitude, Empowerment, Accountability, and Excellence.\n2. &nbsp; &nbsp;Delivers on the Bank&rsquo;s tagline of &ldquo;Your Best Banking Experience &ndash; Ever!&rdquo; by reinforcing the application of superior customer service throug",
+   "hasVirtualLocation": false,
+   "postingStartTimestampUTC": "2026-09-11T07:00:00+00:00",
+   "postingExpiryTimestampUTC": "2026-10-28T06:59:00+00:00",
+   "isEvergreen": false,
+   "reapplyPeriodDays": null,
+   "postingLocations": [
+    {
+     "formattedAddress": "Nevada, USA",
+     "locationId": 3,
+     "locationType": 2,
+     "isoCountryCode": "US",
+     "stateCode": "NV",
+     "cityName": null,
+     "coordinates": "lat:38.8026097;lng:-116.419389"
+    }
+   ],
+   "postingAppliedStatus": {
+    "jobPostingId": 117,
+    "hasApplied": false,
+    "canApplyAgain": true
+   },
+   "searchScore": 0
+  },
+  {
+   "clientNamespace": "gbank",
+   "jobBoardId": 1,
+   "jobPostingId": 114,
+   "jobReqId": 34,
+   "jobTitle": "Commercial Note Department Associate",
+   "jobDescription": "The Commercial Note Department Associate will be a highly motivated and resourceful member of the Commercial Note Department and will handle complex commercial and consumer loan documents ensuring completeness and accuracy in accordance with credit/bank policy and State/Federal Regulatory requirements. This role requires someone with strong follow-through skills who is adaptable and embraces change. Responsibilities include working closely with the Lending Team and attorneys to manage the loan closing process, boarding loans, monitoring and enforcing post-closing exception items, and controlling the disbursement of loan proceeds by ensuring adherence to loan approval requirements. May participate in special lending-related projects as directed by Senior Management.\nESSENTIAL DUTIES\n1. &nbsp; &nbsp;Upholds at all times, the Bank&rsquo;s Core Values of: Integrity, Respect, Positive Attitude, Empowerment, Accountability and Excellence.\n2. &nbsp; &nbsp;Delivers on the Bank&rsquo;s tagline of &ldquo;Your Best Banking Experience &ndash; Ever!&rdquo; by reinforcing the application of superior customer service through own example along with appropriate follow through with involved customers and employees.\n3. &nbsp; &nbsp;Boards all types of loans, ensures ticklers are documented and maintained. Performs loan maintenance on bank system, reconciles non-posted items and processes loans payments including participation payments.\n4. &nbsp; &nbsp;Provides back-up support as needed for cons",
+   "hasVirtualLocation": false,
+   "postingStartTimestampUTC": "2026-09-02T07:00:00+00:00",
+   "postingExpiryTimestampUTC": null,
+   "isEvergreen": false,
+   "reapplyPeriodDays": null,
+   "postingLocations": [
+    {
+     "formattedAddress": "Nevada, USA",
+     "locationId": 3,
+     "locationType": 2,
+     "isoCountryCode": "US",
+     "stateCode": "NV",
+     "cityName": null,
+     "coordinates": "lat:38.8026097;lng:-116.419389"
+    }
+   ],
+   "postingAppliedStatus": {
+    "jobPostingId": 114,
+    "hasApplied": false,
+    "canApplyAgain": true
+   },
+   "searchScore": 0
+  },
+  {
+   "clientNamespace": "gbank",
+   "jobBoardId": 1,
+   "jobPostingId": 106,
+   "jobReqId": 24,
+   "jobTitle": "SBA Loan Closer",
+   "jobDescription": "The SBA Loan Closer is responsible for all functions of processing and closing SBA Loan in compliance and adherence with SBA SOP, state and federal laws and regulations, as well as Bank lending policies and procedures; Review and understand Entity Documentation, Purchase Sale Agreements, Title Commitments and Prelims. Prepare Loan Documents in compliance and adherence with SBA SOP, state and federal laws and regulations, as well as Bank lending policies and procedures; Work closely with underwriters, brokers, and customers. Assumes responsibility for various department functions as necessary or in the absences of staff members. Promotes business for the Bank by maintaining good customer relations and referring customers to appropriate staff for new services. Some direct customer contact and cross-training for other positions within the SBA Department is to be expected.\nESSENTIAL DUTIES\n1. &nbsp; &nbsp;Upholds, at all times, the Bank&rsquo;s Core Values of: Integrity, Respect, Positive Attitude, Empowerment, Accountability, and Excellence.\n2. &nbsp; &nbsp;Delivers on the Bank&rsquo;s tagline of &ldquo;Your Best Banking Experience &ndash; Ever!&rdquo; by reinforcing the application of superior customer service through own example along with appropriate follow through with involved customers and employees; actively participates in specific periodic meetings and presentations on this topic with all staff members.\n3. &nbsp; &nbsp;Process and prepare SBA loan files for closing and ",
+   "hasVirtualLocation": true,
+   "postingStartTimestampUTC": "2026-08-10T07:00:00+00:00",
+   "postingExpiryTimestampUTC": "2026-10-14T06:59:00+00:00",
+   "isEvergreen": false,
+   "reapplyPeriodDays": null,
+   "postingLocations": null,
+   "postingAppliedStatus": {
+    "jobPostingId": 106,
+    "hasApplied": false,
+    "canApplyAgain": true
+   },
+   "searchScore": 0
+  },
+  {
+   "clientNamespace": "gbank",
+   "jobBoardId": 1,
+   "jobPostingId": 104,
+   "jobReqId": 4,
+   "jobTitle": "GBank General Interest Application",
+   "jobDescription": "Thank you for your interest in GBank. This is the general interest application. If you are applying for a specific job, please reach out to careers@g.bank for the job description.&nbsp;",
+   "hasVirtualLocation": false,
+   "postingStartTimestampUTC": "2026-07-23T04:00:00+00:00",
+   "postingExpiryTimestampUTC": null,
+   "isEvergreen": true,
+   "reapplyPeriodDays": null,
+   "postingLocations": [
+    {
+     "formattedAddress": "Nevada, USA",
+     "locationId": 3,
+     "locationType": 2,
+     "isoCountryCode": "US",
+     "stateCode": "NV",
+     "cityName": null,
+     "coordinates": "lat:38.8026097;lng:-116.419389"
+    }
+   ],
+   "postingAppliedStatus": {
+    "jobPostingId": 104,
+    "hasApplied": false,
+    "canApplyAgain": true
+   },
+   "searchScore": 0
+  }
+ ],
+ "maxCount": 6,
+ "offset": 0,
+ "count": 6
+}

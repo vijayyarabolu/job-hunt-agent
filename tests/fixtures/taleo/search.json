@@ -1,0 +1,107 @@
+{
+ "requisitionList": [
+  {
+   "hotJob": false,
+   "addedToJobCart": false,
+   "draft": false,
+   "alreadyAppliedOn": false,
+   "toReApply": false,
+   "jobId": "785338",
+   "contestNo": "193686",
+   "column": [
+    "Senior Control Systems Engineer",
+    "[\"United States-Ohio-Columbus\"]",
+    "Jun 15, 2026"
+   ],
+   "linkedColumn": 0,
+   "locationsColumns": [
+    1
+   ]
+  },
+  {
+   "hotJob": false,
+   "addedToJobCart": false,
+   "draft": false,
+   "alreadyAppliedOn": false,
+   "toReApply": false,
+   "jobId": "792063",
+   "contestNo": "196666",
+   "column": [
+    "Building Engineering Services North America Construction Field Services Lead",
+    "[\"Multiple Locations\"]",
+    "Oct 5, 2026"
+   ],
+   "linkedColumn": 0,
+   "locationsColumns": [
+    1
+   ]
+  },
+  {
+   "hotJob": false,
+   "addedToJobCart": false,
+   "draft": false,
+   "alreadyAppliedOn": false,
+   "toReApply": false,
+   "jobId": "791520",
+   "contestNo": "196358",
+   "column": [
+    "Area Water and Wastewater Utility Planning Lead",
+    "[\"Multiple Locations\"]",
+    "Oct 1, 2026"
+   ],
+   "linkedColumn": 0,
+   "locationsColumns": [
+    1
+   ]
+  },
+  {
+   "hotJob": false,
+   "addedToJobCart": false,
+   "draft": false,
+   "alreadyAppliedOn": false,
+   "toReApply": false,
+   "jobId": "791958",
+   "contestNo": "196651",
+   "column": [
+    "Senior Project Controls Manager",
+    "[\"United States-Maine-Portland\"]",
+    "Sep 30, 2026"
+   ],
+   "linkedColumn": 0,
+   "locationsColumns": [
+    1
+   ]
+  },
+  {
+   "hotJob": false,
+   "addedToJobCart": false,
+   "draft": false,
+   "alreadyAppliedOn": false,
+   "toReApply": false,
+   "jobId": "791001",
+   "contestNo": "196074",
+   "column": [
+    "Building Engineering Services - North America Project Controls Lead",
+    "[\"Multiple Locations\"]",
+    "Sep 29, 2026"
+   ],
+   "linkedColumn": 0,
+   "locationsColumns": [
+    1
+   ]
+  }
+ ],
+ "pagingData": {
+  "currentPageNo": 1,
+  "pageSize": 25,
+  "totalCount": 1044
+ },
+ "queryString": "f=null&KEYWORD=data&s=3|D&a=null&multiline=false",
+ "careerSectionUnAvailable": false,
+ "supportedLanguages": [
+  {
+   "displayName": "German",
+   "code": "de"
+  }
+ ]
+}

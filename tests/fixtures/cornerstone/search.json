@@ -1,0 +1,77 @@
+{
+ "data": {
+  "totalCount": 5,
+  "requisitions": [
+   {
+    "requisitionId": 342,
+    "postingEffectiveDate": "10/6/2026",
+    "postingExpirationDate": "-",
+    "displayJobTitle": "MetroLink Mechanic",
+    "locations": [
+     {
+      "city": "Saint Louis",
+      "state": "MO",
+      "country": "US"
+     }
+    ],
+    "externalDescription": " Performs skilled services involving the inspection, troubleshooting, maintenance and repair of all electronic, electrical and mechanical equipment on rail vehicles. Operates diagnostic test equipment, solving complex equipment malfunctions and other problems. Applies principles/techniques as applied to rail car equipment and maintains up-to-date knowledge of rail equipment maintenance techniques. Works under limited supervision, operates equipment necessary for the repair and maintenance of Light Rail (LR) cars; maintains, logs and completes reports relating to job functions. Job Responsibilities Duties include performing preventative and corrective maintenance through inspecting, servicing, calibrating, aligning, repairing, truing wheels, and diagnosis of all systems and subsystems of the LRV. Such systems and subsystems include such elements as the following: high and/or low voltage electrical and mechanical systems such as propulsion, printed circuit boards, amplifiers, logic gates, operation of thyristor, various applications of capacitors, relay switches and logic, static converter, motors, air brakes, compressors, HVAC, trucks, wheels, axles, and other LRV systems to ensure "
+   },
+   {
+    "requisitionId": 341,
+    "postingEffectiveDate": "10/6/2026",
+    "postingExpirationDate": "-",
+    "displayJobTitle": "Diesel Mechanic",
+    "locations": [
+     {
+      "city": "Saint Louis",
+      "state": "MO",
+      "country": "US"
+     }
+    ],
+    "externalDescription": " A station mechanic is responsible for diagnosing, repairing and verifying repairs on a fleet of Metro transit buses. Possible candidates must be proficient in the diagnosis of engines, transmissions/drivelines, air brakes and steering/suspension systems as well as a competent understanding of electrical systems. Other responsibilities include performing and documenting inspections, listing any defects found and repairing defects. Candidates must be able to effectively communicate specific details about diagnosis and repairs made to the buses. Metro is an industry leader in operations and on-time performance, and is internationally recognized for its comprehensive maintenance program Job Responsibilities diagnosing, repairing and verifying repairs on a fleet of Metro transit buses diagnosis of engines, transmissions/drivelines, air brakes and steering/suspension systems as well as a competent understanding of electrical systems performing and documenting inspections, listing any defects found and repairing defects communicate specific details about diagnosis and repairs made to the buses "
+   },
+   {
+    "requisitionId": 333,
+    "postingEffectiveDate": "10/2/2026",
+    "postingExpirationDate": "-",
+    "displayJobTitle": "Facilities Electrician- ROW - 3rd Shift",
+    "locations": [
+     {
+      "city": "Saint Louis",
+      "state": "MO",
+      "country": "US"
+     }
+    ],
+    "externalDescription": " Installs, maintains and repairs facility wiring, electrical fixtures, equipment, motors and lighting in all Metro facilities and transit properties. Shall be proficient with hand tools and shall troubleshoot electrical equipment and wiring with the aid of test equipment such as ohmmeter, ampmeter, or voltage testers. Assists in the maintenance and repair of other electrical systems of the Metro Link light rail system during emergencies and service disruptions. Job Responsibilities Installs, inspects, maintains, repairs and provides diagnostic analysis of facility electrical systems in all Metro facilities and transit properties, including but not limited to: wiring, lighting, motors, power distribution, power disconnect equipment, HVAC systems, and maintenance equipment. Responds to calls for service to diagnose and correct emergencies involving Metro electrical systems on a twenty-four (24) hour basis. Operates various vehicles and equipment associated with the maintenance and repair of the Metro electrical systems both on the road and on rail. Activation and deactivation of facility and station electrical systems, and assists in activation and deactivation of other electrical sy"
+   },
+   {
+    "requisitionId": 340,
+    "postingEffectiveDate": "9/30/2026",
+    "postingExpirationDate": "-",
+    "displayJobTitle": "Intern - AI Agent and Analytics",
+    "locations": [
+     {
+      "city": "St. Louis",
+      "state": "MO",
+      "country": "US"
+     }
+    ],
+    "externalDescription": " To foster a collaborative learning environment where students can apply their academic knowledge to real-world challenges. Bi-State Development is seeking an AI Agent Analytics Intern to help develop practical AI solutions that improve reporting, analysis, automation, and access to business information. The intern will work with CIO and work with other members of IT to build AI agents using Microsoft Copilot Studio, Claude and other approved technologies, connecting data from enterprise systems and turning business questions into useful insights. Job Responsibilities Build AI agents, copilots, and automated workflows. Connect AI solutions to approved databases, APIs, documents, spreadsheets, and business systems. Develop solutions for technology budget management and reporting. Create prompts, workflows, and agent logic to improve accuracy and usefulness. Analyze data to be AI ready. Prototype and test AI use cases for business and operational needs. Validate solutions for accuracy, reliability, data quality, security, and responsible AI use Document solutions, data sources, prompts, integrations, and test results. Work in collaboration with programming team for implementation of "
+   },
+   {
+    "requisitionId": 339,
+    "postingEffectiveDate": "9/25/2026",
+    "postingExpirationDate": "11/28/2026",
+    "displayJobTitle": "Transit Data Systems & Reporting Analyst",
+    "locations": [
+     {
+      "city": "St. Louis",
+      "state": "MO",
+      "country": "US"
+     }
+    ],
+    "externalDescription": " The Transit Data Systems Reporting Analyst serves as the steward of Metro's transit data systems of record, ensuring the accuracy, integrity, and reliability of operational, ridership, performance, and revenue-related data used for decision-making, regulatory reporting, and financial accountability. The position develops and maintains reporting processes, monitors system performance, and supports compliance with Federal Transit Administration (FTA) and National Transit Database (NTD) reporting requirements. This role partners with Operations, Finance, Information Technology, Planning, vendors, and external agencies to improve data quality, reporting capabilities, and organizational performance. Success in this role requires a systems-thinking mindset, intellectual curiosity, and the ability to translate operational insights into improved data quality, reporting accuracy, and business processes. Job Responsibilities \u2022 Serves as the business owner and steward for transit data systems of record, including ridership, automated passenger counter (APC), fare collection, scheduling, vehicle location, and related operational data systems. \u2022 Develops and maintains processes to ensure data "
+   }
+  ]
+ }
+}

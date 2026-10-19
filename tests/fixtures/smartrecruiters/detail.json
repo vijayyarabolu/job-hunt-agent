@@ -1,0 +1,139 @@
+{
+ "id": "744000153130796",
+ "name": "Enterprise Account Executive",
+ "uuid": "6b02464f-315e-41cc-8932-6fe9e0636ed9",
+ "jobId": "944b4416-cb98-47dc-9a38-50daee226c47",
+ "jobAdId": "b7260b5d-c334-49c6-bd60-03fcd3ebce5d",
+ "defaultJobAd": true,
+ "refNumber": "JB0073714",
+ "company": {
+  "name": "ServiceNow",
+  "identifier": "ServiceNow"
+ },
+ "location": {
+  "city": "Tokyo",
+  "country": "jp",
+  "address": "Hibiya Mitsui Tower 1-1-2 Yurakucho, Chiyoda-ku",
+  "postalCode": "100-0006",
+  "remote": false,
+  "hybrid": false,
+  "fullLocation": "Tokyo, , Japan"
+ },
+ "customField": [
+  {
+   "fieldId": "60345fa28b4ba8595bef1863",
+   "fieldLabel": "Recruiting Team",
+   "valueId": "professional",
+   "valueLabel": "Professional"
+  },
+  {
+   "fieldId": "60345e1a0b24a127cbdfa148",
+   "fieldLabel": "Employee Type",
+   "valueId": "0082f6cbe6154da19322cbab1f6aa5af",
+   "valueLabel": "Regular"
+  },
+  {
+   "fieldId": "5f63a78f1dae5c5c4e54ba2b",
+   "fieldLabel": "Department",
+   "valueId": "2294208",
+   "valueLabel": "Sales"
+  },
+  {
+   "fieldId": "COUNTRY",
+   "fieldLabel": "Country/Region",
+   "valueId": "jp",
+   "valueLabel": "Japan"
+  },
+  {
+   "fieldId": "5f63a78f1dae5c5c4e54ba2a",
+   "fieldLabel": "Brands",
+   "valueId": "default",
+   "valueLabel": "ServiceNow"
+  },
+  {
+   "fieldId": "60345d5c5165a31b17288279",
+   "fieldLabel": "Region",
+   "valueId": "858884996eea4a49baa6231279f39054",
+   "valueLabel": "APAC - Asia Pacific"
+  },
+  {
+   "fieldId": "603462175165a31b1728827d",
+   "fieldLabel": "Cost Center",
+   "valueId": "CC3000",
+   "valueLabel": "3000 Sales Reps"
+  },
+  {
+   "fieldId": "6034601b43915a29a4b3389b",
+   "fieldLabel": "Job Location",
+   "valueId": "L_TYO003",
+   "valueLabel": "1-1-2 Yurakucho, Chiyoda-ku, Tokyo, 100-0006, Japan(L_TYO003)"
+  },
+  {
+   "fieldId": "618ed92b8f5e5f110e5bfb95",
+   "fieldLabel": "Work Persona",
+   "valueId": "bf7551c6-9b06-4e7c-8217-3baf43edd060",
+   "valueLabel": "Flexible"
+  },
+  {
+   "fieldId": "690cc0e8c682c3dbadaa7d73",
+   "fieldLabel": "Job Posting Type",
+   "valueId": "professional",
+   "valueLabel": "Professional"
+  }
+ ],
+ "releasedDate": "2026-10-02T09:00:58.679Z",
+ "creator": {
+  "name": "",
+  "avatarUrl": ""
+ },
+ "postingUrl": "https://jobs.smartrecruiters.com/ServiceNow/744000153130796-enterprise-account-executive",
+ "applyUrl": "https://jobs.smartrecruiters.com/ServiceNow/744000153130796-enterprise-account-executive?oga=true",
+ "referralUrl": "https://jobs.smartrecruiters.com/external-referrals/company/ServiceNow/publication/6b02464f-315e-41cc-8932-6fe9e0636ed9?dcr_ci=ServiceNow",
+ "jobAd": {
+  "sections": {
+   "companyDescription": {
+    "title": "Company Description",
+    "text": "<p>It all started when engineer Fred Luddy wrote code that automated a tedious task for his coworker, Phyllis. She cried tears of joy. That moment inspired Fred to build a company that could do that for everyone\u2014freeing people from busywork so they could focus on meaningful work. Today, ServiceNow is the AI control tower for business reinvention. Our ServiceNow AI platform brings together any AI, any data, and any workflow\u2014 helping 85% of the Fortune 500\u00ae work smarter, faster, and better. We're building an AI-native culture where technology and talent are unstoppable together. And we're just getting started.</p><p>Join us to put AI to work for people.</p><p>&#xa0;</p>"
+   },
+   "jobDescription": {
+    "title": "Job Description",
+    "text": "<p>You will produce new business sales revenue from a SaaS license model. You will accomplish this through account planning, territory planning, researching prospect customers, using business development strategies and completing field-based sales activities within a defined set of prospects, territory or vertical.</p><p><strong>What you get to do in this role: </strong></p><ul><li>Develop relationships with multiple C-suite personas (e.g., CFO, CIO, COO, CDO) across all product sales</li><li>Oversee client relationship mapping to the account team, orchestrating an account strategy across a broad virtual team (Solutions Consultants, Solutions Specialist, Success resources, Partners and Marketing, etc.)</li><li>Be a trusted advisor to your customers by understanding their business and advising on how ServiceNow can help help their IT roadmap</li><li>Identify the right specialist/ support resources to bring into a deal, at the right time</li></ul>"
+   },
+   "qualifications": {
+    "title": "Qualifications",
+    "text": "<p><strong>To be successful in this role you have:</strong></p><ul><li>Experience in leveraging or critically thinking about how to integrate AI into work processes, decision-making, or problem-solving. This may include using AI-powered tools, automating workflows, analyzing AI-driven insights, or exploring AI's potential impact on the function or industry.</li><li>7+ years of sales experience within software OR solutions sales organization</li><li>Experience establishing trusted relationships with current and prospective clients and other teams</li><li>Ability to produce new business, negotiate deals, and maintain healthy C-Level relationships</li><li>Experience achieving sales targets</li><li>The ability to understand the \"bigger picture\" and our plans around IT</li><li>Experience promoting a customer success focus in a \"win as a team\" environment</li></ul>"
+   },
+   "additionalInformation": {
+    "title": "Additional Information",
+    "text": "<p><strong>Work Personas</strong></p><p>We approach our distributed world of work with flexibility and trust. Work personas (flexible, remote, or required in office) are categories that are assigned to ServiceNow employees depending on the nature of their work and their assigned work location. <a href=\"https://careers.servicenow.com/life-at-servicenow#workpersonas\" rel=\"noopener noreferrer\"><u>Learn more here</u></a>. To determine eligibility for a work persona, ServiceNow may confirm the distance between your primary residence and the closest ServiceNow office using a third-party service.</p><p><strong>Equal Opportunity Employer</strong></p><p>ServiceNow is an equal opportunity employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, national origin, age, disability, gender identity,&#xa0; veteran status, or any other category protected by law. In addition, all qualified applicants with arrest or conviction records will be considered for employment in accordance with legal requirements.\u202f&#xa0;</p><p><strong>Accommodations</strong></p><p>We strive to create an accessible and inclusive experience for all candidates. If you require a reasonable accommodation to complete any part of the application process, or are unable to use this online application and need an alternative method to apply, please contact <a href=\"mailto:globaltalentss@servicenow.com\" rel=\"noopener noreferrer\">globaltalentss@servicenow.com </a>for assistance.&#xa0;</p><p><strong>Export Control Regulations</strong></p><p>For positions requiring access to controlled technology subject to export control regulations, including the U.S. Export Administration Regulations (EAR), ServiceNow may be required to obtain export control approval from government authorities for certain individuals. All employment is contingent upon ServiceNow obtaining any export license or other approval that may be required by relevant export control authorities.&#xa0;</p><p>From Fortune. \u00a92026 Fortune Media IP Limited. All rights reserved. Used under license.</p>"
+   }
+  }
+ },
+ "active": true,
+ "visibility": "PUBLIC",
+ "industry": {
+  "id": "it_and_services",
+  "label": "Information Technology And Services"
+ },
+ "function": {
+  "id": "sales",
+  "label": "Sales"
+ },
+ "department": {
+  "id": 2294208,
+  "label": "Sales"
+ },
+ "experienceLevel": {
+  "id": "not_applicable",
+  "label": "Not Applicable"
+ },
+ "typeOfEmployment": {
+  "id": "permanent",
+  "label": "Full-time"
+ },
+ "language": {
+  "code": "en",
+  "label": "English",
+  "labelNative": "English (US)"
+ }
+}

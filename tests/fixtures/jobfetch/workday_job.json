@@ -1,0 +1,36 @@
+{
+ "jobPostingInfo": {
+  "id": "6e11949f4bc61000e232345d2bd30000",
+  "title": "Senior/Lead Data Scientist - Demand Forecasting",
+  "jobDescription": "<p style=\"text-align:left\"><b>Transforming the Future of Enterprise Planning</b></p><p style=\"text-align:inherit\"></p><p style=\"text-align:left\">At o9, our mission is to be the Most Value-Creating Platform for enterprises by transforming decision-making through our AI-first approach. By integrating siloed planning capabilities and capturing millions\u2014even billions\u2014in value leakage, we help businesses plan smarter and faster.</p><p style=\"text-align:inherit\"></p><p style=\"text-align:left\">This not only enhances operational efficiency but also reduces waste, leading to better outcomes for both businesses and the planet. Global leaders like Google, PepsiCo, Walmart, T-Mobile, AB InBev, and Starbucks trust o9 to optimize their supply chains.</p><p style=\"text-align:inherit\"></p><div><b><span>Job Title: Lead Data Scientist -Retail Demand Forecasting</span></b></div><p></p><p><span>What you\u2019ll do for us:</span></p><ul><li>Apply a variety of machine learning techniques (clustering, regression, ensemble learning, neural nets, time series, optimizations etc.) to their real-world advantages/drawbacks</li><li>Develop and/or optimize models for demand sensing/forecasting, optimization (Heuristic, LP, GA etc), Anomaly detection, Simulation and stochastic models, Market Intelligence etc.</li><li>Use latest advancements in AI/ML to solve business problems</li><li>Analyze problems by synthesizing complex information, evaluating alternate methods, and articulating the result with the relevant assumptions/reasons</li><li>Application of common business metrics (Forecast Accuracy, Bias, MAPE) and the ability to generate new ones as needed.</li><li>Develop or optimize modules to call web services for real time integration with externa systems</li><li>Work collaboratively with Clients, Project Management, Solution Architects, Consultants and Data Engineers to ensure successful delivery of o9 projects</li></ul><p></p>",
+  "location": "Bangalore, Karnataka, India",
+  "postedOn": "Posted 30 Days Ago",
+  "startDate": "2026-09-05",
+  "timeType": "Full time",
+  "jobReqId": "JR102128",
+  "jobPostingId": "Senior-Data-Scientist---Demand-Forecasting_JR102128",
+  "jobPostingSiteId": "o9SolutionsExternal",
+  "country": {
+   "descriptor": "India",
+   "id": "c4f78be1a8f14da0ab49ce1162348a5e"
+  },
+  "canApply": true,
+  "posted": true,
+  "includeResumeParsing": true,
+  "jobRequisitionLocation": {
+   "descriptor": "Bangalore Office",
+   "country": {
+    "descriptor": "India",
+    "id": "c4f78be1a8f14da0ab49ce1162348a5e",
+    "alpha2Code": "IN"
+   }
+  },
+  "externalUrl": "https://o9solutions.wd5.myworkdayjobs.com/o9SolutionsExternal/job/Bangalore-Karnataka-India/Senior-Data-Scientist---Demand-Forecasting_JR102128",
+  "questionnaireId": "f79eb3475eed100107b843c6e1130000"
+ },
+ "hiringOrganization": {
+  "name": "o9 Solutions Management India Private Limited",
+  "url": ""
+ },
+ "userAuthenticated": false
+}

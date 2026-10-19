@@ -1,0 +1,80 @@
+[
+ {
+  "uuid": "1cda6c1a-ec72-4356-afd4-15e13c45d015",
+  "name": "AI Solutions Developer",
+  "department": {
+   "id": "IT",
+   "label": "IT"
+  },
+  "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/1cda6c1a-ec72-4356-afd4-15e13c45d015",
+  "workLocation": {
+   "label": "Warminster, PA",
+   "id": "Warminster, PA"
+  }
+ },
+ {
+  "uuid": "d2bd9d89-11e0-41fe-9a3d-102b3ee5bf7b",
+  "name": "Business Transformation Manager",
+  "department": {
+   "id": "Organizational Excellence",
+   "label": "Organizational Excellence"
+  },
+  "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/d2bd9d89-11e0-41fe-9a3d-102b3ee5bf7b",
+  "workLocation": {
+   "label": "Warminster, PA",
+   "id": "Warminster, PA"
+  }
+ },
+ {
+  "uuid": "bc1f0612-0e90-4f82-af31-a9ac7990344d",
+  "name": "Client Advisor (Lead Generation, Customer Service, Customer Support)",
+  "department": {
+   "id": "Sales & Marketing",
+   "label": "Sales & Marketing"
+  },
+  "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/bc1f0612-0e90-4f82-af31-a9ac7990344d",
+  "workLocation": {
+   "label": "Las Vegas, NV",
+   "id": "Las Vegas, NV"
+  }
+ },
+ {
+  "uuid": "26517da0-161e-4185-a21c-4532565f5f93",
+  "name": "Client Advisor (Lead Generation, Customer Service, Customer Support)",
+  "department": {
+   "id": "Sales & Marketing",
+   "label": "Sales & Marketing"
+  },
+  "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/26517da0-161e-4185-a21c-4532565f5f93",
+  "workLocation": {
+   "label": "Warminster, PA",
+   "id": "Warminster, PA"
+  }
+ },
+ {
+  "uuid": "04cefde4-ddf0-47e9-8561-db3c61e47c6f",
+  "name": "Construction Manager",
+  "department": {
+   "id": "Operations",
+   "label": "Operations"
+  },
+  "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/04cefde4-ddf0-47e9-8561-db3c61e47c6f",
+  "workLocation": {
+   "label": "Dallas, TX",
+   "id": "Dallas, TX"
+  }
+ },
+ {
+  "uuid": "7afa5009-66ce-482c-848a-cbf740cf19be",
+  "name": "Construction Scheduler",
+  "department": {
+   "id": "Operations",
+   "label": "Operations"
+  },
+  "url": "https://ats.rippling.com/anthony-sylvan-pools/jobs/7afa5009-66ce-482c-848a-cbf740cf19be",
+  "workLocation": {
+   "label": "Ashland, VA",
+   "id": "Ashland, VA"
+  }
+ }
+]

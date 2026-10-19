@@ -1,0 +1,39 @@
+{
+ "publisher": "JobScore",
+ "publisher_url": "https://www.jobscore.com/",
+ "title": "JobScore Careers",
+ "company_name": "JobScore",
+ "company_code": "jobscore",
+ "company_url": "http://www.jobscore.com",
+ "jobs": [
+  {
+   "id": "dpi9LtxFTluy3ZQtfTfYWo",
+   "atom_id": "2026-01-20:/dpi9LtxFTluy3ZQtfTfYWo",
+   "title": "Senior Front-End Engineer",
+   "job_status_id": 81,
+   "company_name": "JobScore",
+   "company_code": "jobscore",
+   "apply_url": "https://careers.jobscore.com/apply_flow/applications/go?job_id=dpi9LtxFTluy3ZQtfTfYWo&ref=rss&sid=68",
+   "detail_url": "https://careers.jobscore.com/careers/jobscore/jobs/senior-front-end-engineer-dpi9LtxFTluy3ZQtfTfYWo?ref=rss&sid=68",
+   "share_url": "https://careers.jobscore.com/careers/jobscore/jobs/dpi9LtxFTluy3ZQtfTfYWo/social_network_shares",
+   "url_slug": "senior-front-end-engineer-dpi9LtxFTluy3ZQtfTfYWo",
+   "department": "Engineering",
+   "location": "Remote in Joinville, Santa Catarina, Brazil",
+   "city": "Joinville",
+   "state": "Santa Catarina",
+   "country": "BR",
+   "experience_level": "Experienced (Non-Manager)",
+   "postal_code": "89201-260",
+   "last_updated_date": "2026-07-22T15:34:07.165Z",
+   "opened_date": "2026-01-20T18:35:42.129Z",
+   "description": "<h3><strong>About Us:</strong></h3><ul><li><p><a href=\"https://www.jobscore.com/\">JobScore</a> is an online network that privately matches people and jobs.</p></li><li><p>Over 1,000 employers use JobScore to manage their hiring. We process 1M+ job applications per year on their behalf.</p></li><li><p>JobScore is based in San Francisco, CA. We have some sports fans on our team.</p></li><li><p>We get fired up when we help our customers get better at hiring.</p></li></ul><h3><strong>The Opportunity:</strong></h3><ul><li><p>Lead front-end software engineering efforts for a team of a dozen full-stack engineers.</p></li><li><p>Make a big impact on a skilled and friendly Brazilian team.</p></li><li><p>Work on interesting problems. Write elegant code.</p></li><li><p>Occasionally travel to San Francisco, CA.</p></li><li><p>Balance your work-life and your life-life.</p></li><li><p>Work remotely. 100% of the team is Brazilian. Most of our team lives within driving distance of Joinville, SC, Brazil and we meet up there regularly in person if you\u2019d like to join.</p></li></ul><h3><strong>Responsibilities:</strong></h3><ul><li><p>Take 100% ownership of how things look, work and perform on our web app front-end.</p></li><li><p>Research, evangelize and enforce coding patterns and standards, extending our React-based design system which is built on top of Material UI.</p></li><li><p>Review teammates\u2019 code and inspire others to improve code quality and consistency.</p></li><li><p>Communicate wi",
+   "created_on": "2026-01-20T18:13:37.924Z",
+   "job_type": "Full Time",
+   "remote": "Yes | Can telecommute / work remotely 100% of the time",
+   "custom_fields": []
+  }
+ ],
+ "company": "JobScore",
+ "company_shortcode": "jobscore",
+ "last_updated": "2026-10-08T05:28:03.139Z"
+}

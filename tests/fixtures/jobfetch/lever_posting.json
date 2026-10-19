@@ -1,0 +1,40 @@
+{
+ "additionalPlain": "Mashgin is proud to be an equal opportunity employer. Individuals seeking employment at Mashgin are considered without regards to race, color, religion, national origin, age, sex, marital status, ancestry, physical or mental disability, veteran status, gender identity, or sexual orientation.\u00a0\n\nNotice on fraudulent jobs\nWe have been made aware of instances of fraudulent job postings and/or fraudule",
+ "categories": {
+  "commitment": "Full-time",
+  "department": "Research & Development",
+  "location": "Palo Alto, CA",
+  "team": "Software Engineering",
+  "allLocations": [
+   "Palo Alto, CA"
+  ]
+ },
+ "createdAt": 1672678708515,
+ "descriptionPlain": "About Mashgin\nMashgin powers the world's best checkout experience for over 40 million users. Customers just place their items on our kiosks and our AI rings up their entire order in less than a second. With Mashgin, lines are now optional.\n\nMashgin's technology powers over 1 billion transactions at your favorite locations, including over half of all US professional sports teams, 4,000 convenience stores, major airports, universities, and more.\n\nWe\u2019re not just building cutting-edge AI\u2014we\u2019re creating real-world impact and unforgettable experiences. Backed by a well-funded Series B, we\u2019re also one of the rare AI startups that\u2019s already profitable.\n\nOur secret? A culture of extreme ownership, autonomy, and customer obsession. At Mashgin, we are building something extraordinary by challenging c",
+ "id": "da733114-d2b5-4abf-92e3-c034ce970a86",
+ "lists": [
+  {
+   "text": "What We Value:",
+   "content": "<li><b>Impact</b>: You will own significant responsibility and have total ownership over your work. We stay lean and efficient, so your work directly impacts the product we ship every day.</li><li><b>Simplicity</b>: Complexity is a waste of time here\u2014we take pride in building things that just work.</li><li><b>Hard Work</b>: Forget the glamorous research papers. We prioritize the hard work it takes"
+  },
+  {
+   "text": "You Will Be",
+   "content": "\n<li>Developing solutions for real-world computer vision problems</li>\n<li>Working with the product team to come up with innovative ways to collect large data sets for training AI systems or generating equivalent synthetic data</li>\n<li>Finding the optimal balance between doing longer term research and applying research results to production code</li>\n<li>Researching and building state-of-the-art "
+  }
+ ],
+ "salaryRange": {
+  "min": 200000,
+  "max": 300000,
+  "currency": "USD",
+  "interval": "per-year-salary"
+ },
+ "salaryDescription": "<div>For roles based in Palo Alto, CA, the overall market range for Mashgin is typically $200,000 - $300,000 USD annually. Note that total compensation for this position will be determined by candidate\u2019s relevant qualifications, work experience, skills, and other relevant factors. This estimate excludes the value of any benefits offered by Mashgin, and the potential future value of any other long-term incentives.</div>",
+ "salaryDescriptionPlain": "For roles based in Palo Alto, CA, the overall market range for Mashgin is typically $200,000 - $300,000 USD annually. Note that total compensation for this position will be determined by candidate\u2019s relevant qualifications, work experience, skills, and other relevant factors. This estimate excludes the value of any benefits offered by Mashgin, and the potential future value of any other long-term incentives.\n",
+ "text": "Senior Software Engineer, Machine Learning and Artificial Intelligence",
+ "country": "US",
+ "workplaceType": "onsite",
+ "openingPlain": "About Mashgin\nMashgin powers the world's best checkout experience for over 40 million users. Customers just place their items on our kiosks and our AI rings up their entire order in less than a second. With Mashgin, lines are now optional.\n\nMashgin's technology powers over 1 billion transactions at ",
+ "descriptionBodyPlain": "Position Summary\nMashgin is looking for a smart, driven engineer who\u2019s fascinated by the latest developments in ML/AI and is looking for the best areas to apply them. You\u2019ll work on a small dynamic team to design and implement state of the art deep learning techniques for Mashgin products. We have t",
+ "hostedUrl": "https://jobs.lever.co/mashgin/da733114-d2b5-4abf-92e3-c034ce970a86",
+ "applyUrl": "https://jobs.lever.co/mashgin/da733114-d2b5-4abf-92e3-c034ce970a86/apply"
+}

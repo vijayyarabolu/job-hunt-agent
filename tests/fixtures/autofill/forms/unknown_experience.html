@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- Test fixture (user 2026-10-14): a job site no board script knows. Its own words: "Employment History" with one
+     entry the site already parsed wrong (to be corrected, never duplicated) and "+ Add employer"; "Academic Background"
+     with "+ Add school"; "About you". The generic rule finds them by headings, labels and Add buttons. -->
+<html lang="en"><head><meta charset="utf-8"><title>Careers: Apply</title>
+<style>body{font:14px sans-serif;padding:20px;max-width:720px}.row{margin:6px 0}label{display:block}
+fieldset{margin:8px 0}textarea{width:100%;min-height:60px}</style></head>
+<body><main><h1>Join us: ML Engineer</h1>
+<form onsubmit="return false">
+<div class="row"><label for="email">Email address</label><input id="email" type="email"></div>
+<section id="work"><h2>Employment History</h2>
+  <div id="employers"></div>
+  <a href="#" id="add-employer" role="button">+ Add employer</a>
+</section>
+<section id="study"><h2>Academic Background</h2>
+  <div id="study-list"></div>
+  <button type="button" id="add-school">+ Add school</button>
+</section>
+<section><h2>About you</h2>
+  <div class="row"><label for="about">Tell us about yourself</label><textarea id="about"></textarea></div>
+</section>
+<button type="button">Send application</button>
+</form></main>
+<script>
+let e = 0, s = 0;
+function employer(prefill) {
+  e++;
+  const f = document.createElement("fieldset");
+  f.className = "employer";
+  f.innerHTML = `<legend>Employer ${e}</legend>
+    <div class="row"><label for="emp${e}">Employer name</label><input id="emp${e}"></div>
+    <div class="row"><label for="jt${e}">Job title</label><input id="jt${e}"></div>
+    <div class="row"><label for="city${e}">City</label><input id="city${e}"></div>
+    <div class="row"><label for="from${e}">From (MM/YYYY)</label><input id="from${e}" placeholder="MM/YYYY"></div>
+    <div class="row"><label for="to${e}">To (MM/YYYY)</label><input id="to${e}" placeholder="MM/YYYY"></div>
+    <div class="row"><label><input type="checkbox" id="still${e}"> Still employed here</label></div>
+    <div class="row"><label for="resp${e}">Responsibilities</label><textarea id="resp${e}"></textarea></div>`;
+  document.getElementById("employers").append(f);
+  if (prefill) { f.querySelector(`#emp${e}`).value = prefill.employer; f.querySelector(`#jt${e}`).value = prefill.title; }
+}
+function school() {
+  s++;
+  const f = document.createElement("fieldset");
+  f.className = "school";
+  f.innerHTML = `<legend>School ${s}</legend>
+    <div class="row"><label for="inst${s}">Institution</label><input id="inst${s}"></div>
+    <div class="row"><label for="qual${s}">Qualification</label><input id="qual${s}"></div>
+    <div class="row"><label for="major${s}">Major</label><input id="major${s}"></div>
+    <div class="row"><label for="sd${s}">Start date</label><input id="sd${s}" type="month"></div>
+    <div class="row"><label for="gd${s}">Graduation date</label><input id="gd${s}" type="month"></div>`;
+  document.getElementById("study-list").append(f);
+}
+employer({ employer: "Old Parse Co", title: "Intern" });   // the site's own resume parse, wrong
+document.getElementById("add-employer").addEventListener("click", (ev) => { ev.preventDefault(); employer(); });
+document.getElementById("add-school").addEventListener("click", school);
+</script></body></html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- Test fixture (user 2026-10-14): Breezy's application with its repeaters. "+ Add Position" and "+ Add Education"
+     each add an entry; a position has Title, Company, Start / End month and year, "I currently work here" and a
+     Summary (the job's bullets). Then the person's Summary and a Cover Letter (left empty, never a question). -->
+<html lang="en"><head><meta charset="utf-8"><title>Apply: ML Engineer</title>
+<style>body{font:14px sans-serif;padding:20px;max-width:720px}.form-group{margin:8px 0}label{display:block;font-weight:600}
+.entry{border:1px solid #ccc;padding:8px;margin:8px 0}textarea{width:100%;min-height:60px}</style></head>
+<body><h1>ML Engineer</h1>
+<form id="apply" onsubmit="return false">
+<div class="form-group"><label for="name">Full Name</label><input id="name" name="name"></div>
+<h3>Experience</h3>
+<div id="positions"></div>
+<button type="button" id="add-position">+ Add Position</button>
+<h3>Education</h3>
+<div id="schools"></div>
+<button type="button" id="add-education">+ Add Education</button>
+<h3>Summary</h3>
+<div class="form-group"><label for="summary">Summary</label><textarea id="summary" name="summary"></textarea></div>
+<div class="form-group"><label for="cover">Cover Letter</label><textarea id="cover" name="cover_letter"></textarea></div>
+<button type="button">Submit Application</button>
+</form>
+<script>
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const months = (id, label) => `<div class="form-group"><label for="${id}">${label}</label><select id="${id}"><option value="">Month</option>${MONTHS.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("")}</select></div>`;
+const years = (id, label) => { let o = '<option value="">Year</option>'; for (let y = 2026; y >= 2010; y--) o += `<option value="${y}">${y}</option>`; return `<div class="form-group"><label for="${id}">${label}</label><select id="${id}">${o}</select></div>`; };
+let p = 0, s = 0;
+document.getElementById("add-position").onclick = () => {
+  p++;
+  const d = document.createElement("div");
+  d.className = "entry position";
+  d.innerHTML = `<div class="form-group"><label for="title${p}">Title</label><input id="title${p}"></div>
+    <div class="form-group"><label for="company${p}">Company</label><input id="company${p}"></div>
+    ${months(`sm${p}`, "Start Month")}${years(`sy${p}`, "Start Year")}${months(`em${p}`, "End Month")}${years(`ey${p}`, "End Year")}
+    <div class="form-group"><label><input type="checkbox" id="current${p}"> I currently work here</label></div>
+    <div class="form-group"><label for="psum${p}">Summary</label><textarea id="psum${p}"></textarea></div>`;
+  document.getElementById("positions").append(d);
+};
+document.getElementById("add-education").onclick = () => {
+  s++;
+  const d = document.createElement("div");
+  d.className = "entry school";
+  d.innerHTML = `<div class="form-group"><label for="school${s}">School</label><input id="school${s}"></div>
+    <div class="form-group"><label for="degree${s}">Degree</label><input id="degree${s}"></div>
+    <div class="form-group"><label for="field${s}">Field of Study</label><input id="field${s}"></div>
+    ${months(`esm${s}`, "Start Month")}${years(`esy${s}`, "Start Year")}${months(`eem${s}`, "End Month")}${years(`eey${s}`, "End Year")}`;
+  document.getElementById("schools").append(d);
+};
+</script></body></html>

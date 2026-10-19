@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- Test fixture (user 2026-10-14): Ashby's city typeahead. Typing a city lists every place of that name; Autofill must
+     pick the one in the address's state and the United States. -->
+<html lang="en"><head><meta charset="utf-8"><title>Apply: ML Engineer</title>
+<style>body{font:14px sans-serif;padding:20px;max-width:640px}.f{margin:10px 0}label{display:block;font-weight:600}
+[role=listbox]{border:1px solid #888;max-width:360px;margin:0;padding:0;list-style:none}[role=option]{padding:4px 8px;cursor:pointer}</style></head>
+<body><div class="ashby-application-form-container"><h1>ML Engineer</h1>
+<form onsubmit="return false">
+<div class="f"><label for="name">Name</label><input id="name" name="_systemfield_name"></div>
+<div class="f"><label for="city">Location</label>
+  <input id="city" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="city-list" autocomplete="off">
+  <ul id="city-list" role="listbox" hidden></ul></div>
+<button type="button">Submit Application</button>
+</form></div>
+<script>
+const PLACES = ["Springfield, Illinois, United States", "Springfield, Massachusetts, United States", "Springfield Gardens, New York, United States",
+  "Springfield, Missouri, Canada", "Springfield, Missouri, United States", "Springfield, Oregon, United States"];
+const input = document.getElementById("city"), list = document.getElementById("city-list");
+input.addEventListener("input", () => {
+  const q = input.value.trim().toLowerCase();
+  const hits = q.length < 2 ? [] : PLACES.filter((p) => p.toLowerCase().includes(q));
+  list.replaceChildren(...hits.map((p) => Object.assign(document.createElement("li"), { role: "option", textContent: p,
+    onclick: () => { input.value = p; input.dataset.picked = p; list.hidden = true; input.setAttribute("aria-expanded", "false"); } })));
+  for (const li of list.children) li.setAttribute("role", "option");
+  list.hidden = !hits.length;
+  input.setAttribute("aria-expanded", String(Boolean(hits.length)));
+});
+</script></body></html>
