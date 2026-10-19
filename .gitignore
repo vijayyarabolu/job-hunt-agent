@@ -20,3 +20,5 @@ config/google_client.json
 *.pdf
 .chrome-prof-*/
 node_modules/
+build/
+dist/
