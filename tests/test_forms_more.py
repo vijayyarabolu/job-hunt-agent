@@ -42,7 +42,7 @@ resumes:
 BASELINE = {"headline": "ML Engineer", "summary": "Base.", "skills": [{"category": "ML", "items": ["Python"]}],
             "experience": [{"company": "Basecorp, USA", "dates": "Jan 2021 – Present", "title": "Engineer", "bullets": ["x"]}],
             "education": [{"degree": "Master of Science in Computer Science",
-                           "school": "University of Central Missouri, Warrensburg, MO, USA", "dates": "Aug 2022 – May 2024"}]}
+                           "school": "Lakeview State University, Springfield, IL, USA", "dates": "Aug 2022 – May 2024"}]}
 SUMMARY = "ML engineer who ships retrieval and ranking systems in Python, from data pipelines to evaluation."
 TAILORED = {"summary": SUMMARY, "jobs": [   # the tailored resume being uploaded (synthetic)
     {"company": "Globex Corp, Austin TX", "title": "Senior ML Engineer", "dates": "Mar 2023 – Present",

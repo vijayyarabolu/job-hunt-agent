@@ -80,7 +80,7 @@ try {
     descs[0] === "• Built retrieval pipelines in Python.\n• Cut model latency 40% with quantization." && descs[1] === "• Shipped fraud models.\n• Ran A/B tests.", descs);
   const edu = await vals(["#school1", "#degree1", "#field1", "#esm1", "#esy1", "#eem1", "#eey1"]);
   check("Breezy: education without a start date", (await count(".school")) === 1 &&
-    JSON.stringify(edu) === JSON.stringify(["University of Central Missouri", "Master's Degree", "Computer Science", "", "", "5", "2024"]), edu);
+    JSON.stringify(edu) === JSON.stringify(["Lakeview State University", "Master's Degree", "Computer Science", "", "", "5", "2024"]), edu);
   check("Breezy: the Summary box is the resume's summary", (await val("#summary")) === WANT.summary, await val("#summary"));
   check("Breezy: the cover letter is left empty", (await val("#cover")) === "", await val("#cover"));
   await autofill();
@@ -97,7 +97,7 @@ try {
     const okWhen = JSON.stringify(when) === JSON.stringify(["03/2023", "", "06/2020", "02/2023", true, false]);
     const resp = await vals(["#resp1", "#resp2"]);
     const school = await vals(["#inst1", "#qual1", "#major1", "#gd1", "#sd1"]);
-    const okSchool = (await count("fieldset.school")) === 1 && JSON.stringify(school) === JSON.stringify(["University of Central Missouri", "Master's Degree", "Computer Science", "2024-05", ""]);
+    const okSchool = (await count("fieldset.school")) === 1 && JSON.stringify(school) === JSON.stringify(["Lakeview State University", "Master's Degree", "Computer Science", "2024-05", ""]);
     return { okRows, rows, okWhen, when, okResp: JSON.stringify(resp) === JSON.stringify([j1.description, j2.description]), resp, okSchool, school,
       okAbout: (await val("#about")) === WANT.summary, about: await val("#about"), prefix };
   };

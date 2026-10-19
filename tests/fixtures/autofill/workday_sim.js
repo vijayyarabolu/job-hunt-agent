@@ -134,7 +134,7 @@
       { kind: "text", label: "Role Description", inputId: `workExperience-${i}--roleDescription`, multiline: 1 }] },
     education: { title: "Education", auto: "educationSection", panel: "education", fields: () => [
       { kind: "prompt", label: "School or University", field: "school", single: 1, required: 1,
-        options: "University of Central Missouri|University of Missouri|University of Kansas|Osmania University|Other" },
+        options: "Lakeview State University|University of Missouri|University of Kansas|Hillcrest University|Other" },
       { kind: "listbox", label: "Degree", field: "degree", required: 1, options: "Associate's Degree|Bachelor's Degree|Master's Degree|Doctorate|High School Diploma" },
       { kind: "prompt", label: "Field of Study", field: "fieldOfStudy", single: 1, options: "Computer Science|Computer Engineering|Data Science|Information Technology" },
       { kind: "date", label: "From", field: "firstYearAttended", parts: "YYYY" },

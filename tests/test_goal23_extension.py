@@ -46,7 +46,7 @@ BASELINE = {"headline": "AI Engineer", "summary": "Fake.", "skills": [{"category
             "experience": [{"company": "Examplecorp, USA", "dates": "Jul 2024 – Present", "title": "AI Engineer", "bullets": ["x"]},
                            {"company": "Testworks, India", "dates": "Jun 2020 – Jul 2022", "title": "ML Engineer", "bullets": ["x"]}],
             "education": [{"degree": "Master of Science in Computer Science",
-                           "school": "University of Central Missouri, Warrensburg, MO, USA", "dates": "Aug 2022 – May 2024"}]}
+                           "school": "Lakeview State University, Springfield, IL, USA", "dates": "Aug 2022 – May 2024"}]}
 DIFF = {"summary": {"new": "Fake."}, "jobs": [],          # the tailored Skills section, as resumegen's diff carries it
         "skills": [{"category": "Languages", "items": {"base": "Python", "new": "Languages: Python | PySpark, python"}},
                    {"category": "AI", "items": {"base": "", "new": "PyTorch, LangChain, RAG, LLM evaluation"}},

@@ -254,16 +254,16 @@ class ChoicesTest(LearnCase):
 
 class EducationAndStatsTest(LearnCase):
     def test_more_than_one_degree_and_the_first_is_the_highest(self):
-        two = [{"school": "University of Central Missouri", "degree": "Master's Degree", "field": "Computer Science",
+        two = [{"school": "Lakeview State University", "degree": "Master's Degree", "field": "Computer Science",
                 "start": "08/2023", "end": "05/2025"},
-               {"school": "JNTU Hyderabad", "degree": "Bachelor's Degree", "field": "Electronics", "start": "08/2016",
+               {"school": "Riverside Institute of Technology", "degree": "Bachelor's Degree", "field": "Electronics", "start": "08/2016",
                 "end": "05/2020"}]
         bank.save(self.conn, PID, "education_list", json.dumps(two))
         got = bank.history(self.conn, PID)["schools"]
         self.assertEqual([(s["school"], s["start"]) for s in got],
-                         [("University of Central Missouri", "08/2023"), ("JNTU Hyderabad", "08/2016")])
+                         [("Lakeview State University", "08/2023"), ("Riverside Institute of Technology", "08/2016")])
         self.assertEqual((self.answer("school"), self.answer("degree"), self.answer("grad_date")),
-                         ("University of Central Missouri", "Master's Degree", "05/2025"))
+                         ("Lakeview State University", "Master's Degree", "05/2025"))
         with self.assertRaises(ValueError):
             bank.save(self.conn, PID, "education_list", json.dumps([{"school": "X", "start": "2016"}]))
 

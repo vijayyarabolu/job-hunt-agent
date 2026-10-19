@@ -149,7 +149,7 @@ try {
       p[0].querySelector('[data-automation-id=formField-degree] button').textContent,
       [...p[0].querySelectorAll('[data-automation-id=formField-fieldOfStudy] [data-automation-id=selectedItem]')].map((x) => x.title).join(),
       p[0].querySelector('[data-automation-id=formField-firstYearAttended] input').value, p[0].querySelector('[data-automation-id=formField-lastYearAttended] input').value]`);
-  check("education is exactly the user's", JSON.stringify(edu) === JSON.stringify([1, "University of Central Missouri", "Master's Degree", "Computer Science", "", "2024"]), edu);
+  check("education is exactly the user's", JSON.stringify(edu) === JSON.stringify([1, "Lakeview State University", "Master's Degree", "Computer Science", "", "2024"]), edu);
   check("websites: exactly LinkedIn and GitHub (junk parsed rows fixed or removed)", await t.js("return [...document.querySelectorAll('[data-sec=websites] input')].map((i) => i.value).sort().join() === 'https://github.com/zz-testcase-example,https://www.linkedin.com/in/zz-testcase-example'"),
     await t.js("return [...document.querySelectorAll('[data-sec=websites] input')].map((i) => i.value)"));
   const skills = await chosen("skills");

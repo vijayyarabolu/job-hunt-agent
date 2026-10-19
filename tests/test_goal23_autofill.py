@@ -37,7 +37,7 @@ BASELINE = {"summary": "ML engineer.", "skills": [{"category": "ML", "items": ["
                            {"company": "Initech, India", "title": "Data Analyst", "dates": "Jan 2021 - Jul 2023",
                             "bullets": ["Made reports."]}],
             "education": [{"degree": "Master of Science in Computer Science",
-                           "school": "University of Central Missouri, Warrensburg, MO, USA",
+                           "school": "Lakeview State University, Springfield, IL, USA",
                            "dates": "Aug 2023 – May 2025"}]}
 RECENT = db.iso(NOW - timedelta(days=1))
 CANDIDATES = [{"street": "1781 Chain Bridge Rd", "zip": "22102", "name": "The Ashby", "own_zip": True},
@@ -76,7 +76,7 @@ class BankSeedTest(AutofillCase):
         self.assertEqual((got["linkedin"], got["years_exp"], got["sponsor_now"], got["sponsor_future"]),
                          ("https://linkedin.com/in/tess", "4", "Yes", "Yes"))
         self.assertEqual((got["degree"], got["field_of_study"], got["school"], got["grad_date"]),
-                         ("Master's Degree", "Computer Science", "University of Central Missouri", "05/2025"))
+                         ("Master's Degree", "Computer Science", "Lakeview State University", "05/2025"))
         for empty in ("address1", "zip", "work_auth", "gender", "race", "veteran", "disability", "signature_name",
                       "salary", "terms", "age18"):
             self.assertEqual(got[empty], "", empty)
