@@ -36,7 +36,7 @@ python3 -m venv .venv && .venv/bin/pip install -e .
 .venv/bin/job-hunt-agent demo --open
 ```
 
-Demo mode starts the real app on fictional data: two sample profiles (Alex Rivera with four resumes, Jordan Lee with one), about 25 made-up postings, a tracker with a few weeks of history and two tailored resumes. Every outside service is replaced by a fake, so nothing is sent anywhere. You need Python 3.11 or newer.
+Demo mode starts the real app on fictional data: two sample profiles (Alex Rivera with four resumes, Jordan Lee with one), about 25 made-up postings, a tracker with a few weeks of history and two tailored resumes. Every outside service is replaced by a fake, so nothing is sent anywhere. You need Python 3.12 or newer.
 
 ## Use it for real
 
