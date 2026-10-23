@@ -53,6 +53,7 @@ class Ctx:
     dealbreakers: tuple = ()                         # profile dealbreaker regexes, re-checked on the title
     n_resumes: int = 1                               # the fit uses the best of the profile's resumes
     past: frozenset = frozenset()                    # company keys of the person's past employers
+    ghost: dict = field(default_factory=dict)        # uid -> (penalty points, badge text) (ghost.load)
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,7 @@ class Score:
     muted: bool = False         # this req (or its twin) was applied to recently
     employment: str | None = None   # signals.EMPLOYMENT_LABELS key
     scored: bool = True         # False while the fit is pending: the UI shows "—" and sorts it after scored jobs
+    ghost: str | None = None    # GOAL29 §3: "Possible ghost job: ..." (flagged, never hidden)
 
 
 def _clamp(x: float) -> float:
@@ -107,7 +109,7 @@ def real_req(row: dict) -> tuple[float, list[tuple[str, float]]]:
     if lo and hi:
         wide = hi / lo > 2
         pts += 3.5 if wide else 7
-        chips.append((f"${lo / 1000:.0f} to {hi / 1000:.0f}k" + (" (wide)" if wide else ""), 3.5 if wide else 7))
+        chips.append((f"${lo / 1000:.0f}k to ${hi / 1000:.0f}k" + (" (wide)" if wide else ""), 3.5 if wide else 7))
     if row.get("ats") in REQ_ID_ATS:
         avail += 5
         pts += 5 if row.get("req_id") else 0
@@ -230,7 +232,9 @@ def final(row: dict, fit: dict | None, ctx: Ctx) -> Score:
     s, s_chips = seniority(row, ctx.years, ctx.max_years)
     parts = {"F": f["F"], "R": r, "Q": q, "S": s}
     mults = {**multipliers(row, h, f["langs"]), **feedback.factors(ctx.prefs, row, ctx.families)}
-    worth = _worth(parts, mults)
+    raw = _worth(parts, mults)
+    penalty, ghost = ctx.ghost.get(row["uid"], (0, None))
+    worth = max(0, raw - penalty)                     # GOAL29 §3: a few points (<= ghost.PENALTY_CAP), never hidden
     same_role, n_company = applied.match(row["uid"], row.get("company", ""), row.get("title", ""), ctx.applied)
     muted = bool(same_role and same_role.applied_on and
                  ctx.now.date() - same_role.applied_on <= timedelta(days=applied.MUTE_DAYS))
@@ -269,7 +273,7 @@ def final(row: dict, fit: dict | None, ctx: Ctx) -> Score:
         chips.append(f"Applied {same_role.applied_on:%b %d}" if same_role.applied_on else "Applied before")
     elif n_company:
         chips.append(f"Applied here ×{n_company}")
-    chips += _ranked_chips(parts, mults, worth, extra)
+    chips += _ranked_chips(parts, mults, raw, extra)
     if ctx.sponsorship_label and row.get("sponsorship") in SPONSORSHIP_CHIPS:
         chips.append(SPONSORSHIP_CHIPS[row["sponsorship"]])
 
@@ -285,4 +289,4 @@ def final(row: dict, fit: dict | None, ctx: Ctx) -> Score:
     if fit is None:                                   # no number before the fit exists
         band = "Scoring"
     return Score(state, worth, band, parts, mults, tuple(chips), push, f["pct"], tuple(f["missing"]), dealbreaker,
-                 pipeline, muted, employment, fit is not None)
+                 pipeline, muted, employment, fit is not None, ghost)

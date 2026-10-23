@@ -49,7 +49,7 @@ export async function check(boot) {
   setFollowupCount(S.followups);
   if (d.dropped.length) {
     toast(`Dropped ${d.dropped.length} Apply click${d.dropped.length === 1 ? "" : "s"} older than 7 days, not marked applied: ` +
-      d.dropped.map((x) => `${x.company}, ${x.role}`).join("; "), { ms: DROPPED_MS });
+      d.dropped.map((x) => `${x.company} · ${x.role}`).join("; "), { ms: DROPPED_MS });
   }
   const rest = S.g8?.inline ? S.g8.inline(d.ask) : d.ask;
   if (rest.length && !busy) { busy = true; ask(rest, 0); }
@@ -73,7 +73,7 @@ function ask(list, i) {
   const btns = [btn("primary", "Yes, I applied: mark it applied and attach the resume", () => reply("yes"), "Yes, I applied"),
     btn("", "Not yet", () => reply("no"), "No"),
     btn("ghost", "Ask me later (next time the app opens)", () => reply("later"), "Later")];
-  show(h("h2", { id: "bk-h" }, `Did you apply to ${e.company}, ${e.role}?`),
+  show(h("h2", { id: "bk-h" }, `Did you apply to ${e.company} · ${e.role}?`),
     muted(`You opened Apply ${exactAge(e.opened_at)}${list.length > 1 ? ` · ${i + 1} of ${list.length}` : ""}`, "muted small"),
     h("div", "row-btns", btns));
 }
@@ -94,7 +94,7 @@ export function applied(r, next) {
     }
     done();
   };
-  show(h("h2", { id: "bk-h" }, `Applied: ${r.company}, ${r.role}`),
+  show(h("h2", { id: "bk-h" }, `Applied: ${r.company} · ${r.role}`),
     h("p", "small", `Marked applied today. ${ATTACHED[a.kind](a)}. Your sheet row fills in within a minute.`),
     r.ask.length ? h("p", {}, "Still empty in your sheet:") : muted("Nothing else is empty in your sheet row.", "muted small"),
     r.ask.map((f, k) => h("label", "field", h("span", {}, f.header), inputs[k])),

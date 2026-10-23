@@ -1,6 +1,6 @@
 // Tracker: loading, toolbar, Move to…, phone cards; the desktop grid is grid.js (loaded with the tab).
-import { $, $$, B, btn, OPEN_TIP, S, STATUS_LABELS, api, closePop, exactAge, extLink, fail, fullJd, get, h, icon, isoToday, menu, mini, muted, openPop, opt, titled,
-  optimistic, phone, popOpen, q, shortDate, sm, store, tabName, toast, still } from "./core.js";
+import { $, $$, B, btn, OPEN_TIP, S, STATUS_LABELS, api, closePop, exactAge, extLink, fail, fullJd, get, h, icon, isoToday, loadError, menu, mini, muted, openPop, opt,
+  optimistic, phone, placeholder, popOpen, q, refreshFailed, shortDate, sm, store, tabName, titled, toast, still } from "./core.js";
 import { cellDisplay, makeEditable, setInlineHooks, syncBadge, undoLastEdit, watchSync } from "./inline.js";
 import { openApplyDialog, pickResumeFile, removeApp, resumeBtns, xBtn } from "./dialogs.js";
 import { openAddJob, openRowEditor, openVendors, refreshEditor, refreshFollowups } from "./editor.js";
@@ -32,23 +32,37 @@ const fits = (row) => !shownStatuses() || shownStatuses().includes(row.status);
 export function resetTracker() { Object.assign(T, { q: "", status: "", sheetName: "", rows: [], layout: null, gone: {} }); }
 export const focusSearch = () => $("#t-search")?.focus();
 
+// GOAL31 §3: each table's last rows, drawn at once on the way back; the same rows again redraw nothing
+const lastRows = new Map();
+let shownSig = "";
+
 export async function loadTracker({ quiet = false } = {}) {
   const token = ++loadToken;
   const tab = S.tab;
   const status = GROUPS[tab] === "" ? T.status : GROUPS[tab];
-  if (!quiet) { S.mail = null; view().replaceChildren(toolbar(), h("div", "t-wrap", h("p", "muted pad", "Loading…"))); }
+  const memo = `${S.profile}|${tab}|${status}|${T.q}|${T.sheetName}`;
+  const hit = !quiet && lastRows.get(memo);
+  if (hit) { S.mail = null; Object.assign(T, hit.data, { gone: {} }); draw(); shownSig = hit.sig; }
+  else if (!quiet) { S.mail = null; shownSig = ""; view().replaceChildren(toolbar(), h("div", "t-wrap", placeholder())); }
   try {
     const sheetTab = T.layout?.tabs.find((x) => x.name === T.sheetName);
     if (sheetTab?.kind === "vendors") return await loadVendors(sheetTab, quiet);
     const sheet = sheetTab?.kind === "apps" ? sheetTab.index : "";
     const data = await get("/api/tracker", { status, q: T.q, limit: LIMIT, compact: "1", sheet });
     if (token !== loadToken || tab !== S.tab) return;
-    const same = quiet && gridOn() && data.layout && T.layout && sheet === (sheetTab?.kind === "apps" ? sheetTab.index : "");
-    Object.assign(T, { rows: data.rows, layout: data.layout, look: data.look, counts: data.counts || {}, total: data.total, gone: {} });
+    const sig = JSON.stringify(data);
+    const got = { rows: data.rows, layout: data.layout, look: data.look, counts: data.counts || {}, total: data.total };
+    lastRows.set(memo, { data: got, sig });
+    if (sig === shownSig) return;
+    shownSig = sig;
+    const same = (quiet || hit) && gridOn() && data.layout && T.layout && sheet === (sheetTab?.kind === "apps" ? sheetTab.index : "");
+    Object.assign(T, got, { gone: {} });
     if (same) { paintCounts(); grid.refresh(); return; }
     draw();
   } catch (err) {
-    if (token === loadToken) view().replaceChildren(toolbar(), h("p", "pad", `Could not load: ${err.message}`));
+    if (token !== loadToken) return;
+    if (hit || (quiet && T.rows.length)) refreshFailed(err, () => loadTracker({ quiet: true }));
+    else view().replaceChildren(toolbar(), loadError(err, () => loadTracker()));
   }
 }
 
@@ -114,7 +128,7 @@ function toolbar() {
   const head = h("div", "t-head", h("h1", { id: "t-h" }, tabName(S.tab), muted(` ${T.total ?? ""}`, "muted n")),
     searchBox(), acts, h("div", "t-sync", syncChip(), S.google?.sheet_url ? extLink(S.google.sheet_url, "Open my sheet ↗", "lnk", "Open my Google Sheet") : null));
   const grid = cardsMode() ? [] : [h("div", { id: "g-state", class: "g-state" }), h("span", { id: "g-saved", class: "g-saved", role: "status" })];
-  return h("div", "t-top", head, h("div", "t-row2", statusChips(), sheetTabs(), ...grid));   // one line: the grid keeps the room
+  return h("div", "t-top", head, h("div", "t-row2", statusChips(), sheetTabs(), ...grid));
 }
 
 function statusChip(row) {
@@ -195,7 +209,10 @@ function card(row) {
     h("span", "sync-slot"));
 }
 
-const emptyNote = () => (T.q ? `Nothing matches “${T.q}”.` : "Nothing here yet.");
+// GOAL33 §3d: an empty view says what fills it
+export const EMPTY_TRACKER = { interviewing: "Nothing here yet: a row moves here when its status becomes Screen, Interview or Offer (an email can do it).",
+  tracker: "Nothing here yet: press n to add a job, or mark one applied." };
+const emptyNote = () => (T.q ? `Nothing matches “${T.q}”: clear the search to see every row.` : EMPTY_TRACKER[S.tab] || "Nothing here yet.");
 
 function bodyEls() {
   if (!T.layout) return [h("p", "pad muted", "No tracker layout for this profile.")];
@@ -204,7 +221,7 @@ function bodyEls() {
   }
   const host = h("div", { "data-fk": "wrap" }, h("p", "pad muted", "Loading…"));
   import("./grid.js").then((m) => { grid = m; if (host.isConnected) m.mount(host); return import("./gridmenu.js"); })
-    .then((m) => { gridMenu = m; }).catch(fail);                // loaded with the grid: Columns opens in the same click
+    .then((m) => { gridMenu = m; }).catch(fail);
   return [host];
 }
 
@@ -265,17 +282,17 @@ function dropRow(i, next) {
   if (gridOn()) grid.refresh(); else $(`#view [data-app="${next.id}"]`)?.remove();
 }
 
-// rows gone for good (deleted): no way back through a status change
+// rows deleted for good: no way back through a status
 export function dropIds(ids) {
   T.rows = T.rows.filter((r) => !ids.includes(r.id));
   T.total -= ids.length;
   paintCounts();
 }
 
-// a grid status write: counts follow, and a row that no longer fits the tab / status filter leaves it (Undo brings it back)
+// a grid status write; a row no longer fitting the tab leaves (Undo)
 export const showStatus = (row) => redrawRow(row);
 
-// a row's new data (a grid write or its answer): shown without the badge / counts bookkeeping of redrawRow
+// a row's new data (a grid write or its answer), without redrawRow's badge / count bookkeeping
 export function putRow(row) {
   const i = T.rows.findIndex((r) => r.id === row.id);
   if (i < 0) return;
@@ -301,7 +318,7 @@ function replaceRow(i, next) {
   const act = old.contains(document.activeElement) ? document.activeElement : null;
   const fresh = card(next);
   old.replaceWith(fresh);
-  const same = act?.classList[0] && fresh.querySelector(`.${CSS.escape(act.classList[0])}`);   // the same control in the new card
+  const same = act?.classList[0] && fresh.querySelector(`.${CSS.escape(act.classList[0])}`);
   if (act) still(same || fresh.querySelector("button"));
 }
 

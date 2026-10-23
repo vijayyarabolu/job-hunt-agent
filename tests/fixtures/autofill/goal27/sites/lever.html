@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- GOAL27 matrix fixture: Lever application. Synthetic: modeled on Lever application's public apply form (its field names, label wording and
+     widget kinds); our own markup, the fake person's values only. Regenerate with make_fixtures.py. -->
+<html lang="en"><head><meta charset="utf-8"><title>Lever application: ML Engineer</title>
+<meta property="og:title" content="ML Engineer"><meta property="og:site_name" content="ZZ Test Corp">
+<style>body{font:14px sans-serif;padding:20px 24px 120px;max-width:760px}.field,.application-question,._fieldEntry,.iCIMS_InfoField,.row,fieldset{margin:8px 0}
+label,legend,._label{display:block;font-weight:600}input[type=text],input:not([type]),input[type=email],input[type=tel],textarea,select{width:340px;padding:4px}
+.select__control{border:1px solid #888;width:340px;min-height:28px;position:relative;display:flex}.select__value-container{flex:1;display:flex}
+.select__input{border:0;width:100%}.select__menu{position:absolute;background:#fff;border:1px solid #888;width:340px;z-index:9}.select__option{padding:3px 6px;cursor:pointer}
+.typeahead{position:relative}.typeahead-results{position:absolute;background:#fff;border:1px solid #888;list-style:none;margin:0;padding:0;width:340px;z-index:9}
+.typeahead-results li{padding:3px 6px;cursor:pointer}._yesno button{margin-right:6px;padding:4px 14px}._active{background:#1f5fbf;color:#fff}
+.entry{border:1px solid #ccc;padding:8px;margin:8px 0}.select2-selection{display:inline-block;border:1px solid #888;width:340px;padding:4px}</style></head>
+<body><main><h1>ML Engineer</h1><p>ZZ Test Corp · Springfield, MO</p>
+<form id="application-form" action="#" onsubmit="return false">
+<h3>Submit your application</h3>
+<div class="field"><label for="resume-upload-input">Resume/CV</label><input type="file" id="resume-upload-input" name="resume" accept=".pdf,.doc,.docx" data-expect="re:_Resume\.pdf$" data-type="file"></div>
+<div class="application-question"><label for="name">Full name</label><input id="name" name="name" type="text" data-expect="Zz Testcase" data-type="text"></div>
+<div class="application-question"><label for="email">Email</label><input id="email" name="email" type="text" data-expect="zz.testcase@example.com" data-type="email"></div>
+<div class="application-question"><label for="phone">Phone</label><input id="phone" name="phone" type="text" data-expect="555-010-0199" data-type="phone"></div>
+<div data-w="typeahead" data-label="Current location" data-id="location-input" data-name="location" data-options="Springfield, Missouri, United States|Springfield, Illinois, United States|Springfield, Massachusetts, United States" data-field="application-question" data-expect="Springfield, Missouri, United States" data-type="typeahead"></div>
+<div class="application-question"><label for="org">Current company</label><input id="org" name="org" type="text" data-expect="Globex Corp" data-type="text"></div>
+<h3>Links</h3>
+<div class="application-question"><label for="urls-linkedin">LinkedIn URL</label><input id="urls-linkedin" name="urls[LinkedIn]" type="text" data-expect="https://www.linkedin.com/in/zz-testcase" data-type="text"></div>
+<div class="application-question"><label for="urls-github">GitHub URL</label><input id="urls-github" name="urls[GitHub]" type="text" data-expect="https://github.com/zz-testcase" data-type="text"></div>
+<h3>Work authorization</h3>
+<fieldset class="application-question" data-expect="Yes" data-type="legal"><legend>Are you authorized to work in the United States?</legend><label><input type="radio" name="cards[a1][field0]" value="Yes"> Yes</label><label><input type="radio" name="cards[a1][field0]" value="No"> No</label></fieldset>
+<fieldset class="application-question" data-expect="No" data-type="legal"><legend>Will you require sponsorship for employment now or in the future?</legend><label><input type="radio" name="cards[a1][field1]" value="Yes"> Yes</label><label><input type="radio" name="cards[a1][field1]" value="No"> No</label></fieldset>
+<div class="application-question"><label for="cards-a1-field2">If yes, what type of sponsorship?</label><textarea id="cards-a1-field2" name="cards[a1][field2]" data-expect="" data-type="textarea"></textarea></div>
+<div class="field"><label for="q_years">How many years of Python experience do you have? *</label><input id="q_years" name="q_years" type="text" required="True" data-expect="5" data-type="resume-answer"></div>
+<h3>U.S. Equal Employment Opportunity information</h3>
+<div class="field"><label for="eeo-gender">Gender</label><select id="eeo-gender" name="eeo[gender]" data-expect="Male" data-type="eeo"><option value="">Select...</option><option value="Male">Male</option><option value="Female">Female</option><option value="Decline To Self Identify">Decline To Self Identify</option></select></div>
+<div class="field"><label for="eeo-race">Race</label><select id="eeo-race" name="eeo[race]" data-expect="Asian" data-type="eeo"><option value="">Select...</option><option value="American Indian or Alaskan Native">American Indian or Alaskan Native</option><option value="Asian">Asian</option><option value="Black or African American">Black or African American</option><option value="Hispanic or Latino">Hispanic or Latino</option><option value="White">White</option><option value="Two or More Races">Two or More Races</option><option value="Decline To Self Identify">Decline To Self Identify</option></select></div>
+<div class="field"><label for="eeo-veteran">Veteran status</label><select id="eeo-veteran" name="eeo[veteran]" data-expect="I am not a protected veteran" data-type="eeo"><option value="">Select...</option><option value="I am a protected veteran">I am a protected veteran</option><option value="I am not a protected veteran">I am not a protected veteran</option><option value="I don&#x27;t wish to answer">I don&#x27;t wish to answer</option></select></div>
+<div class="field"><label for="comments">Additional information</label><textarea id="comments" name="comments" data-expect="" data-type="textarea"></textarea></div>
+<div class="actions"><button type="submit" class="btn-submit">Submit Application</button></div>
+</form></main>
+<script src="/__sim/ats_sim.js"></script></body></html>

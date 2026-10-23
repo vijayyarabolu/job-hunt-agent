@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- GOAL27 matrix fixture: SuccessFactors. Synthetic: modeled on SuccessFactors's public apply form (its field names, label wording and
+     widget kinds); our own markup, the fake person's values only. Regenerate with make_fixtures.py. -->
+<html lang="en"><head><meta charset="utf-8"><title>SuccessFactors: ML Engineer</title>
+<meta property="og:title" content="ML Engineer"><meta property="og:site_name" content="ZZ Test Corp">
+<style>body{font:14px sans-serif;padding:20px 24px 120px;max-width:760px}.field,.application-question,._fieldEntry,.iCIMS_InfoField,.row,fieldset{margin:8px 0}
+label,legend,._label{display:block;font-weight:600}input[type=text],input:not([type]),input[type=email],input[type=tel],textarea,select{width:340px;padding:4px}
+.select__control{border:1px solid #888;width:340px;min-height:28px;position:relative;display:flex}.select__value-container{flex:1;display:flex}
+.select__input{border:0;width:100%}.select__menu{position:absolute;background:#fff;border:1px solid #888;width:340px;z-index:9}.select__option{padding:3px 6px;cursor:pointer}
+.typeahead{position:relative}.typeahead-results{position:absolute;background:#fff;border:1px solid #888;list-style:none;margin:0;padding:0;width:340px;z-index:9}
+.typeahead-results li{padding:3px 6px;cursor:pointer}._yesno button{margin-right:6px;padding:4px 14px}._active{background:#1f5fbf;color:#fff}
+.entry{border:1px solid #ccc;padding:8px;margin:8px 0}.select2-selection{display:inline-block;border:1px solid #888;width:340px;padding:4px}</style></head>
+<body><main><h1>ML Engineer</h1><p>ZZ Test Corp · Springfield, MO</p>
+<form id="application-form" action="#" onsubmit="return false">
+<div class="field"><label for="fbclc_fName">First Name</label><input id="fbclc_fName" name="fbclc_fName" type="text" data-expect="Zz" data-type="text"></div>
+<div class="field"><label for="fbclc_lName">Last Name</label><input id="fbclc_lName" name="fbclc_lName" type="text" data-expect="Testcase" data-type="text"></div>
+<div class="field"><label for="fbclc_email">Email</label><input id="fbclc_email" name="fbclc_email" type="text" data-expect="zz.testcase@example.com" data-type="email"></div>
+<div class="field"><label for="fbclc_phone">Contact Phone</label><input id="fbclc_phone" name="fbclc_phone" type="text" data-expect="555-010-0199" data-type="phone"></div>
+<div class="field"><label for="fbclc_city">City</label><input id="fbclc_city" name="fbclc_city" type="text" data-expect="Springfield" data-type="text"></div>
+<div class="field"><label for="fbclc_country">Country</label><select id="fbclc_country" name="fbclc_country" data-expect="United States" data-type="select"><option value="">Select...</option><option value="Canada">Canada</option><option value="India">India</option><option value="United States">United States</option></select></div>
+<div class="field"><label for="fbclc_state">State</label><select id="fbclc_state" name="fbclc_state" data-expect="Missouri" data-type="select"><option value="">Select...</option><option value="Alabama">Alabama</option><option value="Alaska">Alaska</option><option value="Arizona">Arizona</option><option value="California">California</option><option value="Colorado">Colorado</option><option value="Kansas">Kansas</option><option value="Missouri">Missouri</option><option value="New York">New York</option><option value="Texas">Texas</option><option value="Washington">Washington</option></select></div>
+<div class="field"><label for="fbclc_zip">Zip Code</label><input id="fbclc_zip" name="fbclc_zip" type="text" data-expect="65801" data-type="text"></div>
+<div class="field"><label for="fbclc_resume">Resume</label><input type="file" id="fbclc_resume" name="fbclc_resume" accept=".pdf,.doc,.docx" data-expect="re:_Resume\.pdf$" data-type="file"></div>
+<div class="field"><label for="fbclc_auth">Are you legally authorized to work in the United States?</label><select id="fbclc_auth" name="fbclc_auth" data-expect="Yes" data-type="legal"><option value="">Select...</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+<div class="field"><label for="fbclc_spons">Will you now or in the future require sponsorship?</label><select id="fbclc_spons" name="fbclc_spons" data-expect="No" data-type="legal"><option value="">Select...</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+<div class="field"><label for="fbclc_availableDate">Available start date</label><input id="fbclc_availableDate" name="fbclc_availableDate" type="text" placeholder="MM/DD/YYYY" data-expect="re:^\d{2}/\d{2}/\d{4}$" data-type="date"></div>
+<h3>Additional information</h3><div class="field"><label for="ssn">Social Security Number</label><input id="ssn" name="ssn" type="text" data-expect="" data-type="sensitive"></div><div class="field"><label for="dob">Date of Birth</label><input id="dob" name="dob" type="text" placeholder="MM/DD/YYYY" data-expect="" data-type="sensitive"></div>
+<div class="actions"><button type="submit" class="btn-submit">Submit Application</button></div>
+</form></main>
+<script src="/__sim/ats_sim.js"></script></body></html>

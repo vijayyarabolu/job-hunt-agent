@@ -35,6 +35,7 @@ class Entry:
     ranked: list
     views: dict = field(default_factory=dict)      # uid -> (match breakdown, resume view) for api.jobs, on demand
     profile_sig: str = ""                          # the profile it was ranked for (views are only reused for it)
+    groups: dict | None = None                     # GOAL32: uid -> its role's first uid (ranking.groups), on demand
 
 
 _ENTRIES: dict[tuple, Entry] = {}
@@ -111,6 +112,23 @@ def _rerank(key: tuple, profile: dict, fresh_only: bool, states: tuple[str, ...]
     finally:
         with _LOCK:
             _BUSY.discard(key)
+
+
+def groups(conn, entry: Entry) -> dict[str, str]:
+    """GOAL32: the copies of one role among the entry's jobs, worked out once per ranking (it reads their JDs)."""
+    if entry.groups is None:
+        entry.groups = ranking.groups(conn, [row for row, _ in entry.ranked])
+    return entry.groups
+
+
+def copies(pid: str, uid: str) -> list[str]:
+    """Every uid of the role `uid` is one copy of, from the person's kept feed; just [uid] when none is kept."""
+    with _LOCK:
+        found = [e.groups for k, e in _ENTRIES.items() if k[0] == str(config.DB_PATH) and k[1] == pid and e.groups]
+    for group_of in found:
+        if uid in group_of:
+            return sorted(u for u, head in group_of.items() if head == group_of[uid])
+    return [uid]
 
 
 def _sig(profile: dict) -> str:

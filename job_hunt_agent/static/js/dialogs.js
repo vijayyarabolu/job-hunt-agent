@@ -13,9 +13,9 @@ export const REMOVE_TIP = "Remove: a duplicate or a job you never want to see. I
 export const REMOVE_UNDO_MS = 8000;
 export const xBtn = (what, run) => B({ class: "x-rm", title: REMOVE_TIP, "aria-label": `Remove ${what}`,
   onclick: (e) => { e.stopPropagation(); run(); } }, "×");
-// a tracker row (Archived list, phone card): asks first, then it goes here and from the Sheet
+// a tracker row (Archived, phone card): asks first, then gone here and from the Sheet
 export async function removeApp(app, gone, back) {
-  const what = `${app.company || "(company)"}, ${app.role_title || "(role)"}`;
+  const what = `${app.company || "(company)"} · ${app.role_title || "(role)"}`;
   if (!(await ask(`Delete ${what}?`, "It is removed here and from your Google Sheet. You can Undo.", "Delete"))) return;
   try {
     const r = await api("/api/remove", { app: app.id, why: app.dup_of ? "duplicate" : "unwanted" });

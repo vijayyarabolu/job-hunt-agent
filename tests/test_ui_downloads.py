@@ -22,7 +22,8 @@ def _names(folder: Path) -> set[str]:
 class DownloadsStayInTempTest(unittest.TestCase):
     def test_a_download_lands_in_the_temp_folder_and_is_deleted(self):
         before = _names(REAL_DOWNLOADS)
-        with tempfile.TemporaryDirectory() as tmp:
+        # Chrome's helpers can still be writing its profile as the folder goes (GOAL30-app: 1 of 2 full runs)
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             out = subprocess.run(["node", str(RUNNER), CHROME, str(Path(tmp) / "chrome")],
                                  capture_output=True, text=True, timeout=RUN_TIMEOUT_S)
             lines = [ln for ln in out.stdout.splitlines() if ln.startswith("{")]

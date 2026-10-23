@@ -20,11 +20,11 @@ try {
   await t.send("Page.navigate", { url: `${BASE}/?token=${TOKEN}#answers:tester` });
 
   // ---- when job-hunt-agent opens ----------------------------------------------------------------------------------------
-  check("opening job-hunt-agent shows the nightly check's drop", await toastHas("found a drop") && await toastHas("greenhouse: apply filled 4 of 12 (was 10)"), await toasts());
+  check("opening job-hunt-agent shows the nightly check's drop", await toastHas("Autofill's nightly check:") && await toastHas("greenhouse: apply page filled 4 of 12, down from 10 of 12"), await toasts());
   check("and that a newer extension is ready, with the user's update steps", await toastHas("is ready (yours is 1.0.0)") && await toastHas("chrome://extensions"), await toasts());
-  await t.js(`const n = [...document.querySelectorAll("#toasts .toast")].find((x) => x.textContent.includes("found a drop")); [...n.querySelectorAll("button")].find((x) => x.textContent === "Got it").click(); return true`);
+  await t.js(`const n = [...document.querySelectorAll("#toasts .toast")].find((x) => x.textContent.includes("nightly check:")); [...n.querySelectorAll("button")].find((x) => x.textContent === "Got it").click(); return true`);
   await sleep(600);
-  check("Got it closes the drop notice", await t.js(`return ![...document.querySelectorAll("#toasts .toast")].some((x) => x.textContent.includes("found a drop"))`));
+  check("Got it closes the drop notice", await t.js(`return ![...document.querySelectorAll("#toasts .toast")].some((x) => x.textContent.includes("nightly check:"))`));
 
   // ---- the Answers page ------------------------------------------------------------------------------------------
   await t.until("document.querySelector('#tabs [data-tab=answers]')", 10000);

@@ -1,5 +1,5 @@
 // Detail pane (phone: a sheet): a job or a panel.
-import { $, B, btn, FIND_TIP, JOB_TABS, S, WORTH_TIP, api, calm, closePop, exactAge, extLink, fail, fullJd, get, h, icon, iconBtn, locSpan, menu, muted, openExt,
+import { $, B, btn, FIND_TIP, JOB_TABS, S, WORTH_TIP, api, calm, closePop, exactAge, postedText, extLink, fail, fullJd, get, h, icon, iconBtn, locSpan, menu, muted, openExt,
   openPop, opt, phone, sm, toast, still } from "./core.js";
 import { bigRing, quadGlyph, tailoredLine } from "./ring.js";
 import { apply, copyJd, like, markApplied, notInterested, removeJob, restore, save } from "./feed.js";
@@ -16,8 +16,14 @@ let token = 0;
 const findJob = (uid) => S.items.find((j) => j.uid === uid) || cache.get(uid)?.card;
 const item = (text, title, onclick) => Object.assign(opt(text, onclick), { title });
 
+// GOAL33 §3d: the job open in this tab, so a reload comes back to it (sessionStorage: this tab only, gone on close)
+const OPEN_KEY = "jh.open";
+const keepOpen = (v) => { try { if (v) sessionStorage.setItem(OPEN_KEY, JSON.stringify(v)); else sessionStorage.removeItem(OPEN_KEY); } catch { /* private mode */ } };
+export function openOnReload() { try { return JSON.parse(sessionStorage.getItem(OPEN_KEY) || "null"); } catch { return null; } }
+
 export async function openJob(uid, { sheet = false, quiet = false } = {}) {
   const sameJob = S.detail?.uid === uid;
+  keepOpen({ tab: S.tab, uid });
   S.detail = { uid, resume: sameJob ? S.detail.resume : null };
   const job = findJob(uid);
   if (job) render(job, cache.get(uid), !quiet && !sameJob);
@@ -41,6 +47,7 @@ export function refreshDetail(uid) {
 
 export function closeDetail() {
   S.detail = null;
+  keepOpen(null);
   panelClose = null;
   pane().replaceChildren();
   closeSheet();
@@ -84,11 +91,12 @@ function metaBits(job) {
   const also = job.also && job.also.length ? h("span", { title: job.also.map((a) => a.location).join("\n") },
     `+${job.also.length} more location${job.also.length === 1 ? "" : "s"}`) : null;
   return [lab.early ? h("span", "flag", "Be an early applicant") : null,
-    job.posted_ts ? h("span", { title: new Date(job.posted_ts).toLocaleString() }, `${job.posted_label} ${exactAge(job.posted_ts, job.posted_exact)}`) : null,
+    job.posted_ts ? h("span", { title: new Date(job.posted_ts).toLocaleString() }, job.posted_found
+      ? postedText(job.posted_ts, job.posted_exact, job.posted_found, job.posted_day) : `${job.posted_label} ${exactAge(job.posted_ts, job.posted_exact)}`) : null,
     ...[lab.salary, lab.workplace && lab.workplace[0].toUpperCase() + lab.workplace.slice(1), lab.seniority, lab.employment]
       .filter(Boolean).map((x) => h("span", {}, x)),
     lab.too_senior ? h("span", "warn", "Too senior") : null,
-    lab.applied_before ? h("span", "warn", lab.applied_before === "Applied before" ? "Applied before" : `${lab.applied_before} (applied before)`) : null,
+    lab.applied_before ? h("span", "warn", lab.applied_before === "Applied before" || isApplied(job) ? lab.applied_before : `${lab.applied_before} (applied before)`) : null,
     ...(job.flags || []).filter((f) => !f.startsWith("Tailored")).map((f) => h("span", "muted", f)), also];
 }
 
@@ -163,7 +171,7 @@ function worthLine(job) {
 }
 
 function matchBlock(job, d) {
-  const parts = (job.parts || []).map((p, i) => h("li", {}, quadGlyph(i, p.pct), h("span", "p-l", p.label),
+  const parts = (job.parts || []).map((p, i) => h("li", {}, i < 4 ? quadGlyph(i, p.pct) : h("span", "qg"), h("span", "p-l", p.label),
     h("span", "p-n", p.pct === null ? "n/a" : `${p.pct}%`), h("span", "p-why", p.why)));
   return h("section", { class: "match", id: "breakdown", "aria-labelledby": "m-h" },
     h("div", "ring-col", bigRing(job), job.tailored ? h("p", "small", tailoredLine(job)) : null, worthLine(job)),
@@ -270,12 +278,17 @@ function jdBlock(job, d) {
 function render(job, d, animate) {
   if (!job) return;
   pane().replaceChildren(h("div", `d-in${animate && !calm.matches ? " enter" : ""}`, grab(),
-    h("header", "d-head", h("p", "d-co", h("b", {}, job.company), sponsorBadge(d?.card?.sponsor || job.sponsor), job.location ? locSpan(job.location) : null),
+    h("header", "d-head", h("p", "d-co", h("b", {}, job.company), sponsorBadge(d?.card?.sponsor || job.sponsor), job.location ? locSpan(job.location) : null,
+      job.ghost ? h("span", "tag warn", icon("ghost", "ic sm"), job.ghost) : null),
       h("h2", "d-title", job.title), h("p", "d-meta", metaBits(job)), S.g8?.ask(job)),
     actions(job, d), matchBlock(job, d), fitGaps(job), peopleBlock(job), atsBox(job.uid),
-    h("div", "side", S.g8?.answers(job), applicationBlock(d), sponsorBlock(d?.card?.sponsor || job.sponsor, job.company), companyBlock(d) || (d ? null : h("section", "side-block", h("span", "sk-line w70"), h("span", "sk-line w50"))), earlierBlock(d)),
+    h("div", "side", S.g8?.answers(job), applicationBlock(d), sponsorBlock(d?.card?.sponsor || job.sponsor, job.company), companyBlock(d) || (d ? null : h("section", "side-block", h("span", "sk-line w70"), h("span", "sk-line w50"))), earlierBlock(d),
+      d ? lazy("offer", job, d) : null, d ? lazy("appq", job, d) : null),
     jdBlock(job, d)));
 }
+
+// GOAL29: Offer check, Application questions
+const lazy = (m, job, d) => { const box = h("div"); import(`./${m}.js`).then((x) => x.mount(box, job, d)).catch(fail); return box; };
 
 function grab() {
   const label = "Close (Esc), or swipe down";

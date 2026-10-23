@@ -20,8 +20,8 @@ export const TABS = ["recommended", "saved", "archived", "resumes", "tracker", "
 export const SECTIONS = [["Jobs", ["recommended", "saved", "archived"]], ["Resumes", ["resumes"]],
   ["Applications", ["tracker", "applied", "interviewing", "followups"]], ["Stats", ["stats"]], ["Autofill", ["answers"]]];
 export const sectionOf = (tab) => SECTIONS.find(([, tabs]) => tabs.includes(tab)) || SECTIONS[0];
-export const JOB_TABS = ["recommended", "saved", "archived", "resumes"];
-export const TABLE_TABS = ["applied", "interviewing", "tracker"];
+export const JOB_TABS = ["recommended", "saved", "archived", "resumes", "applied"];
+export const TABLE_TABS = ["interviewing", "tracker"];
 export const STATUS_LABELS = { saved: "Saved", applied: "Applied", screen: "Screen", interview: "Interview",
   offer: "Offer", rejected: "Rejected", ghosted: "Cold" };   // W14: the word the Sheet uses (Status(A/R))
 export const FAMILY_LABELS = { ai_engineer: "AI Engineer", genai_engineer: "GenAI Engineer", ml_engineer: "ML Engineer",
@@ -34,7 +34,7 @@ export const menu = (...kids) => h("div", { class: "pop-body", role: "menu" }, .
 export const WORTH_TIP = "Priority, 0 to 100: what to apply to first. Your Match % × how fresh the posting is × company " +
   "signals (posted pay, a named team, hiring momentum). 70+ means apply today.";
 export const MATCH_TIP = "Match: how well your best resume fits this job, in %. The outer ring splits it into " +
-  "experience, skills, industry and title.";
+  "experience, skills, industry and title; plus JD GenAI work.";
 
 export const S = {
   profile: store.get("jh.profile"), profiles: [], tab: "recommended",
@@ -48,6 +48,7 @@ export function h(tag, attrs, ...kids) {
     if (k === "class") node.className = v;
     else if (k === "text") node.textContent = v;
     else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else if (k === "style") node.style.cssText = v;     // GOAL31: CSP-safe
     else node.setAttribute(k, v === true ? "" : v);
   }
   node.append(...kids.flat(9).filter((x) => x != null && x !== false));
@@ -108,6 +109,14 @@ export function toast(msg, { undo, error, extra, ms } = {}) {
   return t;
 }
 export const fail = (err) => toast(err.message || String(err), { error: true });
+
+// GOAL31 §3: a page waiting shows its shape; one that failed says why, with Retry; a failed refresh keeps the data
+const PLACEHOLDER_WIDTHS = ["w70", "w40", "w90", "w50", "w80", "w40"];
+export const placeholder = (lines = PLACEHOLDER_WIDTHS.length) => h("div", { class: "pad ph", "aria-busy": "true", "aria-label": "Loading" },
+  ...Array.from({ length: lines }, (_, i) => h("span", `sk-line ${PLACEHOLDER_WIDTHS[i % PLACEHOLDER_WIDTHS.length]}`)));
+const retryBtn = (retry) => B({ class: "lnk", title: "Try loading it again", onclick: retry }, "Retry");
+export const loadError = (err, retry) => h("p", { class: "pad load-err", role: "alert" }, icon("ban", "ic sm"), ` Could not load: ${err.message} `, retryBtn(retry));
+export const refreshFailed = (err, retry) => toast(`Could not refresh: ${err.message}. Showing what was loaded before.`, { error: true, extra: retryBtn(retry) });
 
 export async function optimistic(apply, rollback, request, okMsg, undo) {
   apply();
@@ -197,10 +206,6 @@ function showCopyBox(text) {
   box.select();
 }
 
-// a skipped transition rejects `ready`: expected
-const transition = (fn) => { const t = document.startViewTransition(fn); t.ready.catch(() => {}); return t; };
-export const motion = (fn) => (!calm.matches && document.startViewTransition && !document.hidden ? transition(fn) : fn());
-
 export const tier = (p) => (p == null ? "na" : p >= 80 ? "hi" : p >= 60 ? "mid" : "lo");
 const locParts = (loc) => (loc || "").split(/\s*;\s*/).filter(Boolean);
 const titleCase = (s) => (s === s.toUpperCase() && s.length > 3 ? s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : s);
@@ -231,6 +236,20 @@ export function exactAge(ts, exact = true) {
   const text = minutes < 60 ? `${minutes} min ago` : hr < 24 ? `${hr} h ${minutes % 60} min ago`
     : d < 7 ? `${d} d ${hr % 24} h ago` : `${d} d ago`;
   return exact ? text : `~${text}`;
+}
+// GOAL32 §2: a Workday job says only "posted today", so the time is when it was found: "Posted today, found 9:03 AM",
+// not "19 min" (a catch-up fetch is not a brand-new posting); with no posted date at all, "Found 2 h ago, posted date unknown"
+const localDay = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const dayWord = (day) => (day === localDay(Date.now()) ? "today" : day === localDay(Date.now() - 86400000) ? "yesterday" : shortDate(day));
+export function postedText(ts, exact, found, day) {
+  if (found === "day") {
+    const seen = localDay(Date.parse(ts));                 // the board's day is a UTC date: never later than when found
+    const posted = day && day < seen ? day : seen;
+    const clock = new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    return `Posted ${dayWord(posted)}, found ${posted === seen ? "" : `${dayWord(seen)} `}${clock}`;
+  }
+  if (found === "unknown") return `Found ${exactAge(ts)}, posted date unknown`;
+  return exactAge(ts, exact).replace(" ago", "");
 }
 export function shortDate(iso) {
   if (!iso) return "";

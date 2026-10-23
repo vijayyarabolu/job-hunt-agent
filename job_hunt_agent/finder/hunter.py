@@ -30,9 +30,11 @@ def _person(entry: dict) -> dict:
             "source": "hunter"}
 
 
-def domain_search(key: str, domain: str) -> tuple[dict, int]:
-    """({'pattern': '{first}.{last}', 'people': [...]}, credits used)."""
-    got = http.call("hunter", "GET", f"{BASE}/domain-search", _headers(key), {"domain": domain, "limit": DOMAIN_LIMIT, "type": "personal"})
+def domain_search(key: str, domain: str, departments: str | None = None) -> tuple[dict, int]:
+    """({'pattern': '{first}.{last}', 'people': [...]}, credits used). `departments`: Hunter's comma-delimited
+    department filter (GOAL28 §5: hr for the recruiter, management / it / research for the manager and the peer)."""
+    params = {"domain": domain, "limit": DOMAIN_LIMIT, "type": "personal", **({"department": departments} if departments else {})}
+    got = http.call("hunter", "GET", f"{BASE}/domain-search", _headers(key), params)
     data = got.get("data") or {}
     people = [_person(e) for e in data.get("emails") or [] if isinstance(e, dict)]
     return {"pattern": data.get("pattern"), "people": people}, math.ceil(len(people) / EMAILS_PER_CREDIT)
@@ -61,13 +63,3 @@ def account(pid: str, key: str, fresh: bool = False) -> dict:
                "credits_left": _left(used.get("credits"))}
         ACCOUNT_CACHE[pid] = (time.monotonic(), out)
         return out
-
-
-def email_finder(key: str, domain: str, first: str, last: str) -> tuple[dict | None, int]:
-    """(the person with their email, credits used): 0 credits when Hunter finds nothing."""
-    got = http.call("hunter", "GET", f"{BASE}/email-finder", _headers(key),
-                    {"domain": domain, "first_name": first, "last_name": last})
-    data = got.get("data") or {}
-    if not data.get("email"):
-        return None, 0
-    return _person({**data, "value": data["email"]}), 1

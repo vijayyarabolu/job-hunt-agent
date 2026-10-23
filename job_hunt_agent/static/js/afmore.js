@@ -69,10 +69,10 @@ export function snippets(data, post) {
 
 export function stats(s) {
   if (!s) return null;
-  const pct = (n) => (n == null ? "–" : `${n}%`);
+  const pct = (n) => (n == null ? "?" : `${n}%`);
   const bar = (w) => h("div", "af-bar", h("span", "af-week", w.week), h("span", "af-track", h("span", { class: "af-fill", style: `width:${w.pct || 0}%` })),
     h("span", "af-pct", `${pct(w.pct)} auto · ${w.hand} by hand`));
-  const app = (a) => h("tr", {}, h("td", {}, a.company || "–"), h("td", {}, a.title || ""), h("td", "num", String(a.auto)), h("td", "num", String(a.hand)), h("td", "num", pct(a.pct)));
+  const app = (a) => h("tr", {}, h("td", {}, a.company || "(company)"), h("td", {}, a.title || ""), h("td", "num", String(a.auto)), h("td", "num", String(a.hand)), h("td", "num", pct(a.pct)));
   return h("section", "af-sec", h("h2", {}, "Stats"),
     h("p", {}, h("strong", {}, `${pct(s.overall.pct)} filled automatically`), ` (last 8 weeks: ${s.overall.auto} fields by Autofill, ${s.overall.hand} by hand)`),
     s.weeks.length ? h("div", { class: "af-bars", role: "list", "aria-label": "Share filled automatically, per week" }, s.weeks.map(bar)) : null,

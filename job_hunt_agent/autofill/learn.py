@@ -97,7 +97,21 @@ def similar(qnorm: str, candidates) -> str | None:
         hit = max(jac / SIMILAR_JACCARD, ratio / SIMILAR_RATIO)
         if (jac >= SIMILAR_JACCARD or ratio >= SIMILAR_RATIO) and hit > score:
             best, score = other, hit
-    return best
+    return best or _same_ideas(qnorm, candidates, digits)
+
+
+def _same_ideas(qnorm: str, candidates, digits: set) -> str | None:
+    """GOAL30 §1.2: the same ideas in other words ("Are you currently employed?" / "Current employment status"),
+    synonyms folded (meaning.concepts); never across a negation or different numbers."""
+    from .meaning import concepts
+    mine = concepts(qnorm)
+    if len(mine) < 2:
+        return None
+    for other in candidates:
+        if set(re.findall(r"\d+", other)) == digits and concepts(other) == mine and \
+                (_words(qnorm) & NEGATIONS) == (_words(other) & NEGATIONS):
+            return other
+    return None
 
 
 def _clean(raw) -> dict | None:
@@ -177,6 +191,14 @@ def _save_snippet(conn, pid: str, item: dict, qnorm: str, ctx: dict) -> dict:
                                                                 item["label"], qnorm, item["value"], _now())).lastrowid
         lid = _log(conn, pid, "snippet", "", item, old["text"] if old else None, ctx, sid)
     return _entry(lid, "snippet", item["label"], item["value"], ctx["company"])
+
+
+def save_answer(conn, pid: str, question: str, text: str, uid: str | None, app_id: int | None,
+                company: str | None) -> dict:
+    """GOAL29 §5: Save to Answers on a Claude-written answer: kept like a long answer the user typed, offered again."""
+    item = {"label": question, "value": text, "how": "generated", "kind": "textarea"}
+    ctx = {"uid": uid, "app": app_id, "board": None, "company": company, "step": ""}
+    return _save_snippet(conn, pid, item, keys.norm(question, company), ctx) or {"saved": "unchanged"}
 
 
 def _save_override(conn, pid: str, item: dict, target: str, ctx: dict, usual: str) -> dict:

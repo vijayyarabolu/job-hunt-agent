@@ -1,9 +1,10 @@
 """Claude through the user's own Anthropic API key (Settings > Setup > Anthropic). Anthropic has no OAuth sign-in for
 third-party apps, so a key is the only way; it stays in <home>/config/secrets.yaml and goes only to api.anthropic.com.
 
-Three things use it: reading job emails (mail/claude.py), the built-in resume tailor (tailor.py) and outreach drafts
-(outreach.py). Each degrades to its no-Claude path when no key is saved. When a person has the Claude Code CLI
-signed in instead, the email reader can still use `claude -p` (mail/claude.py keeps that path).
+It is used for reading job emails (mail/claude.py), the built-in resume tailor (tailor.py), outreach drafts
+(outreach.py), the Offer check's Claude areas (offer.py) and Autofill's cover letters and resume answers
+(autofill/draft.py). Each degrades to its no-Claude path when no key is saved. When a person has the Claude Code CLI
+signed in instead, the email reader, the Offer check and Autofill can still use `claude -p`.
 
 The `anthropic` package is imported lazily so the rest of the app (and the offline tests) never need it.
 """

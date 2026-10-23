@@ -221,29 +221,32 @@ try {
   await sleep(300);
   check("Esc closes the editor and focus returns to the grid", !(await js("return document.body.classList.contains('panel-open')")) && (await focus()).includes("g-wrap"), await focus());
 
-  // ---- Applied tab: a row moved to Interview leaves the tab at once; ⌘Z brings it back ----
-  await toTab("applied");
-  await until(`document.querySelector('#t-h')?.textContent.startsWith('Applied') && document.querySelectorAll('${G_ROWS}').length > 0`, 8000);
+  // ---- a table tab's rows leave at once: Applied is cards by day since 2026-10-16 (Tracker and Interviewing keep
+  // the table), so this runs on Interviewing: a row moved to Rejected leaves at once; ⌘Z brings it back ----
+  await toTab("interviewing");
+  await until("document.querySelector('#t-h')?.textContent.startsWith('Interviewing')", 8000);
+  await sleep(300);
+  check("Interviewing is empty here", (await js("return document.querySelector('#view').textContent")).includes("Nothing here yet: a row moves here when its status becomes Screen"));
+  await tips("Interviewing", "#view");
+  const app3 = (await server(`/api/tracker?profile=${P}&status=applied`)).rows[5].id;
+  await post("/api/tracker/update", { app: app3, changes: { status: "interview" } });
+  await toTab("tracker"); await sleep(300); await toTab("interviewing");
+  await until(`document.querySelector('${row(app3)}')`, 8000);
   await sleep(300);
   const n3 = await total();
   const ST3 = await colOf("Status");
-  const app3 = await js(`return document.querySelector('${G_ROWS}').dataset.app`);
   await mark();
   await pressCell(app3, ST3);
-  await typeText("Interview");
+  await typeText("Rejected");
   await enterNow();
-  check("on Applied a row moved to Interview leaves at once", await until(`!document.querySelector('${row(app3)}')`, FAST_MS) && (await total()) === n3 - 1, `total ${await total()} of ${n3}`);
+  check("on Interviewing a row moved to Rejected leaves at once", await until(`!document.querySelector('${row(app3)}')`, FAST_MS) && (await total()) === n3 - 1, `total ${await total()} of ${n3}`);
   check("without a reload", await stillMarked());
   await settled(); await sleep(300);
   await js("document.querySelector('.g-wrap').focus(); return 1");
   await key("z", 4);
-  check("⌘Z puts it back on Applied", await until(`document.querySelector('${row(app3)}') && +document.querySelector('#t-h .n').textContent === ${n3}`, 4000), await total());
+  check("⌘Z puts it back on Interviewing", await until(`document.querySelector('${row(app3)}') && +document.querySelector('#t-h .n').textContent === ${n3}`, 4000), await total());
   await settled(); await sleep(300);
-  await toTab("interviewing");
-  await until("document.querySelector('#t-h')?.textContent.startsWith('Interviewing')", 8000);
-  await sleep(300);
-  check("Interviewing is empty here", (await js("return document.querySelector('#view').textContent")).includes("Nothing here yet"));
-  await tips("Interviewing", "#view");
+  await post("/api/tracker/update", { app: app3, changes: { status: "applied" } });   // the rest sees the seed as before
 
   // ---- Follow-ups: the due list, Mark sent in place, the "Did you apply?" list ----
   const savedRow = (await server(`/api/tracker?profile=${P}&status=saved`)).rows[0].id;
@@ -268,6 +271,11 @@ try {
   check("focus stays in the view", !(await focus()).startsWith("BODY"), await focus());
   await until("[...document.querySelectorAll('.toast p')].some((p) => p.textContent.includes('marked sent'))");
   check("the badge follows", ((await badge()) || "0") === String(await js(`return document.querySelectorAll('${DUE_ROWS}').length`)), await badge());
+  const badgeAfter = await badge();
+  await js("[...document.querySelectorAll('.toast')].find((t) => t.textContent.includes('marked sent'))?.querySelector('button.undo')?.click()");
+  check("GOAL33: Undo puts the follow-up back as due", await until(`[...document.querySelectorAll('${DUE_ROWS}')].some((r) => r.dataset.app === "${rows0[0]}")
+    && [...document.querySelectorAll('.toast p')].some((p) => p.textContent.includes('due again'))`, 6000), `${badgeAfter} -> ${await badge()}`);
+  await mark();
 
   // ---- Stats, Archived (the application lines open the editor), Saved ----
   await toTab("stats");
@@ -325,12 +333,12 @@ try {
   const cardApp = await js("return document.querySelector('.t-card[data-app] .st').closest('.t-card').dataset.app");
   await mark();
   await press(`.t-card[data-app="${cardApp}"] .st`);
-  const ms6 = await timedClick("#pop .opt", "Cold", `document.querySelector('.t-card[data-app="${cardApp}"] .st')?.textContent.startsWith('Cold')`);
+  const ms6 = await timedClick("#pop .opt", "Cold", `document.querySelector('.t-card[data-app="${cardApp}"] .st')?.textContent.startsWith('Cold') && getComputedStyle(document.querySelector('.t-card[data-app="${cardApp}"] .st'), '::before').content === '"◌"'`);
   check("Move to… on a card paints at once", ms6 != null && ms6 < FAST_MS && (await stillMarked()), `${ms6} ms`);
   check("and the card keeps the focus", (await focus()).startsWith("BUTTON.st"), await focus());
   await until("[...document.querySelectorAll('.toast p')].some((p) => p.textContent.includes('moved to Cold'))");
   await js("[...document.querySelectorAll('.toast')].find((t) => t.textContent.includes('moved to Cold')).querySelector('.undo').click()");
-  await until(`!document.querySelector('.t-card[data-app="${cardApp}"] .st')?.textContent.startsWith('Cold')`, 4000);
+  await until(`!document.querySelector('.t-card[data-app="${cardApp}"] .st')?.textContent.includes('Cold')`, 4000);
   const r = await js(`const b = document.querySelector('.t-card[data-app="${cardApp}"] .st').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }`);
   await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: r.x, y: r.y }] });
   await sleep(650);

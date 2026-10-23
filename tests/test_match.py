@@ -142,7 +142,7 @@ class TitleTest(unittest.TestCase):
 class BreakdownTest(unittest.TestCase):
     def test_overall_is_weighted_mean_over_known_parts(self):
         out = match.breakdown(row(), WHO, "financial services")
-        self.assertEqual([p.pct for p in out["parts"]], [100, 90, 100, 100])
+        self.assertEqual([p.pct for p in out["parts"]], [100, 90, 100, 100, None])    # GOAL28: GenAI not read yet
         self.assertEqual(out["pct"], round(.25 * 100 + .40 * 90 + .15 * 100 + .20 * 100))
 
     def test_missing_skills_part_renormalizes(self):
@@ -154,7 +154,7 @@ class BreakdownTest(unittest.TestCase):
 class LabelsTest(unittest.TestCase):
     def test_fresh_job_is_early_with_age_salary_and_level(self):
         lab = match.labels(row(), scored(), NOW, WHO)
-        self.assertEqual((lab["posted"], lab["early"], lab["salary"]), ("3 h 0 min ago", True, "$150k to 190k"))
+        self.assertEqual((lab["posted"], lab["early"], lab["salary"]), ("3 h 0 min ago", True, "$150k to $190k"))
         self.assertEqual(lab["seniority"], "Mid-level · 3+ yrs")
 
     def test_repost_is_never_early(self):

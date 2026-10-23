@@ -58,9 +58,37 @@ class AdapterContractTest(unittest.TestCase):
 
     def test_greenhouse_caps_details_per_run(self):
         payload = load("greenhouse/anthropic.json")
-        payload = {"jobs": [dict(payload["jobs"][0], id=1000 + i) for i in range(greenhouse.MAX_DETAILS + 5)]}
+        payload = {"jobs": [dict(payload["jobs"][0], id=1000 + i) for i in range(greenhouse.MAX_DETAILS)]}
         _, detail = self._greenhouse(payload)
         self.assertEqual(detail.call_count, greenhouse.MAX_DETAILS)
+
+    def test_a_backlog_over_the_cap_comes_in_one_request(self):
+        # GOAL32: Speechify posted one role in 740 cities; 25 JDs a run left 715 cards with "No readable JD text"
+        payload = load("greenhouse/anthropic.json")
+        payload = {"jobs": [dict(payload["jobs"][0], id=1000 + i) for i in range(greenhouse.MAX_DETAILS + 5)]}
+        listing = {"jobs": [{k: v for k, v in j.items() if k != "content"} for j in payload["jobs"]]}
+        with mock.patch.object(greenhouse, "get_json_cond", return_value=cond(listing)), \
+                mock.patch.object(greenhouse, "get_json", return_value=payload) as get:
+            result = greenhouse.fetch({"key": "anthropic", "company": "Anthropic"}, CTX)
+        self.assertEqual([c.args[0] for c in get.call_args_list], [greenhouse.API.format(token="anthropic")])
+        self.assertEqual(len(result.items), greenhouse.MAX_DETAILS + 5)
+        self.assertTrue(all(i["description"] for i in result.items))
+
+    def test_a_failed_bulk_request_falls_back_to_the_capped_details(self):
+        payload = load("greenhouse/anthropic.json")
+        payload = {"jobs": [dict(payload["jobs"][0], id=1000 + i) for i in range(greenhouse.MAX_DETAILS + 5)]}
+        listing = {"jobs": [{k: v for k, v in j.items() if k != "content"} for j in payload["jobs"]]}
+        details = {str(j["id"]): j for j in payload["jobs"]}
+
+        def get(url):
+            if url.endswith("?content=true"):
+                raise HttpError(url, 503, "Service Unavailable")
+            return details[url.rsplit("/", 1)[1]]
+        with mock.patch.object(greenhouse, "get_json_cond", return_value=cond(listing)), \
+                mock.patch.object(greenhouse, "get_json", side_effect=get) as detail:
+            result = greenhouse.fetch({"key": "anthropic", "company": "Anthropic"}, CTX)
+        self.assertEqual(detail.call_count, greenhouse.MAX_DETAILS + 1)
+        self.assertEqual(sum(bool(i["description"]) for i in result.items), greenhouse.MAX_DETAILS)
 
     def test_unchanged_postings_become_fast_items(self):
         payload = load("greenhouse/anthropic.json")

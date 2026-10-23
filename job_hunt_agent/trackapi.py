@@ -168,12 +168,13 @@ def _clip(value):
 def compact(row: dict) -> dict:
     """The row with long text cut to CLIP_CHARS; `clipped` names the cut fields ('sheet:<i>' for sheet cells) so the
     page loads the full row before editing one."""
-    cut = [k for k, v in row.items() if v != _clip(v)]
-    out = {k: _clip(v) for k, v in row.items()}
+    out = {k: _clip(v) for k, v in row.items()}          # each value clipped once (GOAL30-app: 2.5 MB lists)
+    cut = [k for k, v in row.items() if v != out[k]]
     if row.get("sheet"):
         cells = row["sheet"]["cells"]
-        cut += [f"sheet:{i}" for i, v in enumerate(cells) if v != _clip(v)]
-        out["sheet"] = {**row["sheet"], "cells": [_clip(v) for v in cells]}
+        clipped = [_clip(v) for v in cells]
+        cut += [f"sheet:{i}" for i, (v, c) in enumerate(zip(cells, clipped)) if v != c]
+        out["sheet"] = {**row["sheet"], "cells": clipped}
     if row.get("extras"):
         out["extras"] = {k: _clip(v) for k, v in row["extras"].items()}
     return {**out, "clipped": cut}
@@ -255,12 +256,16 @@ def get(conn, pid: str, app_id: int, today: date | None = None) -> dict:
 UNDO_TO_READY_MAX = 5           # Done today's Undo reaches back at most this many edits to the applied mark
 
 
-def undo(conn, pid: str, app_id: int | None = None, who: str = history.CLI, today: date | None = None) -> dict:
+def undo(conn, pid: str, app_id: int | None = None, who: str = history.CLI, today: date | None = None,
+         field: str | None = None) -> dict:
     """revert the person's last edit (the whole batch: one Save, one cell, one contacts save), on one row
-    or anywhere. Returns the row it changed and what was reverted."""
+    or anywhere. Returns the row it changed and what was reverted. With field (a toast's Undo): only when
+    that last edit is the one the toast was about."""
     rows = history.last_batch(conn, pid, app_id)
     if not rows:
         raise ValueError("nothing to undo")
+    if field and not any(r["field"] == field for r in rows):
+        raise ValueError("this row was changed again since: undo that change in the row first")
     target = rows[0]["app_id"]
     app = _own(conn, pid, target)
     restored_contacts = any(r["field"] == "contacts" for r in rows)
@@ -548,18 +553,46 @@ def lookup(conn, url: str) -> dict:
                        "employment_type": posting.get("employment_type")}}
 
 
+ANSWERED_KINDS = ("rejected", "screen", "interview", "offer")
+MAIL_GONE = ("dismissed", "undone", "ignored")
+
+
+def _mail_by_app(conn, pid: str, app_ids: list[int]) -> dict[int, dict]:
+    """app id -> {'answered': the company answered by email, 'latest': its newest matched email (kind, day, subject,
+    link)}. Emails the person dismissed or undid do not count."""
+    if not app_ids:
+        return {}
+    out: dict[int, dict] = {}
+    for at in range(0, len(app_ids), 500):
+        part = app_ids[at:at + 500]
+        rows = conn.execute(
+            "SELECT app_id, kind, sent_at, subject, link FROM mail_messages "
+            f"WHERE profile = ? AND app_id IN ({','.join('?' * len(part))}) "
+            f"AND state NOT IN ({','.join('?' * len(MAIL_GONE))}) ORDER BY sent_at", (pid, *part, *MAIL_GONE))
+        for r in rows:
+            got = out.setdefault(r["app_id"], {"answered": False, "latest": None})
+            got["answered"] |= r["kind"] in ANSWERED_KINDS
+            got["latest"] = {"kind": r["kind"], "day": (r["sent_at"] or "")[:10], "subject": r["subject"], "link": r["link"]}
+    return out
+
+
 def followups(conn, pid: str, today: date | None = None, count_only: bool = False) -> dict:
-    """Follow-ups overdue / due today (and due in the next UPCOMING_DAYS), oldest application first.
+    """Follow-ups overdue / due today (and due in the next UPCOMING_DAYS), newest application first (user,
+    2026-10-16). A company that already answered (a read email matched to the row says rejected / screen /
+    interview / offer, not dismissed or undone) needs no follow-up; each row carries its latest matched email.
     count_only: just {"due_count"} for the header badge (the full answer is ~1 MB with many applications)."""
     today = today or date.today()
     found = [dict(r) for r in conn.execute(_ROW_SQL + " AND a.status = 'applied' AND a.applied_on >= ? "
-                                           "ORDER BY a.applied_on, a.id",
+                                           "ORDER BY a.applied_on DESC, a.id DESC",
                                            (pid, (today - timedelta(days=FOLLOWUP_WINDOW_DAYS)).isoformat()))]
+    mail = _mail_by_app(conn, pid, [r["id"] for r in found])
+    found = [r for r in found if not mail.get(r["id"], {}).get("answered")]
     people = contacts.for_apps(conn, [r["id"] for r in found])
     soon = (today + timedelta(days=UPCOMING_DAYS)).isoformat()
     out = {"overdue": [], "today": [], "upcoming": []}
     for app in found:
         row = {k: v for k, v in view(app, people[app["id"]], today).items() if k != "jd"}   # ~5 KB a row
+        row["mail"] = mail.get(app["id"], {}).get("latest")
         pending = [d for d in (row["fu1"], row["fu2"]) if d and d["state"] != "done"]
         for bucket in ("overdue", "today", "upcoming"):
             if any(d["state"] == bucket and (bucket != "upcoming" or d["due"] <= soon) for d in pending):

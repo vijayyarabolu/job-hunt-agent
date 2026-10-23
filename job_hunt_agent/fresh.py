@@ -134,6 +134,18 @@ def feed_moment(row: dict) -> tuple[datetime | None, bool]:
     return own, exact
 
 
+def found_kind(row: dict) -> str | None:
+    """GOAL32 §2: whose time the card shows. 'day' when the board gives only the posted day (Workday: "posted today")
+    and the time is when we found it that day; 'unknown' when the board gives no posted date and the time is ours;
+    None when it is the board's own time (or a repost chain's), which the card shows as an age."""
+    moment, exact = feed_moment(row)
+    if moment is None or not exact or moment == parse(row.get("chain_origin")):
+        return None
+    if not row.get("first_posted_at"):
+        return "unknown"
+    return {"exact": None, "day": "day"}.get(row.get("precision"), "unknown")
+
+
 def age_word(row: dict) -> str:
     """'Posted' when the source dates the job, 'First seen' when the age is ours (no date: Jobvite, some Taleo)."""
     return "Posted" if row.get("precision") in ("exact", "day") and row.get("first_posted_at") else "First seen"

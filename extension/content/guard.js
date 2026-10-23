@@ -8,6 +8,10 @@ var JH = globalThis.JH || (globalThis.JH = {});
 (() => {
   const MAX_TRIES = 3;
   const MAX_HTML = 2900000;
+  // GOAL31: the page goes as JSON (every " and newline escaped), and Job Hunt Agent takes 4 MB at most: a big Workday page
+  // was refused while the panel said "sent"
+  const MAX_JSON_BYTES = 3600000;
+  const jsonBytes = (s) => new TextEncoder().encode(JSON.stringify(s)).length;
   // custom dropdowns show the picked answer as text (Greenhouse's react-select, Workday's prompts and pills)
   const PICKED = [".select__single-value", ".select__multi-value__label", "[class*=singleValue]", "[class*=multiValue] [class*=label]",
     "[data-automation-id=selectedItem]", "[data-automation-id=selectedItemList] li", "[data-automation-id^=formField-] button[aria-haspopup=listbox]"].join(", ");
@@ -22,7 +26,7 @@ var JH = globalThis.JH || (globalThis.JH = {});
     const { account } = await JH.store(["account"]);
     const pw = (account && account.password) || "";
     const copy = document.documentElement.cloneNode(true);
-    for (const s of copy.querySelectorAll("script, noscript, style[data-emotion], [data-jh-panel], iframe[src*=captcha]")) s.remove();
+    for (const s of copy.querySelectorAll("script, noscript, style[data-emotion], [data-jh-panel], [data-jh-marks], iframe[src*=captcha]")) s.remove();
     // the form's layout only: every typed value, ticked box and picked option is left out (a question's id may not
     // say it asks for an SSN or a birth date, and React copies what the user typed into the value attribute)
     for (const el of copy.querySelectorAll("input:not([type=submit]):not([type=button]):not([type=reset]), textarea")) {
@@ -32,9 +36,12 @@ var JH = globalThis.JH || (globalThis.JH = {});
     }
     for (const o of copy.querySelectorAll("option[selected]")) o.removeAttribute("selected");
     for (const el of copy.querySelectorAll(`[contenteditable], ${PICKED}`)) el.textContent = "";
+    for (const icon of copy.querySelectorAll("svg")) icon.replaceChildren();          // icons: no question is in them
     let html = copy.outerHTML;
     if (pw.length >= 4) for (const form of JH.secretForms(pw)) html = html.split(form).join("");
-    return html.slice(0, MAX_HTML);
+    html = html.slice(0, MAX_HTML);
+    for (let n = jsonBytes(html); n > MAX_JSON_BYTES; n = jsonBytes(html)) html = html.slice(0, Math.floor(html.length * (MAX_JSON_BYTES / n) * 0.98));
+    return html;
   }
 
   JH.guard = {
@@ -62,7 +69,7 @@ var JH = globalThis.JH || (globalThis.JH = {});
       sent.add(mark);
       let html = "";
       try { html = await pageHtml(); } catch { html = ""; }
-      const version = (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || "";
+      const version = JH.version;
       await JH.api("POST", "/api/autofill/error", { body: { board: (b && b.id) || "generic", step: String(step).slice(0, 60), kind,
         message: String(message || "").slice(0, 500), url: location.href, html, version } });
     },

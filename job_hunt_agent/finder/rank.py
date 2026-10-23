@@ -1,6 +1,9 @@
 """Ranking the people the panel found: their likely role (recruiter / hiring manager / leader), why they
-match the job (same team, same location, named in the JD), and a confidence."""
+match the job (same team, same location, named in the JD), and a confidence. Each also gets its kind for
+outreach (finder/kinds.py: recruiter / manager / peer, or None)."""
 import re
+
+from . import kinds
 
 RECRUITER = re.compile(r"recruit|talent|sourc|people partner|\bta\b", re.I)
 LEADER = re.compile(r"\b(cto|ceo|coo|chief|founder|co-founder|president|vp)\b|vice president", re.I)
@@ -61,5 +64,6 @@ def rank(people: list[dict], job: dict) -> list[dict]:
         if not person.get("name"):
             score -= NO_NAME_PENALTY
         confidence = "high" if score >= HIGH else "medium" if score >= MEDIUM else "low"
-        out.append({**person, "role": role, "why": why, "score": round(score, 2), "confidence": confidence})
+        out.append({**person, "role": role, "kind": kinds.kind_of(person.get("title")), "why": why,
+                    "score": round(score, 2), "confidence": confidence})
     return sorted(out, key=lambda p: -p["score"])

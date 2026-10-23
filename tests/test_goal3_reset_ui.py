@@ -64,9 +64,10 @@ class Goal3ResetTest(unittest.TestCase):
     def test_every_browser_check_passed(self):
         self.assert_group([c["name"] for c in self.checks])
 
-    def test_reload_resets_filters_sort_and_tab(self):
+    def test_reload_keeps_the_page_and_resets_filters_and_sort(self):     # GOAL33 §3d (was: the tab reset too)
         self.assert_group(["first open: the default view", "the view was changed: filters, sort, selection", "and the tab",
-                           "a reload comes back to the default view", "a reload keeps the person",
+                           "a reload stays on the page with its default filters and sort", "a reload comes back to the job that was open",
+                           "a reload on Saved stays on Saved", "a reload keeps the person",
                            "nothing about the view is stored", "a new open starts on Recommended",
                            "while the page is open the filters stay", "no page errors"])
 

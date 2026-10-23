@@ -38,8 +38,8 @@ class CollapseTest(unittest.TestCase):
 
     def test_same_req_in_two_locations_is_one_entry(self):
         out = ranking.collapse(self.conn, self.ranked)
-        self.assertEqual([r["location"] for r, _ in out], ["Seattle, WA", "Denver, CO", "Seattle, WA"])
-        self.assertEqual([loc for _, loc in out[0][0]["also"]], ["Dallas, TX"])     # best-ranked copy leads
+        self.assertEqual([r["location"] for r, _ in out], ["Seattle, WA", "Denver, CO", "Remote"])   # GOAL32: Remote leads
+        self.assertEqual([loc for _, loc in out[0][0]["also"]], ["Dallas, TX"])     # two US places: best-ranked leads
 
     def test_a_different_jd_is_never_merged(self):
         out = ranking.collapse(self.conn, self.ranked)
@@ -49,7 +49,7 @@ class CollapseTest(unittest.TestCase):
         # same company + same title in several locations is one card; with no JD text to compare, only
         # a different place says it is a copy
         out = ranking.collapse(self.conn, self.ranked)
-        self.assertEqual([loc for _, loc in out[2][0]["also"]], ["Remote", "Austin, TX"])
+        self.assertEqual([loc for _, loc in out[2][0]["also"]], ["Seattle, WA", "Austin, TX"])
 
     def test_a_near_identical_jd_on_another_board_is_the_same_req(self):
         items = [make_job(ats="greenhouse", key="acmeco", ext_id="g1", company="Acme", title="Senior AI Security Engineer",

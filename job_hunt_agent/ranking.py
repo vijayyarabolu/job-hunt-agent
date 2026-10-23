@@ -7,7 +7,7 @@ import zlib
 from array import array
 from datetime import datetime, timedelta
 
-from . import applied, config, feedback, fits, fresh, past_employers, score, text
+from . import applied, clones, config, feedback, fits, fresh, ghost, past_employers, score, text
 from .db import iso, unpack
 from .fits import family_filter
 
@@ -54,9 +54,10 @@ def _momentum(conn, families: tuple[str, ...], now: datetime,
     if companies is not None:
         where, params = f"{where} AND j.company IN ({','.join('?' * len(companies)) or 'NULL'})", [*params, *companies]
     week, base = iso(now - MOMENTUM_WEEK), iso(now - MOMENTUM_WEEK - MOMENTUM_BASE)
+    index = "jobs_fam" if companies is None else "jobs_co_fam"   # GOAL30-app: a few companies read only theirs
     rows = conn.execute(                      # GOAL21 W17: the covering index, never the 1.6 GB of job rows
         "SELECT j.company, sum(j.first_posted_at >= ?), sum(j.first_posted_at < ? AND j.first_posted_at >= ?) "
-        f"FROM jobs j INDEXED BY jobs_fam JOIN boards b ON b.board = j.board "
+        f"FROM jobs j INDEXED BY {index} JOIN boards b ON b.board = j.board "
         f"WHERE j.seed = 0 AND b.baselined_at <= ? AND {where} GROUP BY j.company",
         [week, week, base, iso(now - MOMENTUM_MIN_HISTORY), *params]).fetchall()
     return {r[0]: (r[1] or 0, r[2] or 0) for r in rows}
@@ -85,7 +86,7 @@ def context(conn, profile: dict, now: datetime, companies: tuple[str, ...] | Non
                      sponsorship_label=bool(profile.get("needs_sponsorship")),
                      prefs=feedback.load(conn, profile["id"]), families=tuple(profile["families"]),
                      dealbreakers=inp.dealbreakers, n_resumes=len(inp.resumes),
-                     past=past_employers.profile_keys(profile))
+                     past=past_employers.profile_keys(profile), ghost=ghost.load(conn))
 
 
 def rank(conn, profile: dict, now: datetime, fresh_only: bool = False,
@@ -115,7 +116,7 @@ def rank(conn, profile: dict, now: datetime, fresh_only: bool = False,
 def _rows(conn, profile: dict, uid: str | None, uids: list[str] | None) -> list:
     """The jobs to rank with their fit. GOAL21 W17: the open matched jobs are found in the jobs_fam index first (their
     rowids), then read by rowid: one pass over the whole table read every JD and took ~10 s cold."""
-    head = (f"SELECT {_JOB_COLUMNS}, f.jd_state, f.terms, f.dealbreaker FROM jobs j "
+    head = (f"SELECT {_JOB_COLUMNS}, f.jd_state, f.terms, f.dealbreaker, f.genai FROM jobs j "
             "JOIN boards b ON b.board = j.board LEFT JOIN fits f ON f.profile = ? AND f.uid = j.uid ")
     if uids is not None:
         return conn.execute(head + f"WHERE j.uid IN ({','.join('?' * len(uids))})", [profile["id"], *uids]).fetchall()
@@ -166,39 +167,55 @@ def same_req(a: set, b: set, loc_a: str, loc_b: str) -> bool:
     return (loc_a or "") != (loc_b or "")
 
 
-def collapse(conn, ranked: list[tuple[dict, score.Score]]) -> list[tuple[dict, score.Score]]:
-    """One entry per req posted in several locations or on several boards (same company and title, and the same JD
-    give or take a location line): the best-ranked copy, with the other copies as
-    row['also'] = ((uid, location), ...). Pushes, the digest and the job lists use this, so one req never costs three
-    pushes or three tailored resumes (release review: multi-location duplicates)."""
-    def base(row: dict) -> tuple[str, str]:
-        return applied.company_key(row["company"]), applied.normalize_title(row["title"])
-
-    bases = [base(row) for row, _ in ranked]              # once per row (it was three times, ~0.1 s a feed)
+def groups(conn, rows: list[dict]) -> dict[str, str]:
+    """uid -> the first uid (uid order) of the copies of one role it belongs to; only uids with another copy.
+    Copies share the company and the base title (GOAL32: the place cut off the title, so "X - Mountain View, CA, USA"
+    and "X - Menlo Park, CA, USA" are one role; the level stays) and the same JD give or take a location line
+    (GOAL13 §2f). Groups are formed in uid order: same_req is not transitive (a no-JD copy pairs with any other
+    place), so pairing with whichever copy came first made the count change with the sort (GOAL17)."""
+    bases = {r["uid"]: (applied.company_key(r["company"]), clones.title_key(r["title"], r.get("location")))
+             for r in rows}                                         # once per row (GOAL9: ~0.1 s a feed)
     counts: dict[tuple[str, str], int] = {}
-    for b in bases:
+    for b in bases.values():
         counts[b] = counts.get(b, 0) + 1
-    words = _jd_words(conn, [row["uid"] for (row, _), b in zip(ranked, bases) if counts[b] > 1])
-    # groups are formed in uid order, not the list's order: same_req is not transitive (a no-JD copy pairs with any
-    # other place), so pairing with whichever copy came first made the count change with the sort
-    heads: dict[tuple, list[int]] = {}
-    group = list(range(len(ranked)))
-    for i in sorted((i for i, b in enumerate(bases) if counts[b] > 1), key=lambda i: ranked[i][0]["uid"]):
-        row, mine = ranked[i][0], words.get(ranked[i][0]["uid"], frozenset())
-        head = next((n for n in heads.get(bases[i], ()) if same_req(words.get(ranked[n][0]["uid"], frozenset()), mine,
-                                                                    ranked[n][0]["location"], row["location"])), None)
+    shared = sorted((r for r in rows if counts[bases[r["uid"]]] > 1), key=lambda r: r["uid"])
+    words = _jd_words(conn, [r["uid"] for r in shared])
+    heads: dict[tuple, list[dict]] = {}
+    out: dict[str, str] = {}
+    for row in shared:
+        mine = words.get(row["uid"], frozenset())
+        head = next((h for h in heads.get(bases[row["uid"]], ())
+                     if same_req(words.get(h["uid"], frozenset()), mine, clones.place(h), clones.place(row))), None)
         if head is None:
-            heads.setdefault(bases[i], []).append(i)
+            heads.setdefault(bases[row["uid"]], []).append(row)
         else:
-            group[i] = head
-    slot: dict[int, int] = {}
-    also: list[list[tuple[str, str]]] = []
-    kept: list[tuple[dict, score.Score]] = []
-    for i, (row, s) in enumerate(ranked):                 # the best-ranked copy of each group leads
-        if group[i] in slot:
-            also[slot[group[i]]].append((row["uid"], row["location"] or ""))
+            out[head["uid"]] = head["uid"]
+            out[row["uid"]] = head["uid"]
+    return out
+
+
+def fold(ranked: list[tuple[dict, score.Score]], group_of: dict[str, str], prefs: tuple[str, ...] = ()
+         ) -> list[tuple[dict, score.Score]]:
+    """One entry per role: it stands where its best-ranked copy stands, shows the best-located copy (the person's
+    places, then Remote, then the US, then the best-ranked; GOAL32), and lists the other copies as
+    row['also'] = ((uid, place), ...). Copies outside `ranked` (filtered out) are not listed."""
+    members: dict[str, list[int]] = {}
+    for i, (row, _) in enumerate(ranked):
+        members.setdefault(group_of.get(row["uid"], row["uid"]), []).append(i)
+    out = []
+    for i, (row, _) in enumerate(ranked):
+        idx = members[group_of.get(row["uid"], row["uid"])]
+        if idx[0] != i:
             continue
-        slot[group[i]] = len(kept)
-        kept.append((row, s))
-        also.append([])
-    return [({**row, "also": tuple(extra)}, s) for (row, s), extra in zip(kept, also)]
+        lead = i if len(idx) == 1 else min(idx, key=lambda n: (clones.place_rank(ranked[n][0], prefs), n))
+        also = tuple((ranked[n][0]["uid"], clones.place(ranked[n][0])) for n in idx if n != lead)
+        out.append(({**ranked[lead][0], "also": also}, ranked[lead][1]))
+    return out
+
+
+def collapse(conn, ranked: list[tuple[dict, score.Score]], prefs: tuple[str, ...] = ()
+             ) -> list[tuple[dict, score.Score]]:
+    """One entry per req posted in several locations or on several boards (groups + fold). Pushes, the digest and
+    the job lists use this, so one req never costs three pushes or three tailored resumes (release review:
+    multi-location duplicates)."""
+    return fold(ranked, groups(conn, [row for row, _ in ranked]), prefs)

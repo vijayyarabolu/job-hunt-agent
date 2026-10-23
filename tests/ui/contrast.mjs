@@ -56,8 +56,10 @@ const MEASURE = `function () {
   if (ph) { const p = fgOf(getComputedStyle(this, "::placeholder").color); out.ph = { fg: "rgb(" + p.map(Math.round) + ")", ratio: ratio(p) }; }
   return out;
 }`;
-// on screen: a size, not hidden, and not faded out with its toast or dialog (opacity counted up the tree)
+// on screen: a size, not hidden, and not faded out with its toast or dialog (opacity counted up the tree); a toast on
+// its way out (.toast.out) is no control (GOAL33: the full suite caught one half-gone)
 const VISIBLE = `function () { const r = this.getBoundingClientRect(); if (r.width <= 2 || r.height <= 2 || getComputedStyle(this).visibility === "hidden") return false;
+  if (this.closest(".toast.out")) return false;
   let op = 1; for (let n = this; n; n = n.parentNode || n.host) if (n instanceof Element) op *= Number(getComputedStyle(n).opacity);
   return op > 0.05; }`;
 
@@ -225,7 +227,7 @@ try {
     ? { file: HOSTILE, type: "text/html" } : { file: join(FIX, "boards", "ashby.html"), type: "text/html" }));
   let ctx = null;
   const frame = (await p.send("Page.getFrameTree")).frameTree.frame.id;
-  b.on((m) => { if (m.sessionId === p.sessionId && m.method === "Runtime.executionContextCreated" && m.params.context.name === "job-hunt-agent Autofill"
+  b.on((m) => { if (m.sessionId === p.sessionId && m.method === "Runtime.executionContextCreated" && m.params.context.name === "Job Hunt Agent Autofill"
     && m.params.context.auxData?.frameId === frame && m.params.context.auxData?.type === "isolated") ctx = m.params.context.id; });
   const ext = async (expr) => {
     for (let i = 0; i < 50 && !ctx; i++) await sleep(100);

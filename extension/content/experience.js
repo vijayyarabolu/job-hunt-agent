@@ -24,10 +24,12 @@ var JH = globalThis.JH || (globalThis.JH = {});
   const ROLES = {
     exp: [["current", /current(ly)?|present|still (work|employed)|i work here/i], ["desc", /description|responsibilit|duties|achievements|accomplishments|what (did|do) you do|summary of (your )?(role|work)|^summary$/i],
       ["company", /company|employer|organi[sz]ation|business/i], ["title", /title|position|role|designation/i], ["location", /location|city|where/i],
+      ["country", /^country/i],
       ["startMonth", /(start|from|begin)\w*.*month|month.*(start|from)/i], ["startYear", /(start|from|begin)\w*.*year|year.*(start|from)/i],
       ["endMonth", /(end|to|until|finish)\w*.*month|month.*(end|to\b)/i], ["endYear", /(end|to|until|finish)\w*.*year|year.*(end|to\b)/i],
       ["start", /start|from\b|begin/i], ["end", /\bend\b|\bto\b|until|finish/i]],
     edu: [["school", /school|university|college|institution/i], ["degree", /degree|qualification|diploma/i], ["field", /field|major|discipline|area of study|concentration|subject/i],
+      ["location", /location|where/i], ["city", /^city/i], ["state", /^(state|province|region)/i], ["country", /^country/i],
       ["startMonth", /(start|from|begin)\w*.*month/i], ["startYear", /(start|from|begin)\w*.*year/i],
       ["endMonth", /(end|to|graduat|complet)\w*.*month/i], ["endYear", /(end|to|graduat|complet)\w*.*year|^year$/i],
       ["start", /start|from\b|begin/i], ["end", /\bend\b|\bto\b|graduat|complet|finish/i]],
@@ -76,9 +78,22 @@ var JH = globalThis.JH || (globalThis.JH = {});
       || buttons.find((b) => KINDS[s.kind].add.test(JH.text(b)) && !KINDS[s.kind === "exp" ? "edu" : "exp"].add.test(JH.text(b))) || mine[0] || null;
   }
 
+  // GOAL27: the classifier names the role inside an entry (its label, name / id, placeholder, section); the old
+  // label rules below stay as the fallback
+  const CAMEL = { start_month: "startMonth", start_year: "startYear", end_month: "endMonth", end_year: "endYear" };
+  function classified(kind, f) {
+    if (!JH.classify) return null;
+    const group = kind === "exp" ? "work" : "edu";
+    const c = f.cls && f.cls.group === group ? f.cls : JH.classify.field({ ...f, group });
+    const role = c && c.role ? CAMEL[c.role] || c.role : null;
+    if (!role || !ROLES[kind].some(([r]) => r === role)) return null;
+    return role === "current" ? (f.kind === "checkbox" ? role : null) : f.kind !== "checkbox" && f.kind !== "radio" ? role : null;
+  }
+
   function roleOf(kind, f, saved) {
     const learned = saved && saved[kind] && saved[kind].roles && saved[kind].roles[norm(f.label)];
     if (learned) return learned;
+    if (JH.classify) return classified(kind, f);         // GOAL27: the classifier only (the old rules took "to work" for "To")
     const hints = (f.hints || []).join(" ");
     for (const [role, re] of ROLES[kind]) {                // its label first ("Summary" alone), then its id / name
       const said = re.test(f.label) || re.test(hints);
@@ -136,7 +151,8 @@ var JH = globalThis.JH || (globalThis.JH = {});
   }
 
   async function fillJob(e, job, out) {
-    for (const [role, value] of [["title", job.title], ["company", job.company], ["location", job.location]]) {
+    // GOAL30 §0: a past job's Location / Country is the employer's country, never a city or the user's address
+    for (const [role, value] of [["title", job.title], ["company", job.company], ["location", job.country || job.location], ["country", job.country || job.location]]) {
       if (await put(e.get(role), value)) out.filled++;
     }
     const cur = e.get("current");
@@ -148,7 +164,8 @@ var JH = globalThis.JH || (globalThis.JH = {});
   }
 
   async function fillSchool(e, school, out) {
-    for (const [role, value] of [["school", school.school], ["degree", school.degree], ["field", school.field]]) {
+    for (const [role, value] of [["school", school.school], ["degree", school.degree], ["field", school.field], ["location", school.location],
+      ["city", school.city], ["state", school.state], ["country", school.country]]) {          // GOAL30 §0: the school's own place
       if (await put(e.get(role), value)) out.filled++;
     }
     const startRequired = ["start", "startMonth", "startYear"].some((r) => e.get(r) && e.get(r).required);
@@ -207,7 +224,7 @@ var JH = globalThis.JH || (globalThis.JH = {});
         }
       }
       if (Object.keys(learned).length) {
-        try { await chrome.storage.local.set({ [LAYOUTS]: { ...all, [host]: { ...(mine || {}), ...learned, at: Date.now() } } }); } catch { /* storage full: learned next time */ }
+        await JH.save({ [LAYOUTS]: { ...all, [host]: { ...(mine || {}), ...learned, at: Date.now() } } });   // full: learned next time
       }
       return out;
     },

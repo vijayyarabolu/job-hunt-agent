@@ -1,7 +1,8 @@
 """Fictional sample profiles for demo mode and the tests. Nobody here is real: Alex Rivera has four resumes (one per
 target role), Jordan Lee has one base resume. The .docx files are generated, never stored in git.
 
-    write(root)   creates root/alex and root/jordan (profile.yaml, resumes/*.docx, baseline.json, known_skills.txt)
+    write(root)   creates root/alex and root/jordan (profile.yaml, resumes/*.docx, baseline.json, known_skills.txt;
+                  Alex also has fact_bank.md, the optional file outreach takes its proof lines from)
 """
 import io
 import json
@@ -95,6 +96,16 @@ def resume_docx(name: str, contact: str, headline: str, summary: str, skills=SKI
     return out.getvalue()
 
 
+def fact_bank(jobs=JOBS) -> str:
+    """fact_bank.md: Part 1 is the master resume verbatim (outreach's proof lines), Part 2 notes that never are."""
+    lines = ["# Fact bank (fictional sample)", "", "## Part 1: master resume", ""]
+    for company, dates, title, bullets in jobs:
+        lines += [f"### {company}: {title} ({dates})", *[f"- {b}" for b in bullets], ""]
+    lines += ["## Part 2: notes", "", "### Northwind Analytics, USA: Machine Learning Engineer",
+              "- Mentored two interns on evaluation harnesses (not on the resume).", ""]
+    return "\n".join(lines)
+
+
 def _contact(p: dict) -> str:
     return " | ".join(str(p[k]) for k in ("location", "email", "phone", "linkedin", "github") if p.get(k))
 
@@ -119,6 +130,7 @@ def write(root: Path) -> list[str]:
     parsed = baseline.parse(main)
     (alex / "baseline.json").write_text(json.dumps(parsed, indent=2, ensure_ascii=False) + "\n")
     (alex / "known_skills.txt").write_text("# Skills I really have but my resume does not list.\nGCP\nJAX\n")
+    (alex / "fact_bank.md").write_text(fact_bank())
 
     jordan = root / "jordan"
     _write_profile(jordan, JORDAN)

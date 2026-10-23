@@ -5,6 +5,7 @@ import { B, btn, FIND_TIP, api, ask, copyText, extLink, fail, get, ghost, h, mut
 export const CONTACT_SOURCES = [["manual", "Manual"], ["jd", "JD"], ["team_page", "Team page"], ["apollo", "Apollo"],
   ["hunter", "Hunter"], ["linkedin-manual", "LinkedIn (manual)"], ["guess", "Guess"]];
 export const SOURCE_TEXT = Object.fromEntries(CONTACT_SOURCES);
+export const KIND_TEXT = { recruiter: "Recruiter", manager: "AI/ML hiring manager", peer: "Peer engineer" };
 export const CONTACT_FIELDS = [["name", "Name"], ["role", "Role / title"], ["email", "Email"], ["linkedin", "LinkedIn URL"], ["notes", "Notes"]];
 
 let openFor = null;
@@ -53,7 +54,7 @@ function suggestionCard(row, s, rerender) {
       muted(` · source: ${SOURCE_TEXT[s.source] || s.source}`)),
     s.name || s.email ? B({ class: "btn ghost", title: "Save this person to the job's tracker row (goes to your sheet once applied)",
       onclick: () => addContact(row, { name: s.name, role: s.title, email: s.email || "", linkedin: s.linkedin || "",
-        source: s.source, notes }, rerender) }, "Add to contacts") : null);
+        source: s.source, kind: s.kind || "", notes }, rerender) }, "Add to contacts") : null);
 }
 
 function hunterAccount() {
@@ -119,11 +120,14 @@ const plural = (n) => `credit${n === 1 ? "" : "s"}`;
 function providerBox(ctx, name, label) {
   const p = ctx.panel.providers[name];
   if (!p.configured) return small(`${label}: ${p.note || "no key for you in config/secrets.yaml"}`);
+  if (p.estimate.locked) return small(`${label}: ${p.estimate.detail}`);
   const cost = p.estimate.credits;
-  const run = lookupBtn(cost ? `Look up with ${label} (up to ${cost} ${plural(cost)})` : `Show ${label} results (free)`,
-    cost ? `${label}: asks first, then spends up to ${cost} of your ${label} ${plural(cost)}` : `${label}: already looked up, shown free`,
-    ctx, name, cost && (() => ask(`Spend up to ${cost} ${label} ${plural(cost)}?`,
-      `${ctx.panel.domain.value}: ${p.estimate.detail}. Today: ${p.used_today} of your cap ${p.cap} used.`, `Spend ${cost}`)),
+  const calls = cost > 0 || (p.estimate.kinds || []).length > 0;       // GOAL28: Apollo's search is a call at 0 credits
+  const priced = cost ? `up to ${cost} ${plural(cost)}` : "0 credits";
+  const run = lookupBtn(calls ? `Look up with ${label} (${priced})` : `Show ${label} results (free)`,
+    calls ? `${label}: asks first, then spends ${priced} of your ${label} credits` : `${label}: nothing to ask now, shown free`,
+    ctx, name, calls && (() => ask(cost ? `Spend up to ${cost} ${label} ${plural(cost)}?` : `Ask ${label}? It costs 0 credits`,
+      `${ctx.panel.domain.value}: ${p.estimate.detail}. Today: ${p.used_today} of your cap ${p.cap} used.`, cost ? `Spend ${cost}` : `Ask ${label}`)),
     (out) => { const used = out.panel.providers[name];
       toast(`${label}: ${out.spent} ${plural(out.spent)} used · today ${used.used_today} of ${used.cap}${out.note ? ` · ${out.note}` : ""}`); });
   return h("div", "provider", run, name === "hunter" ? hunterAccount() : null,
@@ -132,12 +136,35 @@ function providerBox(ctx, name, label) {
     p.balance_note ? h("p", "muted small", `${p.balance_note} `, link(p.credits_page, "Your Apollo credits ↗", "Open your Apollo credits page (new tab)")) : null);
 }
 
+// GOAL28 §5: the three people worth reaching, never an empty card: who was found, else LinkedIn's own search for that
+// kind; always the ready message for it (drafted only: copy it and send it yourself).
+function kindCard(row, card, rerender) {
+  const found = card.people.length;
+  return h("div", { class: "kind-card", "data-kind": card.kind },
+    h("b", {}, card.label, muted(found ? ` · ${found} found` : " · nobody found yet", "muted small")),
+    found ? h("ul", "kind-people", card.people.map((s) => h("li", "small", h("b", {}, s.name), s.title ? ` · ${s.title}` : "",
+      muted(` · ${SOURCE_TEXT[s.source] || s.source}`, "muted small"),
+      B({ class: "btn ghost", title: `Save ${s.name} as the ${card.label.toLowerCase()} for this job`,
+        onclick: () => addContact(row, { name: s.name, role: s.title, email: s.email || "", linkedin: s.linkedin || "",
+          source: s.source, kind: card.kind, notes: s.why.join("; ") }, rerender) }, "Add"))))
+      : h("p", "small", "Search LinkedIn: ", card.links.map((l) => link(l.url, `${l.label.replace("Find on LinkedIn: ", "")} ↗`,
+        `${l.label}: LinkedIn's people search (new tab)`))),
+    copyBox(`LinkedIn note (${card.draft.note.length}/300)`, card.draft.note, 3),
+    h("details", "small", h("summary", { title: "Show the cold email and a prompt for your own Claude chat" },
+      "Cold email and the prompt for your Claude chat"),
+      copyBox("Subject", card.draft.subject, 1), copyBox(`Email (${card.draft.email.split(/\s+/).length} words)`, card.draft.email, 7),
+      copyBox("Prompt for your Claude chat", card.draft.prompt, 8)));
+}
+
 function renderFinder(body, row, panel, rerender) {
   const ctx = { body, row, panel, rerender };
   const people = panel.suggestions.filter((s) => s.name || s.email);
   const hints = panel.suggestions.filter((s) => !s.name && !s.email);
   body.replaceChildren(...[
     domainRow(row, panel, body, rerender),
+    h("h4", {}, "Who to contact"),
+    small("Drafts only: Job Hunt Agent never sends anything. Copy a note, send it yourself, then add the person and mark it sent."),
+    h("div", "kind-cards", (panel.kinds || []).map((card) => kindCard(row, card, rerender))),
     h("h4", {}, `Suggestions (${people.length})`),
     people.length ? h("div", "suggestions", people.map((s) => suggestionCard(row, s, rerender)))
       : small("Nobody named yet. Try the team page, LinkedIn or Apollo below."),
@@ -187,7 +214,7 @@ export async function openOutreach(row, contact, rerender) {
       close();
     } catch (err) { fail(err); }
   } }, d.contact[flag] ? `${label} ${d.contact[flag]}` : `Mark ${label.toLowerCase()} today`);
-  dlg.append(h("h2", { id: "or-h" }, `Draft outreach · ${contact.name || contact.email}`),
+  dlg.append(h("h2", { id: "or-h" }, `Draft outreach · ${contact.name || contact.email}`, muted(` · ${d.label || ""}`, "muted small")),
     small("the app never sends anything: copy, send it yourself, then mark it sent here (the date goes to your sheet's " +
       "Email Sent / LinkedIn Request cells)."),
     copyBox("Prompt for your Claude chat", d.prompt, 10),

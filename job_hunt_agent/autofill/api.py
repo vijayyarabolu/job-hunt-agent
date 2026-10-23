@@ -6,8 +6,9 @@ import json
 import zlib
 
 from .. import applyback, db, trackapi
-from . import (address, bank, choices, draft, experience, fillstats, health, learn, match, package, questions, resume,
-               sponsor)
+from . import (address, assist, bank, canary, choices, draft, experience, fillstats, generate, health, keys, learn,
+               match, meaning, package, pdftext, questions, resume, sponsor)
+from .learn import LONG_QUESTION
 from .keys import CATEGORIES
 
 PREFIX = "/api/autofill/"
@@ -64,14 +65,88 @@ def job_address(conn, pid: str, uid: str | None, app_id: int | None, jobs=match.
     if not uid and not app_id:
         return address.home(conn, pid)
     app = _app_row(conn, pid, uid, app_id)
-    own = address.from_tracker(app["address"]) if app else None
-    if own:
-        return own
+    choice = meaning.job_answers(conn, pid, meaning.job_key(uid, app_id)).get(meaning.JOB_LOCATION)
+    if choice == "home":                                # GOAL30 §3: the user chose "Where you live" for this job
+        place = {**address.home(conn, pid), "choice": "home"}
+        if app and place["kind"] in address.USABLE and app["address"] != place["line"]:
+            trackapi.update(conn, pid, app["id"], {"address": place["line"]})
+        return place
     jobs = _listing(conn, pid) if jobs is match._UNSET else jobs
-    place = address.auto(conn, pid, resume.tailored_job(conn, pid, uid, app_id, jobs), wait_s)
+    rg_job = resume.tailored_job(conn, pid, uid, app_id, jobs)
+    own = address.from_tracker(app["address"]) if app else None
+    # GOAL30 §3: the tracker row's address only when it is in the resume's city: the resume and the form never disagree
+    if own and own["city_state"].lower() == _resume_city(conn, pid, rg_job).lower():
+        return own
+    place = address.auto(conn, pid, rg_job, wait_s)
     if app and place["kind"] in address.USABLE:
         trackapi.update(conn, pid, app["id"], {"address": place["line"]})
     return place
+
+
+def _resume_city(conn, pid: str, rg_job: dict | None) -> str:
+    """The City, ST the resume for this job shows (the user's own city for remote jobs and base resumes)."""
+    return address.resume_city(pid, rg_job) or str(address.home(conn, pid).get("city_state") or "")
+
+
+def location_view(conn, pid: str, place: dict | None, uid: str | None, app_id: int | None, jobs=match._UNSET) -> dict:
+    """GOAL30 §3: the panel's Location row: the resume's city for this job, where the user lives, and which one forms get."""
+    jobs = _listing(conn, pid) if jobs is match._UNSET else jobs
+    home_city = str(address.home(conn, pid).get("city_state") or "")
+    resume_city = _resume_city(conn, pid, resume.tailored_job(conn, pid, uid, app_id, jobs)) if uid or app_id else home_city
+    choice = "home" if (place or {}).get("choice") == "home" else "resume"
+    return {"resume": resume_city, "home": home_city, "choice": choice}
+
+
+def choose_location(conn, pid: str, args: dict) -> dict:
+    """POST address/choose {choice: resume | home}: for this job only; the tracker row follows."""
+    uid, app_id = _job_args(args)
+    choice = str(args.get("choice") or "")
+    if choice not in ("resume", "home"):
+        raise ValueError("choice: resume or home")
+    meaning.keep_for_job(conn, pid, meaning.job_key(uid, app_id), meaning.JOB_LOCATION, choice, "Location")
+    place = job_address(conn, pid, uid, app_id)
+    return {"address": place, "answers": address.answers_for(place), "location": location_view(conn, pid, place, uid, app_id)}
+
+
+SCOPES = ("everywhere", "company", "job")
+
+
+def keep(conn, pid: str, args: dict) -> dict:
+    """GOAL30 §1.3 / §4: a choice chip clicked or a ✎ edit in the panel, saved where the user chose: everywhere (default),
+    this company, or this job only (the default for Location and open questions)."""
+    uid, app_id = _job_args(args)
+    label = " ".join(str(args.get("label") or "").split())[:bank.MAX_LABEL]
+    value = str(args.get("value") if args.get("value") is not None else "").strip()
+    scope = str(args.get("scope") or "everywhere")
+    if not label or not value:
+        raise ValueError("a question and an answer are needed")
+    if scope not in SCOPES:
+        raise ValueError("scope: everywhere, company or job")
+    company = str(args.get("company") or "")[:200] or None
+    options = [" ".join(str(o).split())[:300] for o in (args.get("options") or [])[:80] if str(o).strip()] \
+        if isinstance(args.get("options"), list) else []
+    hints = [str(h)[:80] for h in (args.get("hints") or [])[:10]] if isinstance(args.get("hints"), list) else []
+    qnorm = keys.norm(label, company)
+    key = keys.BY_KEY.get(str(args.get("key") or "")) or keys.classify(qnorm, hints) or keys.by_choices(options)
+    if key is not None and (key.key in keys.SETTINGS or key.key in keys.DERIVED or key.key in bank.ADDRESS_KEYS
+                            or key.key == "account_password"):
+        key = None                                      # an address field: kept for this question's words
+    target = key.key if key else bank.CUSTOM + qnorm
+    item = {"label": label, "value": value, "kind": str(args.get("kind") or "text")[:20], "hints": hints,
+            "options": options, "section": "", "how": "panel"}
+    ctx = {"uid": uid, "app": app_id, "board": str(args.get("board") or "")[:40] or None, "company": company,
+           "step": ""}
+    if scope == "job":
+        meaning.keep_for_job(conn, pid, meaning.job_key(uid, app_id), target, value, label)
+    elif scope == "company":
+        if not company:
+            raise ValueError("this page is not matched to a company yet: pick the job first")
+        learn._save_override(conn, pid, item, target, ctx, "")
+    else:
+        if key is not None and key.key in learn.OWN_QUESTION_KEYS:
+            key, target = None, bank.CUSTOM + qnorm
+        learn._save_global(conn, pid, item, key, qnorm, ctx, bank.load(conn, pid))
+    return {"saved": scope, "target": target, "label": key.label if key else label, "answer": value}
 
 
 def match_page(conn, pid: str, args: dict) -> dict:
@@ -96,7 +171,8 @@ def match_page(conn, pid: str, args: dict) -> dict:
         place = job_address(conn, pid, job["uid"], job["app"], jobs)
         badge = sponsor.badge_for(conn, pid, job["uid"], job["app"])
     return {**found, "resume": choice, "address": place, "needs": questions.count(conn, pid),
-            "sponsor": sponsorship(conn, pid, job, badge) if job else None}
+            "sponsor": sponsorship(conn, pid, job, badge) if job else None,
+            "location": location_view(conn, pid, place, job["uid"], job["app"], jobs) if job else None}
 
 
 def sponsorship(conn, pid: str, job: dict, badge: dict | None) -> dict:
@@ -113,12 +189,23 @@ def sponsorship(conn, pid: str, job: dict, badge: dict | None) -> dict:
     return {**out, "now": now, "now_why": mine if own.get("sponsor_now") else "your saved answer"}
 
 
-def _resolve(conn, pid: str, args: dict) -> dict:
+def _resolve(conn, pid: str, args: dict, ask_claude: bool = True) -> dict:
     uid, app_id = _job_args(args)
     ctx = {k: str(args.get(k) or "")[:300] for k in ("board", "company", "section", "source_url")}
+    ctx["job_key"] = meaning.job_key(uid, app_id)          # GOAL30 §4: the user's answers for this job only
+    ctx["ask_claude"] = ask_claude and pid != canary.PID    # GOAL30 §1: unknown wordings, one Haiku call (never the
+                                                            # nightly check's fake person: no one's Claude usage)
+    ctx["long_question_all"] = LONG_QUESTION
     place = job_address(conn, pid, uid, app_id, wait_s=address.LOOKUP_WAIT_S)
     ctx["address"] = address.answers_for(place)
     ctx["sponsor_yes"] = sponsor.says_yes(sponsor.badge_for(conn, pid, uid, app_id), bank.load(conn, pid))
+    jobs: list = []
+
+    def resume_jobs() -> list:                         # read once, only when a form asks for the current job
+        if not jobs and (uid or app_id):
+            jobs.extend(experience.for_job(conn, pid, resume.choose(conn, pid, uid, app_id)).get("jobs") or [])
+        return jobs
+    ctx["resume_jobs"] = resume_jobs
     return {"answers": bank.resolve(conn, pid, args.get("fields"), ctx), "address": place}
 
 
@@ -127,6 +214,38 @@ def profile_data(conn, pid: str, uid: str | None, app_id: int | None) -> dict:
     2026-10-14: every board, Workday's My Experience too), links from the bank, skills from the tailored resume."""
     choice = resume.choose(conn, pid, uid, app_id) if uid or app_id else {}
     return {**bank.history(conn, pid), **experience.for_job(conn, pid, choice), "skills": draft.skills_for(pid, choice)}
+
+
+PROFILE_GROUPS = {"contact": ("first_name", "last_name", "full_name", "preferred_name", "email", "phone", "phone_code",
+                              "phone_type", "address1", "city", "state", "zip", "country", "location"),
+                  "links": ("linkedin", "github", "portfolio", "twitter"),
+                  "work": ("work_auth", "sponsor_now", "sponsor_future", "salary", "start_date", "notice", "relocate",
+                           "onsite", "travel", "years_exp", "current_company", "current_title", "how_heard"),
+                  "education": ("degree", "school", "field_of_study", "grad_date", "gpa"),
+                  "eeo": ("gender", "hispanic", "race", "veteran", "disability", "orientation", "transgender", "pronouns",
+                          "signature_name")}
+
+
+def full_profile(conn, pid: str, args: dict) -> dict:
+    """GOAL27 "profile first, once": the tailored resume and the saved answers as one structured profile, before
+    any page is touched. Every built-in question key resolved for this job (company answers, the sponsorship
+    setting, the address for the resume's city, legal / EEO only from what the user saved), plus the work history with its
+    "• " bullets, education, skills and summary of the resume this job uploads. The extension fills canonical fields
+    from it; a page's own questions still go through resolve (the user's saved wording, company-only answers)."""
+    uid, app_id = _job_args(args)
+    data = profile_data(conn, pid, uid, app_id)
+    fields = [{"id": k.key, "key": k.key, "label": k.label, "kind": "text", "required": True}
+              for k in keys.CATALOGUE if k.key not in keys.DERIVED and (k.patterns or k.hints)]
+    got = _resolve(conn, pid, {**args, "fields": fields}, ask_claude=False)
+    answers = {a["id"]: {"value": a["value"], "option": a["option"], "status": a["status"], "legal": a["legal"],
+                         "source": a["source"], **({"place": a["place"]} if a.get("place") else {})}
+               for a in got["answers"]}
+    groups = {name: {k: answers[k]["value"] for k in ks if answers.get(k, {}).get("status") == "fill"}
+              for name, ks in PROFILE_GROUPS.items()}
+    missing = sorted(k for k, a in answers.items() if a["status"] == "needs" and not keys.BY_KEY[k].blank_ok)
+    return {**data, "answers": answers, **groups, "address": got["address"], "missing": missing,
+            "counts": {"jobs": len(data.get("jobs") or []), "schools": len(data.get("schools") or []),
+                       "skills": len(data.get("skills") or []), "answers": sum(1 for a in answers.values() if a["status"] == "fill")}}
 
 
 def applied(conn, pid: str, args: dict, now) -> dict:
@@ -166,6 +285,8 @@ def report(conn, pid: str, args: dict, now) -> dict:
                      "VALUES (?,?,?,?,?,?,?,?,?)",
                      (pid, uid, app_id, board, str(args.get("step") or "")[:STEP_MAX], _count(args.get("filled")),
                       _count(len(needs)), _count(args.get("skipped")), db.iso(now)))
+    if isinstance(args.get("fields"), list):            # GOAL27: every field's result, for Health
+        health.record_fields(conn, pid, board, str(args.get("step") or ""), args["fields"], str(args.get("version") or ""), now)
     return {"open": open_now}
 
 
@@ -212,15 +333,20 @@ def get(conn, pid: str, path: str, args: dict):
             raise ValueError("uid or app is required")
         return File(*resume.file(conn, pid, uid, app_id))
     if name == "profile":
-        return profile_data(conn, pid, uid, app_id)
+        return full_profile(conn, pid, args)
     if name == "address":                              # the panel polls while OSM is looking
         return job_address(conn, pid, uid, app_id)
     if name == "answers":
         return answers_page(conn, pid)
     if name == "count":
         return {"open": questions.count(conn, pid)}
+    if name == "answer/status":                        # the panel polls a Generate click
+        return generate.status(args)
     if name == "snippets":                              # the panel's "Use a saved answer"
         return {"snippets": learn.snippets(conn, pid, str(args.get("q") or "")[:500])}
+    if name == "cover.pdf":                            # GOAL27 §5: the cover letter as a file for an upload box
+        text = assist.cover_text(conn, pid, uid, app_id)
+        return File(pdftext.render(text, "Cover letter"), "application/pdf", assist.cover_name(conn, pid, uid, app_id))
     if name == "extension.zip":
         return File(package.zip_bytes(), "application/zip", package.ZIP_NAME)
     raise KeyError(path)
@@ -238,6 +364,10 @@ def post(conn, pid: str, path: str, args: dict, now):
         if app:
             trackapi.update(conn, pid, app["id"], {"address": place["line"]})
         return place
+    if name == "address/choose":                       # GOAL30 §3: Location from the resume or where the user lives
+        return choose_location(conn, pid, args)
+    if name == "answer/keep":                          # GOAL30 §1.3 / §4: a chip or a ✎ edit, saved where the user chose
+        return keep(conn, pid, args)
     if name == "address/another":
         return address.another(conn, pid, str(args.get("city_state") or ""))
     if name == "address/forget":
@@ -252,8 +382,22 @@ def post(conn, pid: str, path: str, args: dict, now):
         return applied(conn, pid, args, now)
     if name == "snapshot":
         return snapshot(conn, pid, args, now)
-    if name == "draft":
-        return draft.draft(conn, pid, uid, app_id, str(args.get("question") or ""))
+    if name == "suggest":                              # GOAL27 §4: short answers from the resume (review marks)
+        return assist.suggest(conn, pid, args)
+    if name == "choose":                               # 1.3.1: a saved answer no option matched: Claude picks one
+        return assist.choose(conn, pid, args)
+    if name == "cover":                                # GOAL27 §5: a cover letter on the user's click
+        return assist.cover(conn, pid, args)
+    if name == "score":                                # GOAL27 §6: match % and missing keywords on any job page
+        return assist.score(conn, pid, args)
+    if name == "save":                                 # GOAL27 §6: Save job to the tracker from any page
+        return assist.save_job(conn, pid, args)
+    if name == "answer/generate":                      # GOAL29 §5: Generate / Regenerate / Shorter, on the user's click
+        return generate.generate(conn, pid, args)
+    if name == "answer/lookup":                        # the cached answers of a page's open questions
+        return generate.lookup(pid, args, conn)
+    if name == "answer/save":                          # Save to Answers
+        return generate.save(conn, pid, args)
     if name == "answer":
         return bank.save(conn, pid, str(args.get("key") or ""), args.get("answer"))
     if name == "forget":

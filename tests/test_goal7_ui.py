@@ -2,6 +2,7 @@
 A throwaway DB with three jobs, the real server, headless Chrome driven by tests/ui/goal7_ui.mjs (no packages).
 Skipped when node or Chrome is not installed."""
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -16,7 +17,7 @@ from job_hunt_agent import config, db, rgclient, server, store, trackapi
 from job_hunt_agent.ats.common import FetchResult, make_job
 
 NOW = datetime.now(timezone.utc).replace(microsecond=0)
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME = os.environ.get("JH_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 RUNNER = Path(__file__).parent / "ui" / "goal7_ui.mjs"
 TOKEN = "ui-test-token"
 COMPANIES = ("Acme", "Globex", "Initech")
@@ -138,9 +139,21 @@ FONT_FILES = 2
 # the Answers tab, afhealth.js 5.5 KB on Settings and after the first paint, applyq.js 7.4 KB after the first paint);
 # the startup cap is unchanged (the queue hooks in through the lazy Answers badge, not app.js / detail.js)
 # Settings > Setup and Profiles (setup.js, lazy, about 10 KB) and the outreach "Draft with Claude" box: +11,000
+# Autofill Health's per-field table in the lazy afhealth.js: +1,000; the startup cap is unchanged
+# Applied as cards (applied.js, lazy, only on the Applied tab, with its own few styles): +4,500
+# the three who-to-contact cards in finder.js and the contact's kind in rowedit.js (both lazy): +2,500
 JS_TOTAL_BUDGET = 185_000 + 58_200 + 4_000 + 11_000 + 2_000 + 1_000 + 1_000 + 1_000 + 1_000 + 1_000 + 1_000 + 2_500 + 11_800 \
-    + 5_000 + 21_000 + 11_000
-LAZY_CSS_BUDGET = 8_000 + 1_000                 # GOAL25 §1/§3: answers.css (Learned, company answers, Stats bars)
+    + 5_000 + 21_000 + 11_000 + 1_000 + 4_500 + 2_500 + 6_400 + 1_000 + 4_200 + 1_400 + 2_500 + 1_500
+# the Offer check panel and the job page's Application questions box (offer.js, appq.js, both lazy): +6,400
+# the Resumes tab's empty-view words and the poll's backoff in the lazy rq.js / rg.js: +1,000
+# each list and page keeping its last data, placeholders and Could not load + Retry: +4,200 (tracker.js, 19 KB, now
+# loads on the first Tracker visit)
+# core.js's postedText ("Posted today, found 9:03 AM") and the card / job pane using it: +1,400
+# live.js's resume-service push, the ring's words, the reload rule, the open job kept for a reload and Saved counting
+# its outside jobs: +2,500
+# the empty views saying what fills them, Clear filters, the follow-up Undo, key 0 and the status shapes: +1,500
+LAZY_CSS_BUDGET = 8_000 + 1_000 + 1_300         # GOAL25 §1/§3: answers.css (Learned, company answers, Stats bars)
+# +1,300 for offer.css (Offer check grades, Application questions) and rg.css's "Mirrored from JD" tags
 # ds.css holds the tokens and shared parts (buttons, chips, tags, menus, dialogs, toasts) and is byte-identical
 # in resumegen, so the two apps look like one product. It loads at startup with app.css: both count against one cap,
 # raised from 40,000 (app.css alone) by the 12,000 GOAL21 adds (the shell grid, Settings page, status popover), +1,000
@@ -150,7 +163,8 @@ LAZY_CSS_BUDGET = 8_000 + 1_000                 # GOAL25 §1/§3: answers.css (L
 # contrast for colour-blind users: +1,000 so every control reads at 4.5:1 in every state
 STARTUP_CSS = ("app.css", "ds.css", "mail.css")
 # Settings > Setup's status panel and state pills: +1,500
-CSS_BUDGET_GOAL21 = CSS_BUDGET + 12_000 + 1_000 + 1_000 + 1_500 + 1_500 + 1_000 + 1_500
+# the placeholders, Could not load + Retry, the tab fade-in and the filters keeping their room: +500
+CSS_BUDGET_GOAL21 = CSS_BUDGET + 12_000 + 1_000 + 1_000 + 1_500 + 1_500 + 1_000 + 1_500 + 500
 _IMPORT = re.compile(r'^import [^;]*? from "\./([a-z0-9]+\.js)";', re.M)
 
 
@@ -179,7 +193,7 @@ class BudgetTest(unittest.TestCase):
         self.assertLessEqual(len(list((STATIC / "fonts").glob("*.woff2"))), FONT_FILES)
         page = (STATIC / "index.html").read_text()
         self.assertIn('rel="preload" href="/fonts/schibsted-grotesk.woff2"', page)
-        self.assertIn("font-display: swap", (STATIC / "app.css").read_text())
+        self.assertRegex((STATIC / "app.css").read_text(), r"font-display: (swap|optional)")   # GOAL31: optional, no late reflow
 
 
 @unittest.skipUnless(shutil.which("node"), "needs node")

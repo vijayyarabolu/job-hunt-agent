@@ -25,7 +25,7 @@ function boards(list) {
   if (!list.length) return h("p", "hint", "No fills in the last 7 days.");
   return table(["Board", "Filled by Autofill", "By you", "Needs you", "Fill rate"], list.map((b) => h("tr", {},
     h("td", {}, b.board), h("td", "num", String(b.filled)), h("td", "num", String(b.hand)), h("td", "num", String(b.needs)),
-    h("td", "num", b.rate == null ? "–" : `${b.rate}%`))));
+    h("td", "num", b.rate == null ? "?" : `${b.rate}%`))));
 }
 
 function errors(list) {
@@ -38,6 +38,17 @@ function errors(list) {
 function questions(list) {
   if (!list.length) return h("p", "hint", "None waiting.");
   return h("ul", "af-list", list.map((x) => h("li", {}, h("span", {}, x.text), h("span", "hint", ` · asked ${x.seen}× · ${x.boards.join(", ")}`))));
+}
+
+// GOAL27: every field of every fill: how many ended filled / review / needs you / failed, and the ones that failed or
+// needed the user most with why (labels only, never a value)
+function fields(f) {
+  if (!f || !f.boards.length) return h("p", "hint", "No fills logged yet (Autofill 1.3 logs every field).");
+  return h("div", {}, table(["Board", "✓ Filled", "? Review", "▲ Needs you", "✕ Failed"], f.boards.map((b) => h("tr", {},
+    h("td", {}, b.board), h("td", "num", String(b.filled)), h("td", "num", String(b.review)), h("td", "num", String(b.needs)), h("td", "num", String(b.failed))))),
+    f.worst.length ? table(["Board", "Field", "Result", "Why", "Times"], f.worst.map((w) => h("tr", {}, h("td", {}, w.board),
+      h("td", {}, `${w.label}${w.key ? ` (${w.key})` : ""}`), h("td", {}, w.status === "failed" ? "✕ Failed" : "▲ Needs you"),
+      h("td", {}, w.why || "reason not given"), h("td", "num", String(w.n))))) : null);
 }
 
 function canary(c) {
@@ -59,6 +70,7 @@ export function healthCard() {
   const body = h("div", { class: "af-health", "aria-live": "polite" }, h("p", "hint", "Loading…"));
   get("/api/autofill/health/report").then((r) => {
     body.replaceChildren(h("h4", {}, "Version"), version(r.extension), h("h4", {}, `Fill rate per board (last ${r.days} days)`), boards(r.boards),
+      h("h4", {}, `Every field (last ${r.days} days)`), fields(r.fields),
       h("h4", {}, "Errors and pages it did not know"), errors(r.errors), h("h4", {}, "Questions it could not answer"), questions(r.questions),
       h("h4", {}, "Nightly check"), canary(r.canary));
   }).catch((err) => body.replaceChildren(h("p", {}, `Health could not load: ${err.message}`)));

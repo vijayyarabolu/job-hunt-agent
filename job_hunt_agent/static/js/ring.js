@@ -13,9 +13,15 @@ function ringSvg(size, r, pct, cls = "") {
 }
 
 export const tailoredLine = (job) => (job.tailored ? `${job.match_base}% → ${job.match}% with your tailored resume` : "");
-export const miniRing = (pct, size = "", tip = "") => h("span", { class: `ring ${size} t-${tier(pct)}`, title: tip ? `${tip}. ${MATCH_TIP}` : MATCH_TIP,
-  role: "img", "aria-label": pct == null ? "Match not scored yet" : `Match ${pct}%${tip ? ` (${tip})` : ""}` },
-ringSvg(36, 15.5, pct), h("b", { "aria-hidden": "true" }, pct ?? "–"));
+// GOAL33 §3d: a job with no JD text says "No JD" in words, not a bare "?"; one being scored says so
+const RING_WORDS = { nojd: ["No JD", "No JD text to match against: paste the JD in the Resume app or open the posting", "No JD, no match"],
+  scoring: ["…", "Scoring this JD against your resume: it shows on the next look", "Match being scored"] };
+export const miniRing = (pct, size = "", tip = "", state = null) => (RING_WORDS[state]
+  ? h("span", { class: `ring no-jd ${size}`, title: RING_WORDS[state][1], role: "img", "aria-label": RING_WORDS[state][2] },
+    ringSvg(36, 15.5, null), h("b", { "aria-hidden": "true" }, RING_WORDS[state][0]))
+  : h("span", { class: `ring ${size} t-${tier(pct)}`, title: tip ? `${tip}. ${MATCH_TIP}` : MATCH_TIP,
+    role: "img", "aria-label": pct == null ? "Match not scored yet" : `Match ${pct}%${tip ? ` (${tip})` : ""}` },
+  ringSvg(36, 15.5, pct), h("b", { "aria-hidden": "true" }, pct ?? "?")));
 
 function arcPath(r, a0, a1) {
   const pt = (a) => [60 + r * Math.cos((a * Math.PI) / 180), 60 + r * Math.sin((a * Math.PI) / 180)]
@@ -33,7 +39,7 @@ export function bigRing(job) {
   });
   const words = (job.parts || []).map((p) => `${p.label} ${p.pct ?? "n/a"}`).join(", ");
   return h("div", { class: "big-ring", role: "img", "aria-label": `Match ${job.match ?? "not scored"}%. ${words}.`, title: MATCH_TIP },
-    s, h("div", { class: "big-num", "aria-hidden": "true" }, h("b", {}, job.match ?? "–"), h("span", "pct", "%"),
+    s, h("div", { class: "big-num", "aria-hidden": "true" }, h("b", {}, job.match ?? "?"), h("span", "pct", "%"),
       h("small", {}, "match")));
 }
 

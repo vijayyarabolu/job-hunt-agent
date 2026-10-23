@@ -1,6 +1,7 @@
 """`job-hunt-agent autofill ...`: `canary` runs the Autofill canary now (fixtures + live pages; --no-live: fixtures
 only); `nightly` waits for a running fetch to finish, then runs the canary (schedule it with cron if you want it
-every night; it needs node and Chrome)."""
+every night; it needs node and Chrome); `realsites` fills one real public apply page per ATS as a fake person and
+prints the per-field table (never Submit, never an account made)."""
 import argparse
 import json
 import sys
@@ -11,8 +12,10 @@ from . import canary
 
 def register(sub) -> None:
     p = sub.add_parser("autofill", help="the Autofill extension's nightly canary")
-    p.add_argument("action", choices=("canary", "nightly"))
+    p.add_argument("action", choices=("canary", "nightly", "realsites"))
     p.add_argument("--no-live", action="store_true", help="canary: saved fixtures only, no live apply pages")
+    p.add_argument("--url", action="append", default=[], help="realsites: also this public apply page (repeatable)")
+    p.add_argument("--out", help="realsites: write the per-site table (Markdown) here")
     p.set_defaults(func=cmd_autofill)
 
 
@@ -25,6 +28,20 @@ def _canary(live: bool) -> dict:
 
 
 def cmd_autofill(args: argparse.Namespace) -> int:
+    if args.action == "realsites":                      # 1.3.1: one real public apply page per ATS, per field
+        conn = db.connect()
+        try:
+            got = canary.realsites(conn, urls=args.url)
+        except (OSError, RuntimeError) as err:
+            print(f"error: realsites: {err}", file=sys.stderr)
+            return 2
+        finally:
+            conn.close()
+        if args.out:
+            with open(args.out, "w") as f:
+                f.write(got["markdown"] + "\n")
+        print(got["markdown"])
+        return 0
     out = {}
     if args.action == "nightly":
         out["quiet"] = canary.wait_quiet()

@@ -50,10 +50,10 @@ class HealthTest(AutofillCase):
         self.assertEqual(health.record_canary(self.conn, "2026-10-13T03:10:00Z", [{**page, "filled": 10}]), [])
         self.assertEqual(health.notices(self.conn), [])
         drops = health.record_canary(self.conn, "2026-10-14T03:10:00Z", [{**page, "filled": 4}])
-        self.assertEqual(drops, ["greenhouse: apply filled 4 of 12 (was 10)"])
+        self.assertEqual(drops, ["greenhouse: apply page filled 4 of 12, down from 10 of 12 on Oct 13"])
         notes = api.get(self.conn, PID, "/api/autofill/notices", {})["notices"]
         self.assertEqual(len(notes), 1)
-        self.assertIn("greenhouse: apply filled 4 of 12 (was 10)", notes[0]["text"])
+        self.assertIn("greenhouse: apply page filled 4 of 12, down from 10 of 12 on Oct 13", notes[0]["text"])
         last = health.report(self.conn, PID, NOW)["canary"]
         self.assertEqual((last["at"], last["failed"]), ("2026-10-14T03:10:00Z", 1))
         api.post(self.conn, PID, "/api/autofill/notice/close", {"id": notes[0]["id"]}, NOW)
@@ -63,7 +63,8 @@ class HealthTest(AutofillCase):
         drops = health.record_canary(self.conn, "2026-10-14T03:10:00Z", [
             {"name": "lever-fixture", "board": "lever", "step": "apply", "fields": 10, "filled": 5, "expected": 8},
             {"name": "ashby-live", "board": "ashby", "source": "live", "fields": 0, "filled": 0, "error": "page did not load"}])
-        self.assertEqual(drops, ["lever: apply filled 5 of 10 (expected 8)", "ashby: live page filled 0 of 0: page did not load"])
+        self.assertEqual(drops, ["lever: apply page filled 5 of 10, it should fill at least 8",
+                                 "ashby: live page filled 0 of 0: page did not load"])
 
     def test_a_live_page_fails_only_when_it_fills_nothing_and_a_closed_one_is_skipped(self):
         drops = health.record_canary(self.conn, "2026-10-14T03:10:00Z", [

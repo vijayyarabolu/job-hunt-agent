@@ -4,7 +4,6 @@ import { apply, copyJd, cur, like, markApplied, notInterested, openCard, removeJ
 import { closePanel, closeSheet, openJob } from "./detail.js";
 import { openAddJob } from "./editor.js";
 import { undoLastEdit } from "./inline.js";
-import { focusSearch } from "./tracker.js";
 
 const TYPING = /^(INPUT|SELECT|TEXTAREA)$/;
 let app = {};
@@ -51,11 +50,11 @@ function onKey(e) {
   if ((e.key === "Enter" || e.key === " ") && e.target.closest("button, a, summary, [contenteditable], td.editable")) return;
   const global = {
     "?": () => $("#help").showModal(),
-    "/": () => (TABLE_TABS.includes(S.tab) ? focusSearch() : openPalette()),
+    "/": () => (TABLE_TABS.includes(S.tab) ? import("./tracker.js").then((m) => m.focusSearch()) : openPalette()),
     t: () => app.toggleTheme(), n: () => openAddJob(), u: () => undoLastEdit(), ",": () => app.openSettings(),
   };
   if (global[e.key]) { e.preventDefault(); global[e.key](); return; }
-  if (e.key >= "1" && e.key <= "9") { app.switchTab(TABS[Number(e.key) - 1]); return; }
+  if (e.key >= "0" && e.key <= "9") { app.switchTab(TABS[(Number(e.key) + 9) % 10]); return; }   // 0 is the 10th: Answers
   if (JOB_TABS.includes(S.tab)) jobKeys(e);
 }
 

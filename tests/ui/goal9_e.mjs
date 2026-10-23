@@ -404,6 +404,7 @@ try {
 
   // ---- the Resume app offline ----
   await fake("/__down", {});
+  await js(`await fetch("/api/resumes?profile=${P}")`);             // GOAL30-app §0: one failed call is not offline yet
   await load(`recommended:${P}`);
   await answerAll();
   await js("document.querySelector('#job-0').click()");

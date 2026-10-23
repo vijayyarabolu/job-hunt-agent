@@ -109,7 +109,8 @@ class TailoredScoreTest(TailoredScoreCase):
         self.ready(self.wide)
         self.poll()
         self.rg.down = True
-        got = self.poll()
+        self.assertTrue(self.poll()["online"])        # GOAL30-app §0: one failed call shows the last good list
+        got = self.poll()                             # two in a row: offline
         self.assertFalse(got["online"])
         self.assertIn(self.wide, got["scores"])
         self.assertIn("tailored", self.cards()[self.wide])

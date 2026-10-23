@@ -1,6 +1,6 @@
 // Job list: rows, selection, actions + Undo, "N new" pill.
-import { OPEN_TIP, $, $$, B, btn, FAMILY_LABELS, S, WORTH_TIP, api, calm, copyText, exactAge, fail, get, h, icon, locSpan, muted,
-  openExt, optimistic, phone, shortDate, shortLoc, store, tabName, toast } from "./core.js";
+import { OPEN_TIP, $, $$, B, btn, FAMILY_LABELS, S, WORTH_TIP, api, calm, copyText, fail, get, h, icon, loadError, locSpan, muted, postedText,
+  openExt, optimistic, phone, refreshFailed, shortDate, shortLoc, store, tabName, toast } from "./core.js";
 import { miniRing, tailoredLine } from "./ring.js";
 import { closeDetail, openJob, refreshDetail, reloadDetail } from "./detail.js";
 import { filterParams, setBoards, setFilters } from "./filters.js";
@@ -24,7 +24,8 @@ function skeleton() {
   $("#list").replaceChildren(...Array.from({ length: SKELETON_ROWS }, row));
   $("#list-more").replaceChildren();
   $("#list").setAttribute("aria-busy", "true");
-  const count = $("#lh-title .muted");
+  const count = $("#lh-title .muted"), name = $("#lh-title")?.firstChild;
+  if (name?.nodeType === 3) name.textContent = `${tabName(S.tab)} `;   // GOAL30-app: the new tab's name at once
   if (count) count.textContent = "updating…";
   if (S.tab !== "recommended") $$("#list-head .lh-hold").forEach((el) => el.remove());
 }
@@ -44,21 +45,42 @@ function show(data, back) {
   if (!S.items.length) closeDetail();
 }
 
+// GOAL31 §3: each list's last data, shown at once on the way back while it refreshes; nothing new redraws nothing
+const LAST_MAX = 16;
+const last = new Map();
+let shown = { memo: "", sig: "" };
+const remember = (memo, data) => { last.delete(memo); last.set(memo, data); if (last.size > LAST_MAX) last.delete(last.keys().next().value); };
+// the list as it is now (saved, removed since), for the way back
+export function keepList() { if (shown.memo) remember(shown.memo, { ...meta, jobs: S.items }); }
+
 export async function loadFeed({ quiet = false } = {}) {
   const token = ++loadToken;
   const tab = S.tab;
   const key = tab === "resumes" && `${S.profile} ${S.rq}`;
   const back = S.place[tab] || (quiet && { uid: cur()?.uid, top: $("#list-wrap").scrollTop });
   S.place[tab] = null;
-  const hit = !quiet && key && (boards[key] ||= store.json(`jh.rq.${key}`, null));
-  if (hit) show(hit, back); else if (!quiet) skeleton();
+  if (tab === "applied" && !S.apMod) {
+    if (!quiet) skeleton();
+    S.apMod = await import("./applied.js");
+    if (token !== loadToken) return;
+  }
+  const params = key ? { tab, rq: S.rq } : tab === "applied" ? S.apMod.params() : { tab, ...filterParams() };
+  const memo = `${S.profile}|${JSON.stringify(params)}`;
+  const hit = !quiet && (last.get(memo) || (key && (boards[key] ||= store.json(`jh.rq.${key}`, null))));
+  if (hit) { show(hit, back); shown = { memo, sig: JSON.stringify(hit) }; $("#list").setAttribute("aria-busy", "true"); } else if (!quiet) skeleton();
   try {
-    const data = await get("/api/jobs", key ? { tab, rq: S.rq } : { tab, ...filterParams() });
+    const data = await get("/api/jobs", params);
     if (token !== loadToken || tab !== S.tab) return;
+    remember(memo, data);
     if (key) store.set(`jh.rq.${key}`, JSON.stringify(boards[key] = data));
-    show(data, hit ? { uid: cur()?.uid, top: $("#list-wrap").scrollTop } : back);
+    const sig = JSON.stringify(data);
+    if (shown.memo === memo && shown.sig === sig) return;
+    shown = { memo, sig };
+    show(data, hit || quiet ? { uid: cur()?.uid, top: $("#list-wrap").scrollTop } : back);
   } catch (err) {
-    if (token === loadToken) { $("#list").replaceChildren(); $("#list-more").replaceChildren(h("p", "empty", `Could not load: ${err.message}`)); }
+    if (token !== loadToken) return;
+    if ((hit || quiet) && S.items.length) refreshFailed(err, () => loadFeed({ quiet: true }));
+    else { $("#list").replaceChildren(); $("#list-more").replaceChildren(loadError(err, () => loadFeed())); }
   } finally {
     if (token === loadToken) $("#list").removeAttribute("aria-busy");
   }
@@ -72,11 +94,13 @@ function renderAll() {
 
 function renderHead() {
   if (S.tab === "resumes") { $("#list-head").replaceChildren(...(S.g8?.head(meta) || [h("h1", { id: "lh-title" }, "Resumes")]).filter(Boolean)); return; }
+  if (S.tab === "applied") { S.apMod?.head(meta, loadFeed); return; }
   const t = meta.today;
   const parts = t ? Object.entries(t.by_family).map(([f, n]) => `${FAMILY_LABELS[f] || f} ${n}`) : [];
   const pill = fresh.length ? B({ class: "pill-new", title: "Show them at the top of the list", onclick: insertFresh }, `${fresh.length} new job${fresh.length === 1 ? "" : "s"}`) : null;
-  const total = meta.total ?? S.items.length;
-  const shown = S.items.length < total ? `${S.items.length} of ${total}` : String(total);
+  const extra = S.tab === "saved" ? meta.outside?.length || 0 : 0;   // GOAL33: Saved counts its outside jobs
+  const total = (meta.total ?? S.items.length) + extra, n = S.items.length + extra;
+  const shown = n < total ? `${n} of ${total}` : String(total);
   $("#list-head").replaceChildren(...[h("div", "lh-top", h("h1", { id: "lh-title" }, tabName(S.tab), " ",
     muted(`${shown} · ${S.filters.sort === "match" ? "best match first" : "newest first"}`)), pill),
   S.tab === "recommended" && t ? h("p", "daily", h("b", {}, `${t.total} new in the last 24 h`),
@@ -103,16 +127,18 @@ export const prog = (lead = " · ", p = S.prog) => (p?.goal ? h("span", { class:
 
 function renderFoot() {
   const bits = [meta.filtered ? `${meta.filtered} hidden by dealbreakers (security clearance)` : "",
+    meta.jd_gate ? `${meta.jd_gate} hidden: no GenAI work in the JD` : "",
     meta.too_senior && !S.filters.senior ? `${meta.too_senior} too senior (More → Show too senior)` : ""];
   $("#foot").textContent = bits.filter(Boolean).join(" · ");
 }
 
 function tags(job) {
   const lab = job.labels || {};
-  return [applied(job) ? h("span", { class: "tag", title: "Applied: on your tracker (m)" }, "Applied")
+  return [applied(job) && !job.ap ? h("span", { class: "tag", title: "Applied: on your tracker (m)" }, "Applied")
     : isSaved(job) ? h("span", { class: "tag soft", title: "Saved: in your tracker (s to unsave)" }, "Saved") : null,
     lab.applied_before && !applied(job) ? h("span", { class: "tag warn", title: `${lab.applied_before}: this role at this company is on your tracker` }, "Applied before") : null,
     lab.too_senior ? h("span", { class: "tag warn", title: "Too senior: asks more years than your cap" }, "Too senior") : null,
+    job.ghost ? h("span", { class: "tag warn", title: "Flagged, never hidden: Priority a few points lower" }, icon("ghost", "ic sm"), job.ghost) : null,
     h("span", { class: "tag soft yrs", title: "Years of experience read from the JD" }, job.asks_years == null ? "years not stated" : `Asks ${job.asks_years} yr${job.asks_years === 1 ? "" : "s"}`)];
 }
 function heart() {
@@ -134,15 +160,16 @@ function rowEl(job, i) {
     title: "Open (Enter) · o opens the posting",
     onclick: (e) => { if (e.shiftKey && S.g8) return S.g8.pick(i, e); select(i, { open: false }); openCard(job, { sheet: true }); } },
   h("span", { class: "pick", "aria-hidden": "true", onclick: (e) => { e.stopPropagation(); S.g8?.pick(i, e); } }),
-  miniRing(job.match, "", tailoredLine(job)),
+  miniRing(job.match, "", tailoredLine(job), job.no_jd ? "nojd" : job.scoring ? "scoring" : null),
   h("div", "row-main", title, h("div", "row-meta", h("span", "co", job.company), sponsorBadge(job.sponsor), job.location ? locSpan(job.location, "loc") : null, tags(job),
     job.tailored ? h("span", { class: "tag soft", title: tailoredLine(job) }, `${job.match_base}% → ${job.match}% tailored`) : null,
-    also(job), job.pass_reason ? h("span", { class: "tag soft", title: "Why you passed on it" }, job.pass_reason) : null, dupTag(job), job.outside ? null : chipSlot(job.uid)), S.g8?.row(job)),
-  h("div", "row-side", job.outside ? null : xBtn(`${job.company} · ${job.title}`, () => removeJob(job)),
-    job.posted_ts ? h("time", { datetime: job.posted_ts, "data-ts": job.posted_ts, "data-exact": job.posted_exact ? "1" : "",
+    also(job), job.pass_reason ? h("span", { class: "tag soft", title: "Why you passed on it" }, job.pass_reason) : null, dupTag(job), job.outside || job.ap ? null : chipSlot(job.uid)), S.g8?.row(job)),
+  job.ap ? S.apMod.side(job) : h("div", "row-side", job.outside ? null : xBtn(`${job.company} · ${job.title}`, () => removeJob(job)),
+    job.posted_ts ? h("time", { class: job.posted_found ? "found" : null, datetime: job.posted_ts, "data-ts": job.posted_ts, "data-exact": job.posted_exact ? "1" : "",
+      "data-found": job.posted_found || "", "data-day": job.posted_day || "",
       title: `${job.posted_label} ${new Date(job.posted_ts).toLocaleString()}${job.posted_exact ? "" : " (day only)"}` },
-    exactAge(job.posted_ts, job.posted_exact).replace(" ago", "")) : null,
-    job.outside ? h("span", { class: "tag soft", title: "A JD pasted in the Resume app: no match score" }, "outside job")
+    postedText(job.posted_ts, job.posted_exact, job.posted_found, job.posted_day)) : null,
+    job.outside ? h("span", { class: "tag soft", title: "A JD pasted in the Resume app: its match comes from that JD" }, "outside job")
       : h("span", { class: `worth${job.worth >= 70 ? " w-hi" : ""}`, title: WORTH_TIP },
         job.worth == null ? "scoring" : ["Priority ", h("b", {}, job.worth)])));
 }
@@ -179,12 +206,14 @@ export function rescore(scores = {}) {
 }
 
 function renderList() {
-  const empty = S.items.length ? null : h("p", "empty", S.tab === "saved" ? "Nothing saved yet: press s on a job to keep it here."
-    : S.tab === "resumes" ? "Nothing here." : Object.keys(S.filters || {}).some((k) => k !== "sort") ? "Nothing here with these filters."
-      : S.tab === "archived" ? "Nothing archived yet: jobs you mark Not interested come here." : "Nothing here yet.");
-  $("#list").replaceChildren(...S.items.flatMap((j, i) => (j.rq?.day !== S.items[i - 1]?.rq?.day
-     ? [h("li", { class: "section-head", role: "presentation" }, h("h2", {}, j.rq.day)), rowEl(j, i)] : rowEl(j, i))));
-  const more = S.tab !== "resumes" && S.items.length < (meta.total ?? 0)
+  const empty = S.items.length || (S.tab === "saved" && meta.outside?.length) ? null : h("p", "empty", S.tab === "saved" ? "Nothing saved yet: press s on a job to keep it here."
+    : S.tab === "resumes" ? S.g8?.rqEmpty(meta) : S.tab === "applied" ? S.apMod.empty() : Object.keys(S.filters || {}).some((k) => k !== "sort")
+      ? ["Nothing here with these filters. ", B({ class: "linklike", title: "Remove every filter", onclick: () => setFilters({ sort: S.filters.sort }, "Cleared all filters") }, "Clear filters")]
+      : S.tab === "archived" ? "Nothing archived yet: jobs you mark Not interested come here." : "Nothing here yet: new jobs come in with each fetch.");
+  const dayOf = (j) => (j?.rq || j?.ap)?.day;   // GOAL18 §3
+  $("#list").replaceChildren(...S.items.flatMap((j, i) => (dayOf(j) && dayOf(j) !== dayOf(S.items[i - 1])
+    ? [h("li", { class: "section-head", role: "presentation" }, h("h2", {}, dayOf(j))), rowEl(j, i)] : rowEl(j, i))));
+  const more = !meta.counts && S.items.length < (meta.total ?? 0)
     ? btn("more-btn", "Load the next jobs (or keep scrolling)", moreJobs, `Load more (${S.items.length.toLocaleString()} of ${meta.total.toLocaleString()})`) : "";
   $("#list-more").replaceChildren(...(empty && !meta.outside?.length ? [empty] : []), more, ...archivedApps(), ...(S.g8?.outside(meta) || []));
   paintSel();
@@ -339,7 +368,7 @@ export function notInterested(job) {
       // W11: one "Why?" at a time, naming its job: an older toast keeps its Undo, its reasons go
       if (lastWhy?.isConnected && !lastWhy.contains(document.activeElement)) lastWhy.replaceChildren(muted("No reason given", "muted small"));
       lastWhy = why;
-      toast(`Not interested: ${job.company}, ${job.title}${r?.resumes?.length ? " · its resume archived in the Resume app" : ""}. Why?`, { extra: why, undo });
+      toast(`Not interested: ${job.company} · ${job.title}${r?.resumes?.length ? " · its resume archived in the Resume app" : ""}. Why?`, { extra: why, undo });
     })
     .catch((err) => { Object.assign(job, was); putBack(); toast(`Not saved: ${err.message}. Put back as it was.`, { error: true }); });
 }
@@ -425,5 +454,6 @@ function insertFresh() {
 
 export function tickAges() {
   if (document.hidden) return;
-  for (const t of $("#list").querySelectorAll("time[data-ts]")) t.textContent = exactAge(t.dataset.ts, t.dataset.exact === "1").replace(" ago", "");
+  for (const t of $("#list").querySelectorAll("time[data-ts]")) t.textContent = postedText(t.dataset.ts, t.dataset.exact === "1", t.dataset.found, t.dataset.day);
 }
+

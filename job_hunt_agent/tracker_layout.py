@@ -8,7 +8,6 @@ A column with no app field (Jordan's "Column 1") is a pass-through: kept from th
 `cells()` is the one place a row's sheet values come from, so the tracker view, the Excel export and the Google Sheet
 sync always show the same thing. APP_EXTRAS are the app's own fields, shown and exported in a separate section.
 """
-import json
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -146,7 +145,7 @@ def tab_of(layout: Layout, app: dict) -> Tab:
 
 
 def _raw(app: dict) -> list:
-    return json.loads(app["raw_json"]) if app.get("raw_json") else []
+    return tracker.stored_cells(app["raw_json"]) if app.get("raw_json") else []
 
 
 def _passthrough(app: dict, header: str):
@@ -161,7 +160,6 @@ def _as_text(value) -> bool:
 def cell(app: dict, column: Column, layout: Layout, links: dict | None = None) -> tuple:
     """(value, link, write_as_text) of one sheet cell of one application, exactly as the Excel export writes it
     (an imported formula stays a formula; typed text that looks like one stays text)."""
-    from . import tracker_map
     if column.field in FIELDS:
         idx = FIELDS.index(column.field)
         value, as_text = tracker._cell_value(app, idx)
@@ -172,6 +170,7 @@ def cell(app: dict, column: Column, layout: Layout, links: dict | None = None) -
     if column == JD_TEXT:                                # cut like the Sheet cuts it, so both sides compare equal
         return (app.get("jd_text") or None) and app["jd_text"][:MAX_CELL], None, True
     if column.field:                                    # Address / Team Name
+        from . import tracker_map                       # here only: every other cell skips the import (GOAL30-app)
         value, link = tracker_map._extra_cell(app, column.target or column.header) if layout.mapping \
             else (app.get(column.field), None)
     else:

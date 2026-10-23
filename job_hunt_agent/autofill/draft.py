@@ -1,47 +1,21 @@
-""""Draft" next to a free-text question ("Why do you want to work here?", a required cover letter).
-
-Only on the person's click, one question at a time: Claude (claude-sonnet-5-5, effort medium, the same minimal
-headless call as the email reader) gets the question, the JD and the tailored resume (else the base resume) and
-writes 2-4 plain sentences in the person's voice with no fact the resume does not state. Dashes are taken out
-(the person does not use em dashes). The draft is kept with the job (autofill_drafts).
-
-Also here: the tailored resume's content (summary, skills, jobs) that Workday's Skills box and the Draft use.
-"""
+"""The tailored resume's content (summary, skills, jobs) that Workday's Skills box, the answer Generate and the cover
+letter use, and the one minimal Claude call they make: through the Anthropic API when a key is saved (Settings >
+Setup), else headless on the Claude Code login (claude-sonnet-5-5, effort medium, the same call as the email reader).
+The old "Draft" button is gone: Generate replaced it."""
 import json
 import logging
 import re
 import subprocess
 
-from .. import config, db, rgclient, rgjobs
+from .. import claude_api, config, rgclient, rgjobs
 from ..mail import claude as mail_claude
 from ..resume import baseline
-from . import resume
 
 log = logging.getLogger(__name__)
 MODEL = "claude-sonnet-5-5"
 TIMEOUT_S = 180
 JD_MAX = 7000
-MAX_QUESTION = 600
 SYSTEM = "You write short answers for a job application form, in the applicant's own voice. Answer with the text only."
-PROMPT = """Write the applicant's answer to this application question.
-
-Rules:
-- 2 to 4 plain sentences, first person, friendly and specific to this company and role.
-- Use ONLY facts stated in the resume below (companies, titles, numbers, tools). Never invent a fact, a number,
-  a project or a reason that is not there. If the question asks for something the resume does not say, answer with
-  what the resume does say.
-- No em dashes or en dashes, no bullet points, no greeting or sign-off, no placeholders.
-
-Question: {question}
-Company: {company}
-Role: {role}
-
-Job description:
-{jd}
-
-Resume:
-{resume}
-"""
 _DASHES = re.compile(r"\s*[—–]\s*")
 
 
@@ -117,7 +91,7 @@ def _flat_skills(resume_dict: dict) -> list[str]:
 
 
 def content(pid: str, rg_id: int | None) -> dict:
-    """{'summary', 'skills', 'jobs'} for the Draft: the tailored resume when there is one (resumegen's diff, 'new'
+    """{'summary', 'skills', 'jobs'} for the answers and the cover letter: the tailored resume when there is one (resumegen's diff, 'new'
     side), else the base resume (baseline.json)."""
     if rg_id:
         try:
@@ -185,7 +159,15 @@ def _jd(conn, pid: str, uid: str | None, app_id: int | None) -> tuple[str, str, 
 
 
 def run(prompt: str, pid: str) -> str:
-    """One minimal headless call; the answer text, or ValueError saying why it failed."""
+    """One minimal call; the answer text, or ValueError saying why it failed."""
+    if claude_api.configured():
+        try:
+            text, _ = claude_api.ask(prompt, SYSTEM, max_tokens=4000)
+        except claude_api.ClaudeError as err:
+            raise ValueError(f"Draft failed: {err}") from None
+        if not str(text).strip():
+            raise ValueError("Draft failed: no answer came back")
+        return str(text).strip()
     cmd = [mail_claude.claude_bin(), "-p", "--output-format", "json", "--model", MODEL, "--effort", "medium",
            "--system-prompt", SYSTEM, "--tools", "", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
            "--setting-sources", "", "--disable-slash-commands", "--no-session-persistence", "--max-turns", "1"]
@@ -202,7 +184,7 @@ def run(prompt: str, pid: str) -> str:
     if raw.get("is_error") or not text:
         noise = f"{text} {proc.stderr or ''}"
         why = ("usage limit reached" if mail_claude.LIMIT.search(noise) else
-               "Claude is not signed in on this Mac" if mail_claude.LOGIN.search(noise) else "no answer came back")
+               "Claude is not signed in on this computer" if mail_claude.LOGIN.search(noise) else "no answer came back")
         log.warning("autofill draft for %s failed (exit %s): %s", pid, proc.returncode, (proc.stderr or "")[-300:])
         raise ValueError(f"Draft failed: {why}")
     return text
@@ -212,22 +194,3 @@ def clean(text: str) -> str:
     """Plain sentences: no dashes, no surrounding quotes, single spaces."""
     out = _DASHES.sub(", ", text.strip().strip('"').strip())
     return re.sub(r"[ \t]+", " ", out).strip()
-
-
-def draft(conn, pid: str, uid: str | None, app_id: int | None, question: str, runner=None) -> dict:
-    """The person clicked Draft: one answer, kept with the job."""
-    question = " ".join(str(question or "").split())[:MAX_QUESTION]
-    if not question:
-        raise ValueError("no question to draft an answer for")
-    if not uid and not app_id:
-        raise ValueError("this page is not matched to a job yet: pick the job in the panel first")
-    app = int(app_id) if app_id else None
-    company, role, jd = _jd(conn, pid, uid, app)
-    choice = resume.choose(conn, pid, uid, app)
-    prompt = PROMPT.format(question=question, company=company, role=role, jd=(jd or "")[:JD_MAX],
-                           resume=_resume_text(content(pid, choice.get("rg_id"))))
-    text = clean((runner or run)(prompt, pid))
-    with db.tx(conn):
-        conn.execute("INSERT INTO autofill_drafts(profile, job_uid, app_id, question, text, at) VALUES (?,?,?,?,?,?)",
-                     (pid, uid, app, question, text, db.iso(db.utcnow())))
-    return {"text": text}

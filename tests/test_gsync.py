@@ -141,6 +141,20 @@ class LinkTest(SyncCase):
         self.assertIn("cells that differ between Sheet and app (left as they are): jane Target Role 1",
                       gcli.sync_line(self.conn))
 
+    def test_the_page_header_never_reads_the_cells(self):
+        # GOAL30-app: the page never shows the cell diff, and reading every row's cells (17 MB live) cost each
+        # /api/google ~350 ms cold; `job-hunt-agent google status` still reports it
+        tracker.edit_field(self.conn, self.ids["Acme"], "target_role", "Head of Talent")
+        self.link()
+        with mock.patch.object(runner, "diverged", side_effect=AssertionError("the header read the cells")):
+            found = runner.banner(self.conn)
+        self.assertNotIn("diverged", found["sync"])
+        self.assertEqual(found["sync"]["linked"], ["jane"])
+        self.assertEqual(runner.health(self.conn)["diverged"], {"jane": {"Target Role": 1}})
+        plan = " ".join(r[3] for r in self.conn.execute(
+            "EXPLAIN QUERY PLAN SELECT count(*) FROM gsync_rows WHERE missing_since IS NOT NULL"))
+        self.assertIn("COVERING INDEX gsync_missing", plan)          # the count never reads the cells either
+
     def test_an_approved_fix_is_pushed_only_on_request(self):
         tracker.edit_field(self.conn, self.ids["Gamma"], "date_applied", "10/02/2026")
         self.link()

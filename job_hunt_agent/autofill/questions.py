@@ -53,11 +53,28 @@ def _never(key: str | None, text: str) -> bool:
     return False
 
 
+EEO_KEYS = frozenset({"gender", "race", "hispanic", "veteran", "disability", "transgender", "orientation"})
+_LANGUAGE = re.compile(r"^(preferred )?language$")
+
+
+def _foreign(key: str | None, text: str, options) -> bool:
+    """GOAL31: an EEO question carrying another question's choices (1.5.0 read a Workday list while the last one was
+    still on screen: "What is your gender?" with races), or Self Identify's Language dropdown taken for one. Its
+    chips would save the wrong answer; asked again by 1.6.1, it comes with its own choices."""
+    if key not in EEO_KEYS:
+        return False
+    if _LANGUAGE.match(keys.norm(text)):
+        return True
+    other = keys.by_choices(options)
+    return bool(other and other.key != key and other.key in EEO_KEYS)
+
+
 def tidy(conn, pid: str) -> int:
     """Open questions the extension should never have asked (an address field, a cover letter): answered from the
-    job's address / left empty, so they leave Needs you. Returns how many were closed."""
-    rows = conn.execute("SELECT id, key, text FROM autofill_questions WHERE profile = ? AND state = 'open'", (pid,)).fetchall()
-    done = [r["id"] for r in rows if _never(r["key"], r["text"])]
+    job's address / left empty, so they leave Needs you; GOAL31: and EEO questions shown with another question's
+    choices. Returns how many were closed."""
+    rows = conn.execute("SELECT id, key, text, options FROM autofill_questions WHERE profile = ? AND state = 'open'", (pid,)).fetchall()
+    done = [r["id"] for r in rows if _never(r["key"], r["text"]) or _foreign(r["key"], r["text"], json.loads(r["options"] or "[]"))]
     if done:
         with db.tx(conn):
             conn.executemany("UPDATE autofill_questions SET state = 'answered' WHERE id = ?", [(i,) for i in done])
@@ -73,7 +90,7 @@ def record(conn, pid: str, items, board: str | None, company: str | None) -> int
     with db.tx(conn):
         for raw in items[:MAX_ITEMS]:
             item = _clean(raw) if isinstance(raw, dict) else None
-            if item is None or _never(item["key"], item["text"]):
+            if item is None or _never(item["key"], item["text"]) or _foreign(item["key"], item["text"], item["options"]):
                 continue
             qnorm = keys.norm(item["text"], company)
             found = conn.execute("SELECT * FROM autofill_questions WHERE profile = ? AND qnorm = ?",

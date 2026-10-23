@@ -42,7 +42,8 @@ Emails:
 
 
 def claude_bin() -> str:
-    return config.settings().get("claude_bin") or shutil.which("claude") or str(Path.home() / ".local/bin/claude")
+    """GOAL33: JOB_HUNT_AGENT_CLAUDE_BIN overrides it (the test package points it at /usr/bin/false: no test calls Claude)."""
+    return os.environ.get("JOB_HUNT_AGENT_CLAUDE_BIN") or config.settings().get("claude_bin") or shutil.which("claude") or str(Path.home() / ".local/bin/claude")
 
 
 def _env() -> dict:

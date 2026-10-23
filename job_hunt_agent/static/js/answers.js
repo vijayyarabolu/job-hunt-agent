@@ -1,9 +1,9 @@
 // /§7: the Answers page. What the Autofill extension fills into job forms, per person: "Needs you" first
 // (each question once, its choices as buttons), then the addresses per city, the work history Workday's My Experience
 // gets, and every saved answer, editable. what it learned from the user's own filling (Undo), company-only answers,
-// saved long answers, fill stats (afmore.js); choice answers are dropdowns; education is a list of degrees.
-// Lazy: loaded on first open.
-import { $, B, S, api, fail, get, h, toast } from "./core.js";
+// saved long answers, fill stats (afmore.js); choice answers are dropdowns; education is a list of degrees; the start
+// date setting is a weeks box. Lazy: loaded on first open.
+import { $, B, S, api, fail, get, h, loadError, placeholder, refreshFailed, toast } from "./core.js";
 import { companies, learned, snippets, stats, typoNote } from "./afmore.js";
 
 const LEGAL_TIP = "Legal / government / EEO: filled only with the answer you save here, never guessed";
@@ -13,9 +13,18 @@ function css() {
   if (!document.querySelector('link[href="/answers.css"]')) document.head.append(h("link", { rel: "stylesheet", href: "/answers.css" }));
 }
 
-async function reload() {
-  try { data = { ...(await get("/api/autofill/answers")), profile: S.profile }; } catch (err) { $("#view").replaceChildren(h("p", "pad", `Could not load: ${err.message}`)); return; }
-  if (S.tab === "answers") render();
+let drawn = "";      // GOAL31 §3: the answers last drawn; on the way back the same answers again redraw nothing
+
+async function reload(back = false) {
+  let got;
+  try { got = await get("/api/autofill/answers"); } catch (err) {
+    if (S.tab !== "answers") return;
+    if (data) refreshFailed(err, () => reload()); else $("#view").replaceChildren(loadError(err, () => reload()));
+    return;
+  }
+  const sig = `${S.profile}|${JSON.stringify(got)}`;
+  data = { ...got, profile: S.profile };
+  if (S.tab === "answers" && !(back && sig === drawn && $("#view .af"))) { render(); drawn = sig; }
   badge(data.open);
 }
 
@@ -62,7 +71,7 @@ function toggle(row) {
 // a choice question is a dropdown (common answers + what boards showed), so a typo can't break matching
 function choiceBox(row) {
   const known = row.choices.some((c) => c === row.answer);
-  const sel = h("select", { "aria-label": row.label }, h("option", { value: "" }, "(not answered)"),
+  const sel = h("select", { "aria-label": row.label }, h("option", { value: "" }, "Not answered"),
     row.choices.map((c) => h("option", { value: c }, c)), row.answer && !known ? h("option", { value: row.answer }, `${row.answer} (your words)`) : null);
   sel.value = row.answer;
   return sel;
@@ -70,7 +79,8 @@ function choiceBox(row) {
 
 function field(row) {
   if (row.key === "sponsor_auto") return toggle(row);
-  const input = row.choices?.length ? choiceBox(row) : h(row.answer.length > 80 || row.category === "other" ? "textarea" : "input",
+  const input = row.key === "start_weeks" ? h("input", { type: "number", min: "0", max: "26", value: row.answer, "aria-label": row.label })
+    : row.choices?.length ? choiceBox(row) : h(row.answer.length > 80 || row.category === "other" ? "textarea" : "input",
     { type: "text", maxlength: "4000", value: row.answer, "aria-label": row.label, rows: "2" });
   if (input.tagName === "TEXTAREA") input.value = row.answer;
   const state = h("span", { class: "saved-state", role: "status" });
@@ -83,7 +93,7 @@ function field(row) {
     try {
       const out = await api("/api/autofill/answer", { key: row.key, answer: input.value });
       row.answer = out.answer; input.value = out.answer; state.textContent = "Saved ✓";
-      empty.hidden = Boolean(out.answer) || row.blank_ok;          // 16:31: the note goes as soon as it is answered
+      empty.hidden = Boolean(out.answer) || row.blank_ok;
     } catch (err) { state.textContent = `Not saved: ${err.message}`; state.classList.add("err"); }
   };
   input.addEventListener("change", save);
@@ -173,8 +183,10 @@ function render() {
 export async function loadAnswers() {
   css();
   if (data?.profile !== S.profile) data = null;
-  if (!data) $("#view").replaceChildren(h("p", { class: "pad", "aria-busy": "true" }, "Loading answers…"));
-  await reload();
+  const back = !!data;
+  if (back) render();                                   // GOAL31 §3: the last answers at once, then fresh ones
+  else { drawn = ""; $("#view").replaceChildren(placeholder()); }
+  await reload(back);
 }
 
 // the top bar's counts, at start and on a person switch: Answers' Needs-you and the Apply queue

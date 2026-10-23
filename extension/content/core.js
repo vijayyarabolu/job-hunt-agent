@@ -9,8 +9,10 @@ JH.norm = (s) => String(s == null ? "" : s).toLowerCase().replace(/[’']/g, "'"
 JH.text = (el) => String((el && (el.innerText || el.textContent)) || "").replace(/\s+/g, " ").trim();
 JH.isTop = window.top === window;
 
-// Shadow roots too (SmartRecruiters' web components): every element matching `sel` under `root`.
+// Shadow roots too (SmartRecruiters' web components): every element matching `sel` under `root`, or under each of a
+// list of roots (GOAL31: Ashby's EEO survey is a second form beside the application's)
 JH.all = (sel, root = document) => {
+  if (Array.isArray(root)) return root.flatMap((r) => JH.all(sel, r));
   const out = [...root.querySelectorAll(sel)];
   for (const host of root.querySelectorAll("*")) {
     if (host.shadowRoot && !host.hasAttribute("data-jh-panel")) out.push(...JH.all(sel, host.shadowRoot));
@@ -164,6 +166,9 @@ JH.secretForms = (pw) => {
   return [...new Set([pw, html, html.replace(/'/g, "&#39;"), JSON.stringify(pw).slice(1, -1), encodeURIComponent(pw)])].filter(Boolean);
 };
 JH.byHand = (el) => HAND.has(el) || (handKey(el) !== "" && HAND_KEYS.has(handKey(el)));
+// GOAL30 §3 / §4: a value the user set from the panel (✎, a chip, a Location choice) is the user's like a typed one: the next
+// Autofill (and Workday's "correct the address" rule) never overwrites it
+JH.markHand = (el) => { if (!el) return; HAND.add(el); const k = handKey(el); if (k) HAND_KEYS.add(k); };
 JH.mark = (el) => { OURS.add(el); el.setAttribute("data-jh-filled", "1"); };
 JH.ours = (el) => OURS.has(el);
 
@@ -178,6 +183,19 @@ JH.b64File = (b64, name, type = "application/pdf") => {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new File([bytes], name, { type, lastModified: Date.now() });
 };
+
+// GOAL34 §1: a file from job_hunt_agent saved the way a link with download= saves it: Chrome's own download, under its name
+const REVOKE_MS = 60000;
+JH.download = (file) => {
+  const url = URL.createObjectURL(file);
+  Object.assign(document.createElement("a"), { href: url, download: file.name, rel: "noopener" }).click();
+  setTimeout(() => URL.revokeObjectURL(url), REVOKE_MS);
+};
+
+// GOAL34 §2: sites whose upload box ignores a file Autofill puts in it (Dice's cover letter drop zone only takes a
+// file from its own file picker or a real drop): the panel offers Download instead of a button that does nothing
+const NO_UPLOAD = [{ host: /(^|\.)dice\.com$/i, name: "Dice" }];
+JH.noUpload = () => (NO_UPLOAD.find((s) => s.host.test(location.hostname)) || {}).name || "";
 
 // A file input gets the resume the way a drop would give it (DataTransfer), then change + input.
 JH.setFile = (input, file) => {
@@ -206,15 +224,46 @@ JH.react = (el, op, arg = "") => new Promise((resolve) => {
   setTimeout(() => { document.removeEventListener("jh-bridge-done", done); resolve(false); }, 1500);
 });
 
+// GOAL32 §3: once the extension is reloaded or updated, a tab's old content script has lost it ("Extension context
+// invalidated"): every chrome.* call throws or rejects. They all go through here, fail quietly, and the panel says
+// "Extension updated: refresh this page" once.
+JH.STALE = "Extension updated: refresh this page";
+JH.alive = () => { try { return Boolean(chrome.runtime && chrome.runtime.id); } catch { return false; } };
+JH.stale = () => {
+  if (JH.staleShown) return;
+  JH.staleShown = true;
+  try { if (JH.panel) JH.panel.set({ stale: JH.STALE }); } catch { /* no panel on this page */ }
+};
+const gone = (value) => { JH.stale(); return value; };
 JH.send = (msg) => new Promise((resolve) => {
+  if (!JH.alive()) return resolve(gone({ ok: false, error: JH.STALE }));
   try {
-    chrome.runtime.sendMessage(msg, (res) => resolve(chrome.runtime.lastError ? { ok: false, error: "extension reloaded: refresh this page" } : res));
+    chrome.runtime.sendMessage(msg, (res) => {
+      const failed = chrome.runtime.lastError;
+      resolve(!failed ? res : JH.alive() ? { ok: false, error: failed.message || "the extension did not answer" } : gone({ ok: false, error: JH.STALE }));
+    });
   } catch {
-    resolve({ ok: false, error: "extension reloaded: refresh this page" });
+    resolve(gone({ ok: false, error: JH.STALE }));
   }
 });
 JH.api = (method, path, { query, body, binary } = {}) => JH.send({ type: "api", method, path, query, body, binary });
-JH.store = (keys) => new Promise((resolve) => chrome.storage.local.get(keys, resolve));
+JH.store = (keys) => new Promise((resolve) => {
+  if (!JH.alive()) return resolve(gone({}));
+  try { chrome.storage.local.get(keys, (got) => resolve(got || {})); } catch { resolve(gone({})); }
+});
+JH.save = (patch) => new Promise((resolve) => {
+  if (!JH.alive()) return resolve(gone(false));
+  try { chrome.storage.local.set(patch, () => resolve(!chrome.runtime.lastError)); } catch { resolve(gone(false)); }
+});
+JH.version = (() => { try { return chrome.runtime.getManifest().version; } catch { return ""; } })();   // read while alive
+// anything left that still rejects with the lost context (a chrome.* promise in a board script) is not an error
+// for the page's console
+window.addEventListener("unhandledrejection", (e) => {
+  if (/Extension context invalidated/i.test(String((e.reason && e.reason.message) || e.reason))) {
+    e.preventDefault();
+    JH.stale();
+  }
+});
 
 // A human check. "challenge": a puzzle or a full-page check (reCAPTCHA / hCaptcha challenge, Turnstile, Arkose,
 // DataDome) is on screen: nothing is filled until the user solves it. "box": an "I'm not a robot" box sits in the form: the

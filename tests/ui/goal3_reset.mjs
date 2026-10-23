@@ -1,6 +1,6 @@
-// resumegen GOAL3 §7 (tests/test_goal3_reset_ui.py): a reload or a new open comes back to the default view, not the
-// filters / sort / tab left last time: Recommended, no filters, Newest, the cursor on the first row, the list at the
-// top. Only the person (and theme) is kept.
+// resumegen GOAL3 §7 + GOAL33 §3d (tests/test_goal3_reset_ui.py): a reload stays on the page the user was on (and the job
+// open there) but with that page's defaults: no filters, Newest, the list at the top. A new open starts on
+// Recommended. Only the person (and theme) is kept across opens.
 // usage: node goal3_reset.mjs <base url> <token> <chrome path> <profile dir>
 import { sleep, start } from "./cdp.mjs";
 
@@ -37,19 +37,30 @@ try {
   const changed = JSON.parse(await view());
   check("the view was changed: filters, sort, selection", changed.chips.length >= 1 && changed.posted === "3d" && changed.sort === "match"
     && changed.cur !== "job-0", JSON.stringify(changed));
-  await js("document.querySelector('#tabs [data-tab=saved]').click()");
-  check("and the tab", await until("location.hash === '#saved'", 4000) && (await tab()) === "saved", await view());
+  const openTitle = await js("return document.querySelector('#list .row[aria-selected=true] .row-title')?.textContent");
 
-  // a plain reload: the defaults again, same person
+  // a reload on Recommended with a job open: the same page and job, the filters and sort back to the defaults
   await send("Page.reload");
   await sleep(300);
   await until(rows, 10000);
-  await sleep(500);
+  await sleep(800);
   const after = JSON.parse(await view());
-  check("a reload comes back to the default view", isDefault(after), JSON.stringify(after));
+  check("a reload stays on the page with its default filters and sort", after.tab === "recommended" && after.hash.startsWith("#recommended")
+    && !after.chips.length && after.posted === "Any" && after.sort === "" && after.y === 0, JSON.stringify(after));
+  check("a reload comes back to the job that was open", !!openTitle && await until(`document.querySelector('#detail h1, #detail h2')?.textContent.includes(${JSON.stringify(openTitle || "?")})`, 4000),
+    `${openTitle} vs ${await js("return document.querySelector('#detail h1, #detail h2')?.textContent")}`);
   check("a reload keeps the person", after.who === "Olive Other", after.who);
-  check("nothing about the view is stored", await js("return !Object.keys(localStorage).some((k) => k.startsWith('jh.filters') || k === 'jh.tab')"),
+  check("nothing about the view is stored", await js("return !Object.keys(localStorage).some((k) => k.startsWith('jh.filters') || k === 'jh.tab' || k.startsWith('jh.spons'))"),
     await js("return Object.keys(localStorage).join(' ')"));
+
+  // another page: a reload stays there
+  await js("document.querySelector('#tabs [data-tab=saved]').click()");
+  check("and the tab", await until("location.hash === '#saved'", 4000) && (await tab()) === "saved", await view());
+  await send("Page.reload");
+  await sleep(300);
+  await until("document.querySelector('#tabs [aria-selected=true]')", 10000);
+  await sleep(800);
+  check("a reload on Saved stays on Saved", (await tab()) === "saved" && (await js("return location.hash")) === "#saved", await view());
 
   // a new open with an old address (#saved): Recommended
   await js("document.querySelector('#tabs [data-tab=saved]').click()");

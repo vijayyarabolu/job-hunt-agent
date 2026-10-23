@@ -1,6 +1,6 @@
 // Tracker grid: Sheets-like cells over the tracker rows; loaded with a table tab, desktop only.
 import { B, FAMILY_LABELS, S, STATUS_LABELS, EMPLOYMENTS, WORKPLACES, h, sm, store, still } from "./core.js";
-import { T, dueText, resumeBits, shownTab } from "./tracker.js";
+import { EMPTY_TRACKER, T, dueText, resumeBits, shownTab } from "./tracker.js";
 import { css } from "./gridcss.js";
 import { sponsorBadge } from "./sponsor.js";
 import { editKey, editing, startEdit } from "./gridedit.js";
@@ -235,7 +235,7 @@ export function build() {
   const keep = [G.wrap.scrollTop, G.wrap.scrollLeft];          // a rebuild (a column hidden, a row gone) keeps the place
   // the trailing text node is load-bearing: with no text in the grid Chrome sends a real ⌘V nowhere (it printed "null")
   G.wrap.replaceChildren(table, h("div", { class: "g-fh", title: "Drag down to fill", onpointerdown: (e) => fillDrag(e) }),
-    G.view.length ? CLIP_TEXT : h("p", "pad muted g-empty", T.q || Object.keys(G.filters).length ? "Nothing matches." : "Nothing here yet."));
+    G.view.length ? CLIP_TEXT : h("p", "pad muted g-empty", T.q || Object.keys(G.filters).length ? "Nothing matches: clear the search or the column filters." : EMPTY_TRACKER[S.tab] || "Nothing here yet."));
   stateLine();
   G.body.lastChild.style.height = `${G.view.length * ROW_H}px`;       // full height first, so the old place still exists
   [G.wrap.scrollTop, G.wrap.scrollLeft] = keep;

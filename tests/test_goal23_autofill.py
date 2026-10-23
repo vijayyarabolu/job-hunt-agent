@@ -468,23 +468,6 @@ class AppliedTest(AutofillCase):
         self.assertFalse({"value", "answer", "text"} & set(row))
 
 
-class DraftTest(AutofillCase):
-    def test_draft_sends_jd_and_resume_strips_dashes_and_keeps_it(self):
-        seen = {}
-
-        def runner(prompt, pid):
-            seen["prompt"] = prompt
-            return '"I build ML systems — in Python. I would bring that to Acme."'
-        out = draft.draft(self.conn, PID, self.uids[0], None, "Why do you want to work here?", runner=runner)
-        self.assertEqual(out["text"], "I build ML systems, in Python. I would bring that to Acme.")
-        self.assertIn("Kubernetes", seen["prompt"])
-        self.assertIn("Built models.", seen["prompt"])
-        self.assertIn("Use ONLY facts", seen["prompt"])
-        self.assertEqual(self.conn.execute("SELECT count(*) FROM autofill_drafts").fetchone()[0], 1)
-        with self.assertRaisesRegex(ValueError, "not matched"):
-            draft.draft(self.conn, PID, None, None, "Why?", runner=runner)
-
-
 class ServerTest(AutofillCase):
     def setUp(self):
         super().setUp()

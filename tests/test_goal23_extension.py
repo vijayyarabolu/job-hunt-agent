@@ -21,7 +21,7 @@ from job_hunt_agent.autofill import address, bank, draft
 from tests import test_goal8_flow as g8
 
 ROOT = Path(__file__).resolve().parent.parent
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME = os.environ.get("JH_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 RUNNER = Path(__file__).parent / "ui" / "goal23_extension.mjs"
 FIXTURES = Path(__file__).parent / "fixtures" / "autofill"
 TOKEN = "ext-test-token"
@@ -29,6 +29,8 @@ PASSWORD = 'Zz&Test"Pass-9!'
 PID = "zztest"
 URL = "https://zztest.wd5.myworkdayjobs.com/en-US/External/job/Foster-City-CA/AI-Engineer_JR0001"
 RUN_TIMEOUT_S = 300
+JD = ("AI Engineer. Python. You will build retrieval and evaluation systems for our product teams, ship them to "
+      "production and measure them. You know Python, SQL and one cloud well, and you write clear design notes.")  # 200+ characters
 DRAFT = "I build retrieval and evaluation systems in Python. This role needs exactly that."
 PROFILE = """name: Zz Testcase
 phone: 555-010-0199
@@ -66,6 +68,7 @@ class ExtensionWorkdayTest(unittest.TestCase):
         (prof / "answers.json").write_text("{}")
         cls.patches = [mock.patch.object(config, "DB_PATH", tmp / "ext.db"), mock.patch.object(config, "PROFILES", tmp / "profiles")]
         cls.fake = g8.FakeResumegen()
+        cls.fake.answer_text = DRAFT
         cls.patches += [mock.patch.object(rgclient, "_base", lambda: cls.fake.url),
                         mock.patch.object(rgclient, "_token", lambda: g8.TOKEN),
                         mock.patch.object(draft, "run", lambda prompt, pid: DRAFT)]           # no real Claude call in tests
@@ -73,7 +76,7 @@ class ExtensionWorkdayTest(unittest.TestCase):
             p.start()
         conn = db.connect()
         item = make_job(ats="workday", key="zztest/wd5/External", ext_id="JR0001", company="ZZ Test Corp", title="AI Engineer",
-                        location="Foster City, CA", url=URL, posted_at=db.iso(db.utcnow()), description="AI Engineer. Python.")
+                        location="Foster City, CA", url=URL, posted_at=db.iso(db.utcnow()), description=JD)
         db.sync_boards(conn, [{"board": "workday:zztest/wd5/External", "ats": "workday", "key": "zztest/wd5/External", "company": "ZZ Test Corp"}])
         run = db.start_run(conn, "test", db.utcnow())
         store.write_board(conn, db.board(conn, "workday:zztest/wd5/External"), FetchResult([item], 200, n_raw=1), "ok", run,
@@ -140,7 +143,7 @@ class ExtensionWorkdayTest(unittest.TestCase):
                            "a pick is matched", "the pick is remembered for the page",
                            "Create Account is filled on its own", "the email is the job-site email", "the password is filled",
                            "the terms box is ticked", "the robots-only box stays empty", "it says click Create Account",
-                           "Create Account is never clicked", "a page snapshot is sent to job-hunt-agent", "an existing account switches to Sign In",
+                           "Create Account is never clicked", "a page snapshot is kept in job-hunt-agent", "an existing account switches to Sign In",
                            "Sign In gets the email and password", "it says click Sign In",
                            "only the Sign In link was clicked, never Sign In itself", "Capital One's real Sign In page is filled",
                            "Sign In is never clicked", "the email-check step says check your email",
@@ -163,8 +166,9 @@ class ExtensionWorkdayTest(unittest.TestCase):
                            "and its dropdown picks the closest choice (Within 2 weeks)", "an unknown question is left for the user",
                            "the panel lists it under Needs you", "clicking a Needs-you item goes to it", "job-hunt-agent has it in Needs you, with its choices",
                            "answered once in job-hunt-agent, it fills", "the auto-fill toggle can be turned off", "the user moves to the next step", "and on again",
-                           "with auto-fill off a new step waits", "a free-text question offers Draft",
-                           "Draft puts Claude's text in the box, marked as a draft",
+                           "with auto-fill off a new step waits", "a free-text question offers Generate",
+                           "its answer shows Ready in the panel, the page's box still empty",
+                           "Fill this field puts Claude's text in the box, marked as Claude's", "Save to Answers keeps it",
                            "a field the user typed in is never overwritten", "EEO questions are never guessed", "saved EEO answers fill",
                            "Self Identify: signature name, today's date, disability"])
 
@@ -197,14 +201,17 @@ class ExtensionWorkdayTest(unittest.TestCase):
         for form in (PASSWORD, html_escape(PASSWORD), html_escape(PASSWORD, quote=False), "Zz&amp;Test"):
             self.assertNotIn(form, html)
 
-    def test_a_draft_is_kept_with_the_application(self):
+    def test_generate_goes_to_the_answer_queue_and_save_keeps_it(self):       # GOAL29 §5 (was GOAL23's Draft)
+        sent = list(self.fake.answers.values())
+        self.assertEqual([(a["question"], a["job_key"], a["variant"]) for a in sent],
+                         [("Why are you interested in this role?", self.uid, "")])
+        self.assertIn("AI Engineer", sent[0]["jd_text"])
         conn = db.connect()
         try:
-            row = conn.execute("SELECT * FROM autofill_drafts WHERE profile = ?", (PID,)).fetchone()
+            row = conn.execute("SELECT * FROM autofill_snippets WHERE profile = ?", (PID,)).fetchone()
         finally:
             conn.close()
-        self.assertIsNotNone(row)
-        self.assertEqual(row["text"], DRAFT)
+        self.assertEqual((row["text"], row["job_uid"]), (DRAFT, self.uid))
 
 
 @unittest.skipUnless(shutil.which("node"), "needs node")

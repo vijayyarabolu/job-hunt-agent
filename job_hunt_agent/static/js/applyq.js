@@ -86,7 +86,7 @@ async function openNext() {
 
 function row(it) {
   const act = (path, okText) => () => api(path, { id: it.id }).then(() => { toast(okText); paintCount(); }).catch(fail);
-  return h("li", { class: "q-row" }, h("div", {}, h("strong", {}, it.company || "–"), ` · ${it.title}`,
+  return h("li", { class: "q-row" }, h("div", {}, h("strong", {}, it.company || "(company)"), ` · ${it.title}`,
     h("div", "muted small", it.opened_at ? "Opened before" : "Not opened yet")),
   h("div", "row-btns", it.url ? B({ class: "btn sm", title: "Open its apply page in a new tab", onclick: () => relay([it]).then((r) => { if (!r) window.open(it.url, "_blank", "noopener"); }) }, "Open") : null,
     B({ class: "btn sm", title: "Same as Mark applied: it leaves the queue", onclick: act("/api/applyq/applied", "Marked applied ✓") }, "Mark applied"),
@@ -102,7 +102,7 @@ async function show() {
   if (!dlg) {
     dlg = h("dialog", { class: "form-dialog", id: "applyq", "aria-labelledby": "aq-h" }, h("h2", { id: "aq-h" }, "Apply queue"),
       h("p", "muted small", "Jobs you sent from the phone. Open next 5 opens their apply pages in new tabs, each one matched to its job."),
-      h("ul", { class: "q-list", style: "display:grid;gap:10px;max-height:60vh;overflow:auto;padding:0;list-style:none" }),
+      h("ul", { class: "q-list", style: "display:grid;gap:8px;max-height:60vh;overflow:auto;padding:0;list-style:none" }),
       h("div", "row-btns", B({ class: "btn ghost", onclick: () => dlg.close() }, "Close"), B({ class: "btn primary", onclick: openNext }, "Open next 5")));
     document.body.append(dlg);
   }

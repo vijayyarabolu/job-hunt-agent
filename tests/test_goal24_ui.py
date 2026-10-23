@@ -23,7 +23,7 @@ from tests import test_goal8_flow as g8
 from tests.test_goal24_h1b import LCA_HEAD, LCA_ROWS, write_book
 
 ROOT = Path(__file__).resolve().parent.parent
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME = os.environ.get("JH_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 RUNNER = Path(__file__).parent / "ui" / "goal24_ui.mjs"
 FORM = Path(__file__).parent / "fixtures" / "autofill" / "sponsor_form.html"
 TOKEN = "ui24-test-token"
@@ -148,7 +148,7 @@ class Goal24BrowserTest(unittest.TestCase):
                            "No sponsorship is shown, ranked last", "Sponsored before comes after the unknowns of its day",
                            "the switch shows counts", "No sponsorship lists only those",
                            "Sponsor-friendly lists Sponsors, Cap-exempt and Sponsored before (no Unknown)",
-                           "the switch is remembered"])
+                           "the switch is remembered", "a reload shows All again"])
 
     def test_panel_tracker_answers_and_phone(self):
         self.assert_group(["the job panel shows the badge and its evidence", "a Tracker row shows its company's badge, icon and word",

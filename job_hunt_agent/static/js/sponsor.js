@@ -1,5 +1,5 @@
 // the H-1B badge (icon + word, never colour alone, for colour-blind users) and the Recommended switch.
-import { B, S, h, icon, store } from "./core.js";
+import { B, S, h, icon } from "./core.js";
 
 const ICON = { sponsors: "check", cap_exempt: "star", maybe: "qmark", no: "x" };
 const VIEWS = [["friendly", "Sponsor-friendly", "Sponsors, cap-exempt and sponsored before"],
@@ -43,9 +43,10 @@ export function sponsorBlock(sp, company) {
     sponsorBadge(sp), f ? null : h("p", "small", sp.why), h("ul", "sb-ev small", (f ? evidenceLines(sp) : extra(sp)).map((l) => h("li", {}, l))));
 }
 
-const KEY = () => `jh.spons.${S.profile}`;
-export const sponsView = () => store.get(KEY(), "") || "";
-export function setSponsView(v, after) { store.set(KEY(), v); after(); }
+// GOAL33 §3d: a filter like the others: kept while the page is open, back to All on a reload
+const views = {};
+export const sponsView = () => views[S.profile] || "";
+export function setSponsView(v, after) { views[S.profile] = v; after(); }
 
 export function sponsSwitch(counts, active, onChange) {
   if (!counts) return null;

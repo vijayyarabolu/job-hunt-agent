@@ -2,6 +2,7 @@
 badge, Settings › Autofill extension, the phone. A throwaway DB, the real server, headless Chrome driven by
 tests/ui/goal23_answers.mjs. Skipped when node or Chrome is not installed."""
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -13,7 +14,7 @@ from unittest import mock
 from job_hunt_agent import config, db, rgclient, server
 from job_hunt_agent.autofill import address, bank, questions
 
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME = os.environ.get("JH_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 RUNNER = Path(__file__).parent / "ui" / "goal23_answers.mjs"
 TOKEN = "ui-test-token"
 RUN_TIMEOUT_S = 120
@@ -86,6 +87,11 @@ class AnswersPageUiTest(unittest.TestCase):
                            "an edited address is saved street only, USPS style", "an address can be removed",
                            "the whole bank is editable", "a bank edit saves on its own", "the server has the edit",
                            "work history is listed"])
+
+    def test_the_start_date_setting_is_a_weeks_box(self):
+        """GOAL30 §1.5."""
+        self.assert_group(["the start date setting is a weeks box at 2", "3 weeks saves", "40 weeks is refused",
+                           "the server keeps 3"])
 
     def test_settings_hands_out_the_extension(self):
         self.assert_group(["Settings has Get the Autofill extension", "it shows the 4 install steps",

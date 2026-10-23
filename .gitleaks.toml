@@ -1,0 +1,22 @@
+# gitleaks: the default rules, minus values that are public by design or made up for tests.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "public ATS board ids, saved third-party pages and fake test values"
+regexTarget = "line"
+paths = [
+  # every company's public job-board id (Paylocity / Workday / ... tenant tokens), not credentials
+  '''^config/companies(\.discovered)?\.yaml$''',
+  '''^config/lists/''',
+  # job pages and API answers saved as they were served (CAPTCHA site keys, record ids)
+  '''^tests/fixtures/''',
+]
+regexes = [
+  # the Autofill extension's public key in manifest.json (it pins the extension id; Chrome publishes it)
+  '''"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA[A-Za-z0-9+/=]+"''',
+  # made-up keys in the tests
+  '''GOCSPX-test-secret-1234''',
+  '''KEY = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"''',
+]
+stopwords = ["h1b_companies"]

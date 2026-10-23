@@ -48,13 +48,16 @@ def _by_ats(conn, run_id: int) -> dict:
     return out
 
 
+# GOAL30-app: covered by the jobs_seen index (3.5 s over every job row -> ~25 ms on the 1.2M-job DB)
+DRIFT_SQL = ("SELECT substr(board, 1, instr(board, ':') - 1) AS ats, first_seen >= ? AS recent, count(*) AS n, "
+             "avg(description IS NOT NULL) AS jd, avg(salary_max IS NOT NULL) AS salary, avg(req_id IS NOT NULL) AS req "
+             "FROM jobs WHERE families <> ',' AND first_seen >= ? GROUP BY 1, 2")
+
+
 def drift(conn, now: datetime) -> list[str]:
     """Matched jobs first seen in the last 24 h vs the 7 days before: flag a > 30 % drop in JD/salary/req-id share."""
     day, week = iso(now - timedelta(days=1)), iso(now - timedelta(days=8))
-    rows = conn.execute(
-        "SELECT substr(board, 1, instr(board, ':') - 1) AS ats, first_seen >= ? AS recent, count(*) AS n, "
-        "avg(description IS NOT NULL) AS jd, avg(salary_max IS NOT NULL) AS salary, avg(req_id IS NOT NULL) AS req "
-        "FROM jobs WHERE families <> ',' AND first_seen >= ? GROUP BY 1, 2", (day, week)).fetchall()
+    rows = conn.execute(DRIFT_SQL, (day, week)).fetchall()
     stats = {(r["ats"], r["recent"]): r for r in rows}
     alerts = []
     for (ats, recent), current in stats.items():

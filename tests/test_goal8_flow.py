@@ -32,12 +32,19 @@ resumes:
 """
 
 
+ANSWER = ("I build retrieval systems in Python and keep them honest with evaluations. This role asks for the same "
+          "work on a bigger product, and that is why I applied.")
+
+
 class FakeResumegen:
     """resumegen's HTTP API, in memory."""
 
     def __init__(self):
         self.jobs, self.posts, self.actions, self.down = {}, [], [], False
-        self.files, self.file_gets = {}, []          # (job id, which) -> (bytes, type); every file GET
+        self.files, self.file_gets = {}, []          # (job id, which) -> (bytes, type); every file GET (GOAL3 §4)
+        self.answers, self.answer_text = {}, ANSWER  # GOAL29 §5: written answers (ready on the first status read)
+        self.events = []                             # GOAL33 §1: what /api/events streams (a job added or changed)
+        self.moved = threading.Condition()
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -63,7 +70,9 @@ class FakeResumegen:
                 if self.path == "/__state":
                     return self._send(200, {"posts": fake.posts, "actions": fake.actions, "jobs": fake.jobs})
                 if self.path == "/__set":
-                    fake.jobs[int(body.pop("id"))].update(body)
+                    job_id = int(body.pop("id"))
+                    fake.jobs[job_id].update(body)
+                    fake.event(job_id)
                 elif self.path == "/__add":
                     body = {"id": fake.add(**body)}
                 elif self.path == "/__down":
@@ -78,6 +87,11 @@ class FakeResumegen:
                 if not self._ok():
                     return
                 path, _, query = self.path.partition("?")
+                if path == "/api/events":                             # GOAL33 §1: like resumegen's stream
+                    return self._events()
+                m = re.match(r"^/api/answers/(\d+)$", path)
+                if m:
+                    return self._send(200, {"ok": True, "answer": fake.answer_view(int(m.group(1)), finish=True)})
                 if path == "/api/jobs":
                     pid = parse_qs(query).get("profile", [""])[0]
                     jobs = [{k: v for k, v in j.items() if k != "jd_text"} for j in fake.jobs.values()
@@ -96,6 +110,24 @@ class FakeResumegen:
                 return self._send(200, {"ok": True, "job": {k: v for k, v in job.items() if k != "jd_text"},
                                         "jd_text": job.get("jd_text")})
 
+            def _events(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.end_headers()
+                seen = len(fake.events)
+                try:
+                    while not fake.down:
+                        with fake.moved:
+                            fake.moved.wait_for(lambda: len(fake.events) > seen or fake.down, timeout=1)
+                            new = fake.events[seen:]
+                        for e in new:
+                            self.wfile.write(f"data: {json.dumps(e)}\n\n".encode())
+                        self.wfile.write(b": keepalive\n\n")
+                        self.wfile.flush()
+                        seen += len(new)
+                except OSError:
+                    pass
+
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
                 if self.path.startswith("/__"):
@@ -108,6 +140,10 @@ class FakeResumegen:
                     ids = [fake.add(**item) for item in body["jobs"]]
                     fake.posts.append(body["jobs"])
                     return self._send(201, {"ok": True, "ids": ids})
+                if self.path == "/api/answers":                       # GOAL29 §5: like resumegen, queued first
+                    return self._send(200, {"ok": True, "answer": fake.answer_view(fake.add_answer(body))})
+                if self.path == "/api/answers/lookup":
+                    return self._send(200, {"ok": True, "answers": fake.lookup(body)})
                 if self.path == "/api/unarchive":                     # resumegen GOAL3 §6: Restore
                     fake.actions.append((None, "unarchive", body))
                     for i in body["ids"]:
@@ -126,6 +162,8 @@ class FakeResumegen:
                     name = f"{job['company']}_{job['role']}.pdf".replace(" ", "_")
                     job.update(drive_file_id=f"F{job['id']}", drive_link=f"https://drive.example/F{job['id']}", drive_name=name,
                                result={**(job.get("result") or {}), "approved": {"link": f"https://drive.example/F{job['id']}", "name": name}})
+                if job:
+                    fake.event(job["id"])
                 return self._send(200, {"ok": True})
 
         self.srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -138,9 +176,41 @@ class FakeResumegen:
                              "jd_url": jd_url, "source_job_id": source_job_id, "status": status, "error": None,
                              "attempts": 0, "elapsed_s": None, "drive_file_id": None, "drive_link": None,
                              "drive_name": None, "gdoc_link": None, "result": {}, **extra}
+        self.event(job_id)
         return job_id
 
+    def event(self, job_id: int) -> None:
+        with self.moved:
+            self.events.append({"id": len(self.events) + 1, "job_id": job_id, "profile": self.jobs[job_id]["profile"],
+                                "kind": "status", "text": self.jobs[job_id]["status"]})
+            self.moved.notify_all()
+
+    def add_answer(self, body: dict) -> int:
+        answer_id = max(self.answers, default=0) + 1
+        self.answers[answer_id] = {**body, "id": answer_id, "ready": False}
+        return answer_id
+
+    def answer_view(self, answer_id: int, finish: bool = False) -> dict:
+        row = self.answers[answer_id]
+        if finish and not row["ready"]:
+            text = self.answer_text + (" Shorter." if row.get("variant") == "shorter" else "")
+            row.update(ready=True, text=text)
+        out = {"id": answer_id, "question": row["question"], "variant": row.get("variant") or ""}
+        if row["ready"]:
+            return {**out, "state": "ready", "label": "Ready", "text": row["text"], "words": len(row["text"].split())}
+        return {**out, "state": "writing", "label": "Writing with Claude…"}
+
+    def lookup(self, body: dict) -> dict:
+        out = {}
+        for answer_id, row in sorted(self.answers.items()):
+            if (row["profile"], row["job_key"]) == (body["profile"], body["job_key"]) and row["question"] in body["questions"]:
+                out[row["question"]] = self.answer_view(answer_id)
+        return out
+
     def stop(self):
+        with self.moved:
+            self.down = True
+            self.moved.notify_all()
         self.srv.shutdown()
         self.srv.server_close()
 

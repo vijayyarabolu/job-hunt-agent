@@ -30,7 +30,7 @@ SHOTS = ROOT / "Prompts" / "ux25"
 TOKEN = "ext25-test-token"
 PID = "zztest"
 RUN_TIMEOUT_S = 600
-NEWER = "1.2.2"
+NEWER = "9.9.9"                                      # always newer than the extension under test
 JOBS = (("greenhouse", "doordashusa", "3623888", "DoorDash", "Shift Lead", "https://job-boards.greenhouse.io/doordashusa/jobs/3623888"),
         ("lever", "shieldai", "2394368a-67ff-441c-83c3-e998446327e7", "Shield AI", "Applications Engineer",
          "https://jobs.lever.co/shieldai/2394368a-67ff-441c-83c3-e998446327e7"),

@@ -1,25 +1,31 @@
-"""The Find contacts panel (decision 012). panel() is free and makes no network call; lookup() runs one
-source on the person's click (their own key, the cost shown before, the daily cap checked first, the answer cached so
-it is never paid twice); add() saves a contact into the tracker's contacts (-> the sheet's Target Name / Role / Email
-cells through the sync)."""
+"""The Find contacts panel (decision 012). Per job it looks for three kinds of person (finder/kinds.py: a recruiter,
+the AI/ML hiring manager, one peer engineer), cheapest source first: the JD and the company's team page (free),
+Apollo's documented People API Search by domain + titles (0 credits), then Hunter's Domain Search filtered by
+department, only for the kinds still missing. panel() is free and makes no network call; lookup() runs one source on
+the person's click (their own key, the cost shown before, the daily cap checked first, the answer cached so it is
+never paid twice); add() saves a contact (kind, source, found_at) into the tracker's contacts (-> the sheet's Target
+Name / Role / Email cells through the sync). The panel is never empty: a kind nobody was found for gets LinkedIn's own
+people search for it and its ready-to-send message (outreach.compose; nothing is sent)."""
 import re
 import threading
+from datetime import datetime
 
 from .. import contacts, db, jdsnap, net, tracker, trackapi
-from . import apollo, hunter, keys, ledger, rank, signals
+from . import apollo, hunter, keys, kinds, ledger, rank, signals
 from .http import ProviderError
 
 SOURCES = ("jd", "team_page", "apollo", "hunter", "linkedin-manual", "guess", "manual")
-MAX_EMPLOYEES = 500                       # user: Apollo top people only for companies under ~500 employees
 DOMAIN_RX = re.compile(r"^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$")
-ENRICH, TOP, DOMAIN_SEARCH, TEAM_PAGE = ("organizations/enrich", "mixed_people/organization_top_people",
-                                         "domain-search", "team_page")
-DOMAIN_CALLS = (ENRICH, DOMAIN_SEARCH, TEAM_PAGE)
+SEARCH, DOMAIN_SEARCH, TEAM_PAGE = apollo.SEARCH, "domain-search", "team_page"
+DOMAIN_CALLS = (SEARCH, DOMAIN_SEARCH, TEAM_PAGE)
 TEAM_PATHS = ("/team", "/about", "/about-us", "/company", "/leadership")
 APOLLO_CREDITS_PAGE = "https://app.apollo.io/#/settings/credits/current"
 CONTACT_FIELDS = ("name", "role", "email", "linkedin", "notes")
 PRIVATE_SUFFIXES = (".local", ".localhost", ".internal", ".lan", ".home", ".corp", ".test", ".example", ".invalid",
                     ".intranet", ".home.arpa")
+PER_KIND_SHOWN = 3                        # people shown under each kind (best first); the rest stay in the list
+PLAN_LOCKED = "plan-locked"               # Apollo refused the search for the person's plan: remembered for the day
+_LOCKED_RX = re.compile(r"not included in your .*plan|API_INACCESSIBLE|not permitted to call", re.I)
 _LOOKUP_LOCK = threading.Lock()           # one lookup at a time: cache, cap, call and ledger in one step
 
 
@@ -71,20 +77,32 @@ def _context(conn, pid: str, app_id: int | None, uid: str | None = None) -> dict
         found = conn.execute("SELECT url, apply_url, location, description FROM jobs WHERE uid = ?",
                              (row["job_uid"],)).fetchone()
         job = dict(found) if found else {}
-    text = snap.get("text") or row.get("jd") or job.get("description") or ""
+    text = snap.get("text") or row.get("jd") or db.unpack(job.get("description")) or ""
     links = [u for u in (row.get("job_url"), job.get("url"), job.get("apply_url")) if u]   # the posting's own links
     return {"row": row, "text": text, "links": links,
             "job": {"role_title": row.get("role_title"), "location": row.get("location") or job.get("location"),
                     "family": row.get("family")}}
 
 
-def _cached_people(conn, pid: str, domain: str) -> tuple[list[dict], dict | None, str | None]:
-    org = (ledger.cached(conn, pid, "apollo", ENRICH, domain) or {}).get("org")
-    people = (ledger.cached(conn, pid, "free", TEAM_PAGE, domain) or {}).get("people", [])
-    if org:
-        people = people + (ledger.cached(conn, pid, "apollo", TOP, org["id"]) or {}).get("people", [])
-    found = ledger.cached(conn, pid, "hunter", DOMAIN_SEARCH, domain) or {}
-    return people + found.get("people", []), org, found.get("pattern")
+def _today() -> str:
+    return datetime.now().astimezone().date().isoformat()
+
+
+def _plan_lock(conn, pid: str) -> str | None:
+    """Apollo's refusal message when it refused the people search for this person's plan today."""
+    return (ledger.cached(conn, pid, "apollo", SEARCH, f"{PLAN_LOCKED}|{_today()}") or {}).get("locked")
+
+
+def _cached_people(conn, pid: str, domain: str) -> tuple[list[dict], str | None]:
+    """Every answer already paid for (or free) at this domain: team page, Apollo per kind, Hunter (any filter)."""
+    people = list((ledger.cached(conn, pid, "free", TEAM_PAGE, domain) or {}).get("people", []))
+    for kind in kinds.KINDS:
+        people += (ledger.cached(conn, pid, "apollo", SEARCH, f"{domain}|{kind}") or {}).get("people", [])
+    pattern = None
+    for found in ledger.cached_prefix(conn, pid, "hunter", DOMAIN_SEARCH, domain):
+        people += found.get("people", [])
+        pattern = pattern or found.get("pattern")
+    return people, pattern
 
 
 def _email_status(person: dict) -> str | None:
@@ -93,7 +111,7 @@ def _email_status(person: dict) -> str | None:
     return "named in the JD" if person["source"] == "jd" else person.get("email_status") or "unverified"
 
 
-def _suggestions(ctx: dict, people: list[dict], domain: str | None, pattern: str | None, org: dict | None) -> list:
+def _suggestions(ctx: dict, people: list[dict], domain: str | None, pattern: str | None) -> list:
     merged: dict[str, dict] = {}
     for p in people:
         merged.setdefault((p.get("name") or "").lower() or f"{p.get('title')}|{p.get('email')}", p)
@@ -106,45 +124,78 @@ def _suggestions(ctx: dict, people: list[dict], domain: str | None, pattern: str
         if guess:
             item.update(email_guess=guess, email_guess_status=signals.GUESS_LABEL)
         out.append(item)
-    return rank.rank(out, {**ctx["job"], "company_size": (org or {}).get("estimated_num_employees")})
+    return rank.rank(out, ctx["job"])
 
 
-def _apollo_estimate(conn, pid: str, domain: str | None) -> dict:
-    """What the Apollo button would spend now (cached answers are free)."""
-    undocumented = "organization_top_people: cost not documented by Apollo, counted as 1"
+def _found(suggestions: list[dict]) -> dict[str, list[dict]]:
+    """The named people of each kind, best first."""
+    out = {k: [] for k in kinds.KINDS}
+    for s in suggestions:
+        if s.get("name") and s.get("kind") in out:
+            out[s["kind"]].append(s)
+    return out
+
+
+def _missing(found: dict[str, list[dict]]) -> list[str]:
+    return [k for k in kinds.KINDS if not found[k]]
+
+
+def _apollo_estimate(conn, pid: str, domain: str | None, missing: list[str]) -> dict:
+    """What the Apollo button would spend now: its people search costs 0 credits (documented)."""
     if not domain:
         return {"credits": 0, "detail": "enter the company domain first"}
-    hit = ledger.cached(conn, pid, "apollo", ENRICH, domain)
-    if hit is None:
-        return {"credits": apollo.ENRICH_CREDITS + apollo.TOP_PEOPLE_CREDITS,
-                "detail": f"organizations/enrich: 1 credit (documented); {undocumented}"}
-    org = hit.get("org")
-    if not org:
-        return {"credits": 0, "detail": "Apollo does not know this domain (already asked)"}
-    if (org.get("estimated_num_employees") or 0) > MAX_EMPLOYEES:
-        return {"credits": 0, "detail": f"over {MAX_EMPLOYEES} employees: top people skipped"}
-    top = ledger.cached(conn, pid, "apollo", TOP, org["id"])
-    if top is not None:                          # an empty answer says so on every reopen, not just after the click
-        found = len(top.get("people") or [])
-        return {"credits": 0, "detail": f"already looked up: {found} top people from Apollo, shown free" if found
-                else f"already looked up: Apollo lists no top people for {org.get('name') or 'this company'}"}
-    return {"credits": apollo.TOP_PEOPLE_CREDITS, "detail": undocumented}
+    locked = _plan_lock(conn, pid)
+    if locked:
+        return {"credits": 0, "locked": True, "detail": f"Apollo refused its people search for your plan today: {locked}"}
+    if not missing:
+        return {"credits": 0, "detail": "a recruiter, a manager and a peer are already found: nothing to ask Apollo"}
+    todo = [k for k in missing if ledger.cached(conn, pid, "apollo", SEARCH, f"{domain}|{k}") is None]
+    if not todo:
+        return {"credits": 0, "detail": "already looked up: Apollo found no " + ", ".join(
+            kinds.LABELS[k].lower() for k in missing) + " at this domain"}
+    return {"credits": apollo.SEARCH_CREDITS, "kinds": todo,
+            "detail": "People API Search: 0 credits (documented); asks for " +
+                      ", ".join(kinds.LABELS[k].lower() for k in todo)}
 
 
-def _providers(conn, pid: str, domain: str | None) -> dict:
+def _hunter_estimate(conn, pid: str, domain: str | None, missing: list[str]) -> dict:
+    if not domain:
+        return {"credits": 0, "detail": "enter the company domain first"}
+    if not missing:
+        return {"credits": 0, "detail": "a recruiter, a manager and a peer are already found: Hunter not needed"}
+    deps = kinds.departments(missing)
+    if ledger.cached(conn, pid, "hunter", DOMAIN_SEARCH, f"{domain}|{deps}") is not None:
+        return {"credits": 0, "detail": "already looked up: shown free"}
+    return {"credits": 1, "departments": deps,
+            "detail": f"Domain Search ({deps.replace(',', ', ')}): 1 credit for up to {hunter.DOMAIN_LIMIT} people, "
+                      "0 if Hunter finds nobody"}
+
+
+def _providers(conn, pid: str, domain: str | None, missing: list[str]) -> dict:
     usage = ledger.usage(conn, pid)
-    hunter_cached = bool(domain) and ledger.cached(conn, pid, "hunter", DOMAIN_SEARCH, domain) is not None
     hunter_on = keys.key("hunter", pid) is not None
     return {"apollo": {"configured": keys.key("apollo", pid) is not None, **usage,
-                       "estimate": _apollo_estimate(conn, pid, domain), "credits_page": APOLLO_CREDITS_PAGE,
+                       "estimate": _apollo_estimate(conn, pid, domain, missing), "credits_page": APOLLO_CREDITS_PAGE,
                        "balance_note": "Apollo does not let a Free plan read its balance through the API: the numbers "
                                        "here count what job-hunt-agent spent."},
-            "hunter": {"configured": hunter_on, **usage,
-                       "estimate": {"credits": 0 if hunter_cached else 1,
-                                    "detail": "already looked up: shown free" if hunter_cached else
-                                              f"Domain Search: 1 credit for up to {hunter.DOMAIN_LIMIT} people, "
-                                              "0 if Hunter finds nobody"},
+            "hunter": {"configured": hunter_on, **usage, "estimate": _hunter_estimate(conn, pid, domain, missing),
                        "note": None if hunter_on else f"off: add hunter.{pid}_api_key to config/secrets.yaml"}}
+
+
+def _kind_cards(pid: str, ctx: dict, found: dict[str, list[dict]]) -> list[dict]:
+    """One card per kind: the best people found, or LinkedIn's people search for it; always its ready message."""
+    from .. import outreach                      # outreach imports finder.kinds: imported here, at call time
+    row, company = ctx["row"], (ctx["row"].get("company") or "").strip()
+    cards = []
+    for kind in kinds.KINDS:
+        people = found[kind][:PER_KIND_SHOWN]
+        person = {"name": people[0]["name"], "role": people[0]["title"]} if people else None
+        draft = outreach.compose(pid, {**row, "company": company, "role_title": row.get("role_title") or ""},
+                                 ctx["text"], kind, person)
+        cards.append({"kind": kind, "label": kinds.LABELS[kind], "people": people,
+                      "links": kinds.linkedin_search(company, kind),
+                      "draft": {k: draft[k] for k in ("note", "subject", "email", "prompt")}})
+    return cards
 
 
 def panel(conn, pid: str, app_id: int | None, domain: str | None = None, source: str = "typed",
@@ -159,17 +210,20 @@ def panel(conn, pid: str, app_id: int | None, domain: str | None = None, source:
         value = clean_domain(domain)
     else:
         value = ledger.last_key(conn, pid, app_id, DOMAIN_CALLS) if app_id is not None else None
+        value = value.split("|")[0] if value else None
         source = "used in your last lookup"
         if not value:
             value, source = signals.domain_guess(company, [ctx["text"]], ctx["links"])
-    people, org, pattern = signals.jd_people(ctx["text"], company), None, None
+    people, pattern = signals.jd_people(ctx["text"], company), None
     if value:
-        found, org, pattern = _cached_people(conn, pid, value)
-        people += found
+        cached, pattern = _cached_people(conn, pid, value)
+        people += cached
+    suggestions = _suggestions(ctx, people, value, pattern)
+    found = _found(suggestions)
     return {"app": app_id, "uid": uid, "company": company, "role_title": row.get("role_title"),
-            "domain": {"value": value, "source": source},
-            "org": {k: org.get(k) for k in ("name", "estimated_num_employees", "industry")} if org else None,
-            "suggestions": _suggestions(ctx, people, value, pattern, org), "providers": _providers(conn, pid, value),
+            "domain": {"value": value, "source": source}, "org": None,
+            "suggestions": suggestions, "kinds": _kind_cards(pid, ctx, found), "missing": _missing(found),
+            "providers": _providers(conn, pid, value, _missing(found)),
             "links": {"linkedin": signals.linkedin_searches(company, row.get("family"), signals.team_of(ctx["text"])),
                       "apollo": signals.apollo_web_url(value) if value else None},
             "contacts": row.get("contacts") or []}
@@ -195,51 +249,43 @@ def _failed(conn, pid: str, app_id: int, provider: str, call: str, key: str, err
                      f"{f' (HTTP {err.status})' if err.status else ''}. No credits counted.") from None
 
 
-def _apollo_lookup(conn, pid: str, app_id: int | None, domain: str) -> tuple[float, str | None]:
+def _apollo_lookup(conn, pid: str, app_id: int | None, domain: str, missing: list[str]) -> tuple[float, str | None]:
     key = _need_key("apollo", pid)
-    _check_cap(conn, pid, _apollo_estimate(conn, pid, domain)["credits"])
-    spent, hit = 0.0, ledger.cached(conn, pid, "apollo", ENRICH, domain)
-    if hit is None:
+    estimate = _apollo_estimate(conn, pid, domain, missing)
+    if not estimate.get("kinds"):
+        return 0.0, estimate["detail"]
+    _check_cap(conn, pid, estimate["credits"])
+    found = 0
+    for kind in estimate["kinds"]:
         try:
-            org = apollo.enrich_org(key, domain)
+            people, total = apollo.people_search(key, domain, kinds.APOLLO_TITLES[kind])
         except ProviderError as err:
-            _failed(conn, pid, app_id, "apollo", ENRICH, domain, err)
-        cost = apollo.ENRICH_CREDITS if org else 0
-        ledger.record(conn, pid, app_id, "apollo", ENRICH, domain, cost, True, {"org": org})
-        spent += cost
-    else:
-        org = hit.get("org")
-    if not org:
-        return spent, f"Apollo does not know {domain}."
-    size = org.get("estimated_num_employees")
-    if size and size > MAX_EMPLOYEES:
-        return spent, (f"{org.get('name') or domain} has about {size} employees (over {MAX_EMPLOYEES}): top people "
-                       "skipped. Use Find on LinkedIn or Open in Apollo.")
-    if ledger.cached(conn, pid, "apollo", TOP, org["id"]) is None:
-        try:
-            people, layout = apollo.top_people(key, org["id"])
-        except ProviderError as err:
-            _failed(conn, pid, app_id, "apollo", TOP, org["id"], err)
-        ledger.record(conn, pid, app_id, "apollo", TOP, org["id"], apollo.TOP_PEOPLE_CREDITS, True,
-                      {"people": people, "shape": layout})
-        spent += apollo.TOP_PEOPLE_CREDITS
-        if not people:
-            return spent, f"Apollo lists no top people for {org.get('name') or domain}."
-    return spent, None
+            if err.status == 403 and _LOCKED_RX.search(err.message or ""):
+                ledger.record(conn, pid, app_id, "apollo", SEARCH, f"{PLAN_LOCKED}|{_today()}", 0, True,
+                              {"locked": err.message})
+                return 0.0, ("Apollo's people search is not on your plan (Apollo said: "
+                             f"{err.message}). Nothing was spent; try Hunter or LinkedIn below.")
+            _failed(conn, pid, app_id, "apollo", SEARCH, f"{domain}|{kind}", err)
+        ledger.record(conn, pid, app_id, "apollo", SEARCH, f"{domain}|{kind}", apollo.SEARCH_CREDITS, True,
+                      {"people": people, "total": total})
+        found += len(people)
+    return float(apollo.SEARCH_CREDITS), None if found else f"Apollo lists nobody with those titles at {domain}."
 
 
-def _hunter_lookup(conn, pid: str, app_id: int | None, domain: str) -> tuple[float, str | None]:
+def _hunter_lookup(conn, pid: str, app_id: int | None, domain: str, missing: list[str]) -> tuple[float, str | None]:
     key = _need_key("hunter", pid)
-    if ledger.cached(conn, pid, "hunter", DOMAIN_SEARCH, domain) is not None:
-        return 0.0, "already looked up: shown from the cache"
-    _check_cap(conn, pid, 1)
+    estimate = _hunter_estimate(conn, pid, domain, missing)
+    if not estimate["credits"]:
+        return 0.0, estimate["detail"]
+    _check_cap(conn, pid, estimate["credits"])
+    deps = estimate["departments"]
     try:
-        found, credits = hunter.domain_search(key, domain)
+        found, credits = hunter.domain_search(key, domain, deps)
     except ProviderError as err:
-        _failed(conn, pid, app_id, "hunter", DOMAIN_SEARCH, domain, err)
-    ledger.record(conn, pid, app_id, "hunter", DOMAIN_SEARCH, domain, credits, True, found)
+        _failed(conn, pid, app_id, "hunter", DOMAIN_SEARCH, f"{domain}|{deps}", err)
+    ledger.record(conn, pid, app_id, "hunter", DOMAIN_SEARCH, f"{domain}|{deps}", credits, True, found)
     hunter.account(pid, key, fresh=True)                       # the panel's "searches left" after the spend
-    return float(credits), None if found["people"] else f"Hunter lists nobody at {domain}."
+    return float(credits), None if found["people"] else f"Hunter lists nobody in {deps} at {domain}."
 
 
 def hunter_account(pid: str) -> dict:
@@ -248,7 +294,7 @@ def hunter_account(pid: str) -> dict:
     return {"configured": key is not None, "account": hunter.account(pid, key) if key else None}
 
 
-def _team_lookup(conn, pid: str, app_id: int | None, domain: str) -> tuple[float, str | None]:
+def _team_lookup(conn, pid: str, app_id: int | None, domain: str, missing: list[str]) -> tuple[float, str | None]:
     """The company's own team/about page (free, robots.txt respected, one polite request per page tried)."""
     if ledger.cached(conn, pid, "free", TEAM_PAGE, domain) is not None:
         return 0.0, "already checked: shown from the cache"
@@ -270,8 +316,9 @@ LOOKUPS = {"apollo": _apollo_lookup, "hunter": _hunter_lookup, "team_page": _tea
 
 
 def lookup(conn, pid: str, app_id: int | None, provider: str, domain: str, uid: str | None = None) -> dict:
-    """One source, on the person's click: {'spent': credits, 'note': ..., 'panel': the refreshed panel}. For a feed
-    job without a row the answer is cached and counted by domain under the person (app_id NULL); no row is made."""
+    """One source, on the person's click: {'spent': credits, 'note': ..., 'panel': the refreshed panel}. Apollo and
+    Hunter only look for the kinds still missing. For a feed job without a row the answer is cached and counted by
+    domain under the person (app_id NULL); no row is made."""
     if provider not in LOOKUPS:
         raise ValueError(f"provider must be one of {', '.join(LOOKUPS)}")
     domain = clean_domain(domain)
@@ -279,14 +326,16 @@ def lookup(conn, pid: str, app_id: int | None, provider: str, domain: str, uid: 
     if app_id is not None:
         trackapi._own(conn, pid, app_id)
     with _LOOKUP_LOCK:                      # a double click or a second tab waits, then hits the cache
-        spent, note = LOOKUPS[provider](conn, pid, app_id, domain)
+        before = panel(conn, pid, app_id, domain, "used in this lookup", uid)
+        spent, note = LOOKUPS[provider](conn, pid, app_id, domain, before["missing"])
     return {"spent": spent, "note": note, "panel": panel(conn, pid, app_id, domain, "used in this lookup", uid)}
 
 
 def add(conn, pid: str, app_id: int | None, contact: dict, uid: str | None = None) -> dict:
     """Add contact (form or a suggestion): appended to the row's contacts, which write the sheet's contact cells.
-    A feed job without a row gets one now, as 'saved' (the row Apply ↗ makes; saved rows never reach the Sheet):
-    GOAL9 §3 C, the row is created only when a contact is saved, never on open."""
+    GOAL28 §5: each keeps its kind (recruiter / manager / peer, read from the title when not given), its source and
+    the day it was found. A feed job without a row gets one now, as 'saved' (the row Apply ↗ makes; saved rows never
+    reach the Sheet): GOAL9 §3 C, the row is created only when a contact is saved, never on open."""
     if not isinstance(contact, dict):
         raise ValueError("contact must be an object")
     source = str(contact.get("source") or "manual").strip()
@@ -296,9 +345,13 @@ def add(conn, pid: str, app_id: int | None, contact: dict, uid: str | None = Non
     new["role"] = new["role"] or str(contact.get("title") or "").strip()
     if not (new["name"] or new["email"]):
         raise ValueError("a contact needs a name or an email")
+    kind = str(contact.get("kind") or "").strip() or kinds.kind_of(new["role"]) or ""
+    if kind and kind not in kinds.KINDS:
+        raise ValueError(f"kind must be one of {', '.join(kinds.KINDS)}")
     app_id, uid = _target(conn, pid, app_id, uid)
     if app_id is None:
         app_id = tracker.track_job(conn, pid, uid, source="ui")
     row = trackapi.get(conn, pid, app_id)
-    contacts.save(conn, app_id, contacts.plain(row["contacts"]) + [{**new, "source": source}])
+    contacts.save(conn, app_id, contacts.plain(row["contacts"]) + [{**new, "source": source, "kind": kind,
+                                                                     "found_at": _today()}])
     return trackapi.get(conn, pid, app_id)

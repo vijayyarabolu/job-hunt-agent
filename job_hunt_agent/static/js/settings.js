@@ -1,6 +1,6 @@
 // Settings as a page with a side menu. Every field saves on its own (change / Enter) and says "Saved ✓";
 // Back, Esc or the side menu leave it. Lazy: loaded on first open.
-import { $, B, S, api, copyText, extLink, get, h, muted, q } from "./core.js";
+import { $, B, S, api, copyText, extLink, get, h, loadError, muted, placeholder, q } from "./core.js";
 import { mailMount } from "./tracker.js";
 
 const SECTIONS = [["setup", "Setup", "Accounts and keys: what is connected, missing or failing, with a Test for each"],
@@ -117,7 +117,7 @@ function autofillPart() {
 
 function aboutPart() {
   return [h("section", "set-card", h("h3", {}, "The two numbers on a job"),
-    h("p", {}, h("b", {}, "Match %"), " (the ring): how well your best resume fits the job: experience, skills, industry and title."),
+    h("p", {}, h("b", {}, "Match %"), " (the ring): how well your best resume fits the job: experience, skills, industry and title, plus how much GenAI work the JD names (it sorts, it never hides a job)."),
     h("p", {}, h("b", {}, "Priority"), " (0 to 100): Match × how fresh the posting is × company signals (posted pay, a named team, hiring momentum). 70+ means apply today."),
     extLink("/how/ats", "How the resume estimate is computed ↗", "lnk")),
   h("section", "set-card", h("h3", {}, "Keyboard"), h("p", {}, "Every key is listed in Keyboard shortcuts (?)."),
@@ -147,10 +147,10 @@ export async function showSettings({ section, close: done }) {
   close = done;
   if (section && SECTIONS.some(([k]) => k === section)) shown = section;
   const view = $("#view");
-  view.replaceChildren(h("div", "set-page", h("p", "muted pad", "Loading…")));
+  view.replaceChildren(h("div", "set-page", placeholder()));   // GOAL31 §3: its shape, not a word (never the last visit's fields)
   let s;
   const pid = S.profile;
-  try { s = pid ? await get("/api/settings") : null; } catch (err) { s = null; }
+  try { s = pid ? await get("/api/settings") : null; } catch (err) { view.replaceChildren(loadError(err, () => showSettings({ section, close: done }))); return; }
   if (S.tab !== "settings" || pid !== S.profile) return;
   const back = B({ class: "btn ghost set-back", title: "Back (Esc)", onclick: () => close() }, "← Back");
   const nav = h("nav", { class: "set-nav", "aria-label": "Settings sections" }, SECTIONS.map(([k, label, about]) =>

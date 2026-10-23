@@ -80,6 +80,16 @@ CREATE INDEX IF NOT EXISTS jobs_company ON jobs(company, closed_at);   -- GOAL7:
 -- GOAL21 W17: the ranking reads ~15k matched jobs of ~1M; this covers the family filter, momentum and the open check,
 -- so neither query reads the 1.6 GB of job rows (a cold first page went from ~30 s to ~3 s)
 CREATE INDEX IF NOT EXISTS jobs_fam ON jobs(families, closed_at, seed, board, first_posted_at, company);
+-- GOAL30-app: hiring momentum of a few companies (job page, Applied / Resumes boards) and Stats' posting dates read
+-- only those companies' entries, never their job rows
+CREATE INDEX IF NOT EXISTS jobs_co_fam ON jobs(company, seed, families, board, first_posted_at, title);
+-- GOAL30-app: the health drift check (last 8 days per ATS) reads this index, never the 2.3 GB of job rows
+CREATE INDEX IF NOT EXISTS jobs_seen ON jobs(first_seen, families, board, description IS NOT NULL,
+  salary_max IS NOT NULL, req_id IS NOT NULL);
+-- GOAL30-app: the open jobs of any family (~15 k of 1.2 M) with what the pending-fit count compares, so the header's count
+-- never walks every open row's JD blob to reach content_hash (fits._stale_where says families <> ',' to use it)
+CREATE INDEX IF NOT EXISTS jobs_open_fit ON jobs(board, families, uid, content_hash, closed_at)
+  WHERE closed_at IS NULL AND families <> ',';
 
 CREATE TABLE IF NOT EXISTS job_events (
   id INTEGER PRIMARY KEY,
@@ -145,6 +155,9 @@ CREATE TABLE IF NOT EXISTS applications (
   jd_text TEXT                               -- GOAL6: the full JD; the JD cell holds the linked title ("JD Text" column)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS app_profile_job ON applications(profile, job_uid) WHERE job_uid IS NOT NULL;
+-- GOAL30-app: the job lists' freshness check (feedcache.FINGERPRINT_SQL) counts and dates them from this index.
+-- id second keeps the table's (rowid) order for the many reads by profile that have no ORDER BY.
+CREATE INDEX IF NOT EXISTS apps_at ON applications(profile, id, updated_at);
 
 -- GOAL3: several contacts per application, each with its own sent / replied marks. Rows with origin 'legacy' are
 -- derived from the tracker's packed cells ("A, B, C" / "y,y,y") and re-derived on import; once the user edits an
@@ -160,7 +173,9 @@ CREATE TABLE IF NOT EXISTS contacts (
   notes TEXT,
   origin TEXT NOT NULL DEFAULT 'app' CHECK (origin IN ('legacy', 'app')),
   updated_at TEXT,
-  source TEXT                             -- GOAL6 §4: where the person was found (JD, Apollo, LinkedIn-manual, ...)
+  source TEXT,                            -- GOAL6 §4: where the person was found (JD, Apollo, LinkedIn-manual, ...)
+  kind TEXT,                              -- GOAL28 §5: recruiter / manager / peer ('' unknown)
+  found_at TEXT                           -- GOAL28 §5: the local day the finder found them (YYYY-MM-DD)
 );
 CREATE INDEX IF NOT EXISTS contacts_app ON contacts(app_id, pos);
 
@@ -184,6 +199,9 @@ CREATE TABLE IF NOT EXISTS application_events (
   source TEXT NOT NULL CHECK (source IN ('ui', 'cli', 'import', 'sheet', 'google', 'email')),
   snapshot TEXT
 );
+-- GOAL33 (version 37): the table rebuilds of versions 9 and 24 left it with no index; Applied and the tracker read a
+-- row's events by app_id (the "applied at" time of 580 rows took 60 ms)
+CREATE INDEX IF NOT EXISTS app_events_app ON application_events(app_id, to_status, at);
 
 CREATE TABLE IF NOT EXISTS triage_events (
   id INTEGER PRIMARY KEY,
@@ -286,10 +304,14 @@ CREATE TABLE IF NOT EXISTS fits (            -- fetch-time fit cache per profile
   jd_state TEXT NOT NULL CHECK (jd_state IN ('ok', 'thin', 'none', 'unreadable')),
   jd_len INTEGER NOT NULL DEFAULT 0,
   terms TEXT NOT NULL DEFAULT '[]',       -- [[canonical, weight, hitmask, need, count, first, forms, litmask], ...]
-  dealbreaker TEXT,                       -- matched pattern, or NULL
+  dealbreaker TEXT,                       -- matched pattern, or NULL (GOAL28: or "jd_gate: ...")
   computed_at TEXT NOT NULL,
+  genai TEXT,                             -- GOAL28: the JD's GenAI terms, comma-joined ('' none, NULL not computed)
   PRIMARY KEY (profile, uid)
 );
+-- GOAL30-app: every job list's freshness check (feedcache.FINGERPRINT_SQL) counts a person's fits from this index,
+-- never their rows and terms blobs. uid second keeps the primary key's order for any other read that picks it.
+CREATE INDEX IF NOT EXISTS fits_at ON fits(profile, uid, computed_at);
 
 CREATE VIEW IF NOT EXISTS followups_due AS
   SELECT a.*,
@@ -323,6 +345,8 @@ CREATE TABLE IF NOT EXISTS gsync_rows (       -- a Sheet row linked to an applic
   missing_since TEXT,                         -- its row is gone from the Sheet: reported, never re-added or deleted
   PRIMARY KEY (profile, app_id)
 );
+-- GOAL30-app: the header's count of rows gone from the Sheet reads this, never the rows' cells (17 MB live)
+CREATE INDEX IF NOT EXISTS gsync_missing ON gsync_rows(missing_since) WHERE missing_since IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS gsync_log (        -- every pull, push, conflict (and its winner), new and missing row
   id INTEGER PRIMARY KEY,
@@ -744,6 +768,22 @@ CREATE TABLE IF NOT EXISTS autofill_errors (
   fixture TEXT                                -- the regression fixture made from it
 );
 CREATE INDEX IF NOT EXISTS autofill_errors_at ON autofill_errors(at);
+-- GOAL27: one row per field per fill (filled / review / needs / failed / kept / skipped + why), so a break is visible
+-- in one place (Settings › Autofill › Health). Labels and canonical keys only: never a value.
+CREATE TABLE IF NOT EXISTS autofill_fields (
+  id INTEGER PRIMARY KEY,
+  profile TEXT NOT NULL,
+  board TEXT NOT NULL,
+  step TEXT NOT NULL DEFAULT '',
+  label TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  key TEXT,                                   -- the classifier's canonical field (first_name, work.title, ...)
+  status TEXT NOT NULL,                       -- filled | review | needs | failed | kept | skipped
+  why TEXT NOT NULL DEFAULT '',
+  version TEXT,
+  at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS autofill_fields_at ON autofill_fields(at);
 CREATE TABLE IF NOT EXISTS autofill_canary (
   id INTEGER PRIMARY KEY,
   run_at TEXT NOT NULL,                       -- one nightly run = one run_at
@@ -781,3 +821,56 @@ CREATE TABLE IF NOT EXISTS apply_queue (
   done_at TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS apply_queue_job ON apply_queue(profile, coalesce(job_uid, ''), coalesce(app_id, 0));
+-- GOAL29 §3: the ghost job check (ghost.py). One row per open title-matched job: its signals, the badge text and the
+-- Priority penalty (0 to 10). text_kinds holds the JD-derived signals for content_hash, so a scan reads only new JDs.
+CREATE TABLE IF NOT EXISTS ghost (
+  uid TEXT PRIMARY KEY,
+  content_hash TEXT NOT NULL,
+  text_kinds TEXT NOT NULL DEFAULT '{}',      -- {"evergreen": "future opportunities", "agency": ..., "short": "214"}
+  kinds TEXT NOT NULL DEFAULT '{}',           -- text_kinds + {"reposted": "4|2026-08-20", "old": "52"}
+  reason TEXT,                                -- "Possible ghost job: reposted 4 times since Aug 20" (NULL = none)
+  penalty INTEGER NOT NULL DEFAULT 0,
+  checked_at TEXT NOT NULL
+);
+-- every change of a job's ghost penalty, as applied (GOAL29 §3 "log every applied penalty")
+CREATE TABLE IF NOT EXISTS ghost_log (
+  id INTEGER PRIMARY KEY,
+  uid TEXT NOT NULL,
+  penalty INTEGER NOT NULL,
+  kinds TEXT NOT NULL,                        -- 'reposted,old' ('' = cleared)
+  reason TEXT,
+  at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ghost_log_uid ON ghost_log(uid, at);
+-- GOAL29 §2: the Offer check (offer.py). offer_llm: the one Claude Haiku answer per JD (content_hash), never asked
+-- twice; its cost counts toward the daily budget. offer_checks: the latest check per person and job (logged so the next
+-- goal can decide whether it should touch Match or Priority; it does not now).
+CREATE TABLE IF NOT EXISTS offer_llm (
+  content_hash TEXT PRIMARY KEY,
+  areas TEXT NOT NULL,                        -- [{"area": "Growth", "grade": "B", "word": "Good", "evidence": "..."}]
+  raw TEXT,                                   -- Claude's answer as it came
+  model TEXT NOT NULL,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  day TEXT NOT NULL,                          -- local day 'YYYY-MM-DD' (the daily budget)
+  at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS offer_llm_day ON offer_llm(day);
+CREATE TABLE IF NOT EXISTS offer_checks (
+  profile TEXT NOT NULL,
+  uid TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  grade TEXT,                                 -- A to F, NULL = not enough data
+  line TEXT NOT NULL,                         -- "Offer check: B, good pay and team signals, unclear growth"
+  areas TEXT NOT NULL,
+  at TEXT NOT NULL,
+  PRIMARY KEY (profile, uid)
+);
+CREATE TABLE IF NOT EXISTS outside_fits (    -- GOAL33: the match of a tracker row's pasted JD (no feed job)
+  profile TEXT NOT NULL,
+  app_id INTEGER NOT NULL,
+  sig TEXT NOT NULL,                          -- title + JD text + profile: a change scores it again
+  pct INTEGER,
+  parts TEXT NOT NULL,                        -- match.breakdown parts as JSON
+  at TEXT NOT NULL,
+  PRIMARY KEY (profile, app_id)
+);

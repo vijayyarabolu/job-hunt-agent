@@ -7,19 +7,24 @@ import { check, confirmOutside, followupsTop, initBack } from "./back.js";
 import * as rq from "./rq.js";
 
 const FAST_MS = 4000;
+const MAX_FAST_MS = 30000;   // GOAL30-app §0: a resume being made with nothing new: 4, 8, 16, 30 s between asks
 const SLOW_MS = 60000;
 const MAX_PICK = 20;
 const LABEL = { queued: "Resume queued", generating: "Generating resume", ready: "Resume ready", "needs you": "Resume needs you" };
 const PICK_TIP = "Select for Generate for selected (Space; Shift-click a range)";
 let timer = 0;
 let gen = 0;
+let wait = FAST_MS;
+let seen = "";
 let panelId = null;
 let lastPick = null;
 const bar = h("div", { class: "pickbar", role: "region", "aria-label": "Selected jobs", hidden: true });
 
 S.rg = { on: false, jobs: {}, apps: {}, picks: new Set(), message: "" };
 
-const chipOf = (el) => (el.dataset.app ? S.rg.apps[el.dataset.app] : S.rg.jobs[el.dataset.uid]);
+// a Generate on its way (a placeholder, no id yet) shows over the resume the job or its row already has (GOAL33)
+const chipOf = (el) => { const sent = el.dataset.uid && S.rg.jobs[el.dataset.uid];
+  return sent && sent.id == null ? sent : el.dataset.app ? S.rg.apps[el.dataset.app] : S.rg.jobs[el.dataset.uid]; };
 const label = (c) => (c.approved ? "Resume approved" : LABEL[c.chip]);
 const when = (ts) => `${new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · ${exactAge(ts)}`;
 const flat = (map) => Object.values(map || {});
@@ -42,7 +47,10 @@ export async function poll() {
     paint();
     rq.counts(d);
     if (d.outside_new && S.tab === "saved") loadFeed({ quiet: true });
-    again(d.active ? FAST_MS : SLOW_MS);
+    const now = JSON.stringify([d.online, d.jobs, d.apps, d.counts]);
+    wait = now === seen ? Math.min(wait * 2, MAX_FAST_MS) : FAST_MS;
+    seen = now;
+    again(d.active ? wait : SLOW_MS);
   } catch { again(SLOW_MS); }
 }
 
@@ -139,13 +147,14 @@ const withoutPlaceholders = (jobs, uids) => Object.fromEntries(Object.entries(jo
 export async function generate(uids, places = null) {
   if (!S.rg.on) { toast(S.rg.message || "Resume tailoring is not available", { error: true }); return; }
   const picked = new Set(S.rg.picks);
-  S.rg.jobs = { ...Object.fromEntries(uids.map((u) => [u, QUEUED])), ...S.rg.jobs };
+  const had = Object.fromEntries(uids.filter((u) => S.rg.jobs[u]).map((u) => [u, S.rg.jobs[u]]));   // Generate again: put back if not queued
+  S.rg.jobs = { ...S.rg.jobs, ...Object.fromEntries(uids.map((u) => [u, QUEUED])) };
   S.rg.picks = new Set();
   lastPick = null;
   paint();
   try {
     const d = await api("/api/resumes/generate", places ? { uids, places } : { uids });
-    S.rg.jobs = { ...withoutPlaceholders(S.rg.jobs, uids), ...d.chips };
+    S.rg.jobs = { ...withoutPlaceholders(S.rg.jobs, uids), ...had, ...d.chips };
     paint();
     const skipped = d.skipped.length ? ` · not queued: ${d.skipped.map((s) => s.why).join("; ")}` : "";
     const at = Object.values(d.positions || {}).filter(Boolean);
@@ -156,7 +165,7 @@ export async function generate(uids, places = null) {
     if (d.needs_place?.length) askPlaces(d.needs_place);
     return d;
   } catch (err) {
-    S.rg.jobs = withoutPlaceholders(S.rg.jobs, uids);
+    S.rg.jobs = { ...withoutPlaceholders(S.rg.jobs, uids), ...had };
     S.rg.picks = picked;
     paint();
     if (places) throw err;
@@ -415,7 +424,7 @@ export function init8() {
   document.head.append(css);
   document.body.append(bar);
   S.g8 = { paint, pick, generateKey, detailBits, outside, profile, settings: () => S.openSettings(), followupsTop, paintHead,
-    poll, apply, openResume, confirmOutside, row: rq.row, head: rq.head, inline: rq.inline, inHand: rq.inHand, ask: rq.ask, answers: rq.answers,
+    poll, apply, openResume, confirmOutside, row: rq.row, head: rq.head, rqEmpty: rq.empty, inline: rq.inline, inHand: rq.inHand, ask: rq.ask, answers: rq.answers,
     loadAnswers: rq.loadAnswers };
   rq.loadAnswers();
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });

@@ -11,7 +11,7 @@ const KEYS = { Escape: 27, Enter: 13, ArrowDown: 40, Tab: 9, " ": 32 };
 export async function start(chromePath, profileDir) {
   const port = 9300 + Math.floor(Math.random() * 600);
   const chrome = spawn(chromePath, ["--headless=new", "--hide-scrollbars", `--remote-debugging-port=${port}`,
-    `--user-data-dir=${profileDir}`, "--no-first-run", "about:blank"], { stdio: "ignore" });
+    `--user-data-dir=${profileDir}`, "--no-first-run", ...(process.getuid && process.getuid() === 0 ? ["--no-sandbox"] : []), "about:blank"], { stdio: "ignore" });
   // a timed-out test SIGKILLs this driver, so close() never runs and Chrome lived on for days (ten found,
   // parent launchd). A shell watches this process and stops Chrome once it is gone, however it died.
   spawn("/bin/sh", ["-c", `while kill -0 ${process.pid} 2>/dev/null; do sleep 1; done; kill ${chrome.pid} 2>/dev/null`],

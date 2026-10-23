@@ -247,7 +247,7 @@ export async function insertRow(below) {
 
 export async function deleteRows(rows = selRows()) {
   if (!rows.length) return;
-  const what = rows.length === 1 ? `${rows[0].company || "(company)"}, ${rows[0].role_title || "(role)"}` : `${rows.length} rows`;
+  const what = rows.length === 1 ? `${rows[0].company || "(company)"} · ${rows[0].role_title || "(role)"}` : `${rows.length} rows`;
   if (!(await ask(`Delete ${what}?`, "It is removed here and from your Google Sheet. You can Undo.", "Delete"))) return;
   const gone = [];
   try { for (const r of rows) gone.push({ row: r, id: (await api("/api/remove", { app: r.id, why: r.dup_of ? "duplicate" : "unwanted" })).removed }); }

@@ -4,8 +4,8 @@ const CSS = `
 .g-wrap:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in oklab, #1a73e8 40%, transparent) }
 .g { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 1px; font-size: 13px; user-select: none }
 .g col.g-rnc { width: 46px }
-.g th, .g td { height: 25px; padding: 0 6px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: clip; text-align: left; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); box-sizing: border-box; font-weight: 400 }
-.g thead th { position: sticky; top: 0; z-index: 3; height: 30px; background: var(--paper); font-weight: 650; font-size: 12px; color: var(--ink); padding-right: 30px }
+.g th, .g td { height: 25px; padding: 0 8px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: clip; text-align: left; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); box-sizing: border-box; font-weight: 400 }
+.g thead th { position: sticky; top: 0; z-index: 3; height: 30px; background: var(--paper); font-weight: 650; font-size: 12px; color: var(--ink); padding-right: 32px }
 .g thead th.app { background: color-mix(in oklab, var(--signal) 9%, var(--paper)) }
 .g .fz { position: sticky; z-index: 1; background: var(--raised) }
 .g thead .fz { z-index: 4 }
@@ -28,10 +28,10 @@ const CSS = `
 .g .g-co { display: flex; align-items: center; gap: 4px; min-width: 0 }
 .g .g-co>span { overflow: hidden; text-overflow: ellipsis; min-width: 5em }
 .g .g-co>.sb { flex: 0 1 auto; min-width: 22px }
-.g .g-link { color: #1155cc; text-decoration: underline }
-.g .g-file { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; border: var(--line); border-radius: 10px; line-height: 19px; background: var(--paper) }
+.g .g-link { color: light-dark(#1155cc, #8ab4f8); text-decoration: underline }
+.g .g-file { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: var(--line); border-radius: 10px; line-height: 19px; background: var(--paper) }
 .g .g-file .ic { width: 12px; height: 12px }
-.g td.c-resume .mini, .g td.c-resume .tag { height: 20px; min-height: 0; line-height: 18px; padding: 0 6px; margin-left: 4px; font-size: 11px }
+.g td.c-resume .mini, .g td.c-resume .tag { height: 20px; min-height: 0; line-height: 18px; padding: 0 8px; margin-left: 4px; font-size: 11px }
 @media (hover: hover) { .g td.c-resume .rm { opacity: 0 } .g tr:hover td.c-resume .rm, .g td.c-resume .rm:focus-visible { opacity: 1 } }
 .g tr.g-sp td { height: auto; padding: 0; border: 0 }
 .g tr.g-day th { position: sticky; left: 0; text-align: left; background: var(--paper); font-weight: 700; color: var(--ink); height: 28px }
@@ -45,25 +45,25 @@ const CSS = `
 .g-fh[hidden] { display: none }
 .g-fill td.sl { outline: 1px dashed #1a73e8; outline-offset: -1px }
 .g-ed { position: absolute; z-index: 8; display: grid; background: var(--raised); box-shadow: 0 0 0 2px #1a73e8, 0 8px 24px -8px rgb(0 0 0 / .35) }
-.g-ed input, .g-ed textarea { height: 24px; border: 0; border-radius: 0; padding: 0 5px; font: inherit; font-size: 13px; background: var(--raised); outline: none; width: 100% }
-.g-ed textarea { height: 140px; padding: 5px; resize: both; line-height: 1.4 }
+.g-ed input, .g-ed textarea { height: 24px; border: 0; border-radius: 0; padding: 0 4px; font: inherit; font-size: 13px; background: var(--raised); outline: none; width: 100% }
+.g-ed textarea { height: 140px; padding: 4px; resize: both; line-height: 1.4 }
 .g-ed .g-list { max-height: 220px; overflow: auto; border-top: var(--line); padding: 4px }
-.g-ed .g-opt { display: flex; width: 100%; border: 0; background: none; padding: 3px 4px; border-radius: 4px; text-align: left }
+.g-ed .g-opt { display: flex; width: 100%; border: 0; background: none; padding: 4px 4px; border-radius: 4px; text-align: left }
 .g-ed .g-opt[aria-selected=true] { background: color-mix(in oklab, #1a73e8 16%, transparent) }
-.g-ed .g-date { display: flex; gap: 6px; align-items: center; padding: 6px; border-top: var(--line) }
+.g-ed .g-date { display: flex; gap: 8px; align-items: center; padding: 8px; border-top: var(--line) }
 .g-ed .g-date input { width: auto; height: 28px; border: var(--line); border-radius: 6px }
-.g-ed .g-hint { padding: 2px 6px 4px; font-size: 11px; color: var(--quiet) }
-.g-state { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 12.5px; color: var(--quiet) }
+.g-ed .g-hint { padding: 2px 8px 4px; font-size: 11px; color: var(--quiet) }
+.g-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12.5px; color: var(--quiet) }
 .g-state:empty { display: none }
-.g-find { display: flex; align-items: center; gap: 6px }
+.g-find { display: flex; align-items: center; gap: 8px }
 .g-find input { height: 30px; width: 200px }
 .g-saved { font-size: 12px; color: var(--quiet); min-width: 64px }
 .g-saved.err { color: var(--bad) }
-.g-vals { display: grid; gap: 6px; padding: 8px; min-width: 240px }
+.g-vals { display: grid; gap: 8px; padding: 8px; min-width: 240px }
 .g-vals .g-boxes { max-height: 240px; overflow: auto; display: grid; gap: 2px }
-.g-vals label { display: flex; gap: 6px; align-items: center; font-size: 13px }
+.g-vals label { display: flex; gap: 8px; align-items: center; font-size: 13px }
 .g-vals input[type=checkbox] { height: auto }
-.g-row2 { display: flex; gap: 6px; justify-content: flex-end }
+.g-row2 { display: flex; gap: 8px; justify-content: flex-end }
 .g-empty { position: sticky; left: 0 }
 `;
 let done = false;

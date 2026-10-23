@@ -85,7 +85,7 @@ try {
   check("Create Account is never clicked", (await untrusted()).length === 0, await untrusted());
   await t.js("const p = document.querySelector('[data-automation-id=password]'); p.type = 'text'; p.setAttribute('value', p.value); return true");   // "Show password"
   await t.panelClick("Send page snapshot");
-  check("a page snapshot is sent to job-hunt-agent", await panelHas("Page snapshot sent to job-hunt-agent"), await t.panelText());
+  check("a page snapshot is kept in job-hunt-agent", await panelHas("Page snapshot kept in Job Hunt Agent"), await t.panelText());
 
   // "account exists" -> Sign In, filled; no loop
   await go(`${APPLY}?fx=auth_create&exists=1`);
@@ -143,7 +143,7 @@ try {
     return [p.querySelector('[id$=jobTitle]').value, p.querySelector('[id$=companyName]').value, p.querySelector('[id$=location]').value,
       p.querySelector('[data-automation-id=currentlyWorkHere]').checked, d('startDate'), d('endDate')]; })`);
   check("work history is exactly the user's: wrong rows fixed, junk removed", JSON.stringify(work) ===
-    JSON.stringify([["AI Engineer", "Examplecorp", "USA", true, "07/2024", "/"], ["ML Engineer", "Testworks", "India", false, "06/2020", "07/2022"]]), work);
+    JSON.stringify([["AI Engineer", "Examplecorp", "United States", true, "07/2024", "/"], ["ML Engineer", "Testworks", "India", false, "06/2020", "07/2022"]]), work);   // 1.3.1: the employer's country
   const edu = await t.js(`const p = [...document.querySelectorAll('[data-sec=education] > [role=group]')];
     return [p.length, [...p[0].querySelectorAll('[data-automation-id=formField-school] [data-automation-id=selectedItem]')].map((x) => x.title).join(),
       p[0].querySelector('[data-automation-id=formField-degree] button').textContent,
@@ -167,7 +167,8 @@ try {
   check("a start date saved as \"2 weeks after offer acceptance\" fills Workday's date parts with today + 2 weeks",
     await t.until(`[...document.querySelectorAll('[data-automation-id=formField-availableDate] input')].map((i) => Number(i.value)).join('/') === ${JSON.stringify(inTwoWeeks.join("/"))}`, 8000),
     await t.js("return [...document.querySelectorAll('[data-automation-id=formField-availableDate] input')].map((i) => i.value)"));
-  check("and its dropdown picks the closest choice (Within 2 weeks)", (await btnText("qStart")) === "Within 2 weeks", await btnText("qStart"));
+  check("and its dropdown picks the closest choice (Within 2 weeks)",                // GOAL30: dates fill in page order now
+    await t.until("document.querySelector('[data-automation-id=\"formField-qStart\"] button[aria-haspopup]')?.textContent === 'Within 2 weeks'", 8000), await btnText("qStart"));
   check("an unknown question is left for the user", await t.until("document.querySelector('[data-automation-id=formField-q4][data-jh-need]')") && (await btnText("q4")) === "Select One");
   check("the panel lists it under Needs you", await panelHas("Kubernetes operators"), await t.panelText());
   await t.js("window.scrollTo(0, 0); document.activeElement?.blur()");
@@ -193,9 +194,13 @@ try {
   await t.send("Input.insertText", { text: "My own words" });
   await t.panelClick("Autofill");
   await sleep(2500);
-  check("a free-text question offers Draft", await panelHas("Why are you interested in this role?") && await t.panelClick("Draft"), await t.panelText());
-  check("Draft puts Claude's text in the box, marked as a draft", await t.until("document.querySelector('[data-automation-id=formField-q6] textarea').value.startsWith('I build retrieval') && document.querySelector('[data-automation-id=formField-q6] textarea').hasAttribute('data-jh-draft')"),
+  // GOAL29 §5: an open question shows Generate; Claude's answer waits in the panel until Fill this field
+  check("a free-text question offers Generate", await panelHas("Why are you interested in this role?") && await t.panelClick("Generate"), await t.panelText());
+  check("its answer shows Ready in the panel, the page's box still empty", await panelHas("Ready", 15000) && (await val("[data-automation-id=formField-q6] textarea")) === "",
+    [await t.panelText(), await val("[data-automation-id=formField-q6] textarea")]);
+  check("Fill this field puts Claude's text in the box, marked as Claude's", await t.panelClick("Fill this field") && await t.until("document.querySelector('[data-automation-id=formField-q6] textarea').value.startsWith('I build retrieval') && document.querySelector('[data-automation-id=formField-q6] textarea').hasAttribute('data-jh-draft')"),
     await val("[data-automation-id=formField-q6] textarea"));
+  check("Save to Answers keeps it", await t.panelClick("Save to Answers") && await panelHas("Saved to Answers"), await t.panelText());
   check("a field the user typed in is never overwritten", (await val("[data-automation-id=formField-q5] textarea")) === "My own words", await val("[data-automation-id=formField-q5] textarea"));
   check("the auto-fill toggle can be turned off", toggled);
   await t.panelClick("Auto-fill each new page");
@@ -234,7 +239,7 @@ try {
   check("Review says review, then click Submit", await panelHas("Review, then click Submit"), await t.panelText());
   check("the extension never clicked Next or Submit", (await untrusted()).length === 0, await untrusted());
   await t.clickSel("[data-automation-id=bottom-navigation-next-button]");
-  check("the confirmation marks it Applied", await panelHas("marked Applied in job-hunt-agent", 15000), await t.panelText());
+  check("the confirmation marks it Applied", await panelHas("marked Applied in Job Hunt Agent", 15000), await t.panelText());
   check("with the address it used", await panelHas("Address: 808 Comet Dr, Foster City, CA 94404"), await t.panelText());
   // ---- any other board: its Skills typeahead gets the same skills, one at a time ----
   await go2(`https://${GENERIC}/jobs/ai-engineer/apply`);

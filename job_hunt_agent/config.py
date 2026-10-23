@@ -9,6 +9,7 @@ Everything personal lives outside the repo, in the app home: ~/.job-hunt-agent b
 A file in <home>/config/ with the same name as a shipped registry file (companies.yaml, lexicon.yaml, ...) wins over
 the shipped one, so `add` and `discover` never have to edit the checkout.
 """
+import copy
 import os
 import re
 from pathlib import Path
@@ -56,13 +57,23 @@ class ConfigError(ValueError):
     pass
 
 
+# GOAL30-app: a file is parsed once per change (mtime, size); profile.yaml was parsed 29 times for one job list
+_YAML_KEPT: dict[str, tuple[tuple, object]] = {}
+
+
 def _read_yaml(path: Path, default):
-    if not path.exists():
-        return default
     try:
-        return yaml.safe_load(path.read_text()) or default
-    except yaml.YAMLError as err:
-        raise ConfigError(f"{path}: invalid YAML: {err}") from err
+        stat = path.stat()
+    except FileNotFoundError:
+        return default
+    mark, kept = (stat.st_mtime_ns, stat.st_size), _YAML_KEPT.get(str(path))
+    if kept is None or kept[0] != mark:
+        try:
+            kept = (mark, yaml.safe_load(path.read_text()))
+        except yaml.YAMLError as err:
+            raise ConfigError(f"{path}: invalid YAML: {err}") from err
+        _YAML_KEPT[str(path)] = kept
+    return copy.deepcopy(kept[1]) or default               # each caller its own copy
 
 
 def settings() -> dict:
@@ -130,7 +141,22 @@ def profile(pid: str) -> dict:
             re.compile(pattern)
         except re.error as err:
             raise ConfigError(f"profile {pid}: bad dealbreaker regex {pattern!r}: {err}") from err
+    _check_gate(pid, data.get("jd_gate"))
     return {"id": pid, "search_terms": [], "dealbreakers": [], **data}
+
+
+def _check_gate(pid: str, gate) -> None:
+    """GOAL28 §4.1 `jd_gate: {families: [...], generic_titles: bool, min_terms: int}` (optional)."""
+    if gate is None:
+        return
+    if not isinstance(gate, dict):
+        raise ConfigError(f"profile {pid}: jd_gate must be a mapping")
+    bad = [f for f in gate.get("families") or [] if f not in FAMILIES]
+    if bad:
+        raise ConfigError(f"profile {pid}: jd_gate families {bad} are not title families")
+    terms = gate.get("min_terms", 2)
+    if not isinstance(terms, int) or isinstance(terms, bool) or terms < 1:
+        raise ConfigError(f"profile {pid}: jd_gate min_terms must be a whole number of at least 1")
 
 
 def default_profile() -> str | None:

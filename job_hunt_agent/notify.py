@@ -103,7 +103,7 @@ def notify_new(conn, profiles: list[dict], now: datetime) -> int:
             continue
         top_row, top = batch[0]
         if not send(f"job-hunt-agent · {profile['name']}",
-                    f"{len(batch)} new to apply today. Top: {top_row['company']}, {top_row['title']} ({top.worth})",
+                    f"{len(batch)} new to apply today. Top: {top_row['company']} · {top_row['title']} ({top.worth})",
                     profile["id"]):
             continue                                    # not recorded: the next fetch tries again (release review M5)
         with tx(conn):
@@ -115,7 +115,7 @@ def notify_new(conn, profiles: list[dict], now: datetime) -> int:
 
 
 def _digest_line(row: dict, s) -> str:
-    return f"- {s.worth} {row['company']}, {row['title']} ({' · '.join(s.chips[:3])}) {row['apply_url'] or row['url']}"
+    return f"- {s.worth} {row['company']} · {row['title']} ({' · '.join(s.chips[:3])}) {row['apply_url'] or row['url']}"
 
 
 def digest_path(now: datetime):

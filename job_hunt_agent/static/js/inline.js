@@ -1,16 +1,17 @@
 // Cell editing: Enter saves, Esc cancels, ✓ / ✕ on phones.
-import { B, EMPLOYMENTS, WORKPLACES, api, extLink, fail, fieldName, get, h, optimistic, toast } from "./core.js";
+import { B, EMPLOYMENTS, WORKPLACES, api, extLink, fail, fieldName, get, h, toast } from "./core.js";
+import { refreshEditor } from "./editor.js";
 
 const SYNC_POLL_MS = 4000;
 const SYNC_POLL_MAX = 30;
 const CELL_MAX = 60;
 const LONG_FIELDS = ["jd", "notes"];
-export const WORKPLACE_OPTIONS = [["", "—"], ...WORKPLACES];
-export const EMPLOYMENT_OPTIONS = [["", "—"], ...EMPLOYMENTS, ["part_time", "Part-time"], ["internship", "Internship"]];
+export const WORKPLACE_OPTIONS = [["", "Not set"], ...WORKPLACES];
+export const EMPLOYMENT_OPTIONS = [["", "Not set"], ...EMPLOYMENTS, ["part_time", "Part-time"], ["internship", "Internship"]];
 const SELECTS = { workplace: WORKPLACE_OPTIONS, employment_type: EMPLOYMENT_OPTIONS };
 const URL_RX = /https?:\/\/[^\s<>"']+/;
 export const EDIT_TIP = "Edit this cell (Enter saves, Esc cancels)";
-const hooks = { redraw: () => {}, badge: () => {}, editor: () => {}, patch: (row, field, value) => ({ ...row, [field]: value }) };
+const hooks = { redraw: () => {}, badge: () => {}, editor: refreshEditor, patch: (row, field, value) => ({ ...row, [field]: value }) };
 export const setInlineHooks = (given) => Object.assign(hooks, given);
 export const paintRow = (row, badge) => hooks.redraw(row, badge);
 
@@ -80,16 +81,6 @@ export function makeEditable(td, edit) {
   };
   td.addEventListener("click", (e) => { if (!e.target.closest("a, button")) start(); });
   td.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === td) { e.preventDefault(); start(); } });
-}
-
-export function saveTrackerCell(row, field, value) {
-  return optimistic(() => hooks.redraw(hooks.patch(row, field, value)), () => hooks.redraw(row),
-    async () => {
-      const fresh = await api("/api/tracker/update", { app: row.id, changes: { [field]: value } });
-      hooks.redraw(fresh, "saved");
-      watchSync(fresh.id);
-      return fresh;
-    }, `Saved ${fieldName(field)}`, () => undoLastEdit(row.id));
 }
 
 export async function watchSync(appId) {

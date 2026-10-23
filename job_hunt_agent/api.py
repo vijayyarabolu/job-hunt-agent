@@ -5,12 +5,13 @@ too_senior · followups still answer. Every score comes from ranking.rank() (the
 labels and bullets come from match.py, the filters from filters.py.
 """
 import logging
+import sqlite3
 import threading
 from collections import Counter
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
-from . import (applied, config, dupes, feedback, feedcache, filters, fits, fresh, gsync, health, jd_doc, jdsnap, match,
+from . import (applied, clones, config, dupes, feedback, feedcache, filters, fits, fresh, genai, gsync, health, jd_doc, jdsnap, match,
                outside, profile_settings, ranking, removal, resumes, rgclient, score, signals, tailored, tracker,
                vendor_model)
 from .db import iso, tx, unpack
@@ -94,9 +95,11 @@ def card(row: dict, s, triage_state: str | None = None, app: dict | None = None,
            "chips": list(s.chips), "state": s.state, "triage": triage_state, "app": app, "liked": liked,
            "asks_years": row.get("min_years"),                  # "Asks N yrs" / "years not stated"
            "req_id": row.get("req_id"),                         # copied with Apply
+           "ghost": getattr(s, "ghost", None),                  # "Possible ghost job: ..." (never hidden)
            "also": [{"uid": uid, "location": loc} for uid, loc in row.get("also", ())]}
     moment, exact = fresh.feed_moment(row)
-    out = {**out, "posted_ts": iso(moment) if moment else None, "posted_exact": exact, "posted_label": fresh.age_word(row)}
+    out = {**out, "posted_ts": iso(moment) if moment else None, "posted_exact": exact, "posted_label": fresh.age_word(row),
+           "posted_found": fresh.found_kind(row), "posted_day": (row.get("first_posted_at") or "")[:10] or None}
     if who is None or now is None:
         return out
     m, view = _match_view(row, who, industry, memo, with_resumes)
@@ -181,6 +184,17 @@ def _is_applied(app: dict | None, labels_applied: str | None) -> bool:
     return bool(labels_applied) or bool(app and app.get("status") not in PRE_APPLY)
 
 
+def _spread(by_uid: dict, group_of: dict) -> dict:
+    """GOAL32: a copy of a role with nothing of its own takes the role's (Not interested, saved or applied on one
+    city covers every city, and a city posted later); Not interested wins over the rest."""
+    of_role: dict = {}
+    for uid, value in by_uid.items():
+        head = group_of.get(uid)
+        if head and (head not in of_role or value == "dismissed"):
+            of_role[head] = value
+    return {**{uid: of_role[head] for uid, head in group_of.items() if head in of_role}, **by_uid}
+
+
 def _pool(tab: str, ranked: list, states: dict, apps: dict) -> list:
     if tab == "too_senior":
         return [(r, s) for r, s in ranked if s.state == "too_senior"]
@@ -211,6 +225,8 @@ def jobs(conn, pid: str, tab: str, now: datetime, flt: filters.Filters | None = 
     likes = {uid for uid, f in latest.items() if f["kind"] == "like"}
     kept = feedcache.ranked(conn, profile, now, tab == "fresh", FEED_STATES, wait)
     ranked = removal.keep(conn, pid, kept.ranked, lambda pair: pair[0])        # removed for good
+    group_of = feedcache.groups(conn, kept)                    # one role posted once per city is one card
+    states, apps = _spread(states, group_of), _spread(apps, group_of)
     pool = _pool(tab, ranked, states, apps)
     floor = feed_floor(profile) if tab == "recommended" else 0
     flt = replace(flt, min_match=max(flt.min_match, floor))
@@ -223,7 +239,7 @@ def jobs(conn, pid: str, tab: str, now: datetime, flt: filters.Filters | None = 
         if filters.keep(flt, r, s.state, s.employment, _is_applied(apps.get(r["uid"]), labels_applied), pct, now):
             keep.append((r, s))
             pcts[r["uid"]] = pct
-    keep = ranking.collapse(conn, order(keep, flt.sort, pcts))
+    keep = ranking.fold(order(keep, flt.sort, pcts), group_of, clones.preferences(profile))
     needs = bool(profile.get("needs_sponsorship"))
     found = h1b_feed.badges(conn, keep) if needs else {}                     # every job's badge
     if needs:
@@ -247,7 +263,8 @@ def jobs(conn, pid: str, tab: str, now: datetime, flt: filters.Filters | None = 
                   with_resumes=i < RESUME_CARDS, tailored_score=scores.get(r["uid"]), sponsor=views.get(r["uid"]))
              for i, (r, s) in enumerate(page, start)]
     twins = _mark_dupes(cards, listed if flt.dupes_only else [r for r, _ in keep])
-    out = {"tab": tab, "jobs": cards, "total": len(keep), "offset": start, "dupes": twins, "boards": boards, "sort": flt.sort, "min_match_floor": floor, "filtered": sum(1 for _, s in ranked if s.state == "filtered"),
+    out = {"tab": tab, "jobs": cards, "total": len(keep), "offset": start, "dupes": twins, "boards": boards, "sort": flt.sort, "min_match_floor": floor, "filtered": sum(1 for _, s in ranked if s.state == "filtered" and not genai.is_gate_verdict(s.dealbreaker)),
+           "jd_gate": sum(1 for _, s in ranked if s.state == "filtered" and genai.is_gate_verdict(s.dealbreaker)),
            "too_senior": sum(1 for _, s in ranked if s.state == "too_senior"), "today": today,
            "spons": spons, "spons_view": flt.spons if spons else None}
     if tab == "archived":
@@ -401,12 +418,27 @@ def job_detail(conn, pid: str, uid: str, now: datetime | None = None) -> dict:
                               sponsor=h1b_feed.view(found.get(uid), quote))
         detail["card"]["resumes"] = resume_view(r, who, full=True)
     detail["company_panel"] = company_panel(conn, profile, row["company"], uid, now)
+    detail["offer"] = offer_panel(conn, pid, uid, detail.get("card"), now)
     return detail
 
 
-def warm(now: datetime) -> None:
+def offer_panel(conn, pid: str, uid: str, job_card: dict | None, now: datetime, run_llm: bool = False) -> dict | None:
+    """GOAL29 §2: the Offer check of a job (the free areas at once; Claude's three when run_llm). Never fails the
+    page: a problem leaves the panel out."""
+    from . import offer
+    try:
+        return offer.check(conn, pid, uid, (job_card or {}).get("match"), (job_card or {}).get("sponsor"), now,
+                           run_llm=run_llm)
+    except (sqlite3.Error, KeyError, ValueError, OSError, config.ConfigError) as err:
+        log.warning("offer check for %s / %s failed: %s", pid, uid, err)
+        return None
+
+
+def warm(now: datetime, first: bool = False) -> None:
     """Rank every profile's feed now (and fill the industry cache): after a restart, and after a run or an edit
-    before the tabs are told (live.watch), so the page then gets the fresh answer at once."""
+    before the tabs are told (live.watch), so the page then gets the fresh answer at once. The first one after a
+    restart also opens Applied and Archived once (GOAL33 §4: the H-1B index, the ATS profiles and the vendor models
+    load on first use, 1.2 s on the first Applied)."""
     from . import db
     conn = db.connect()
     try:
@@ -419,6 +451,11 @@ def warm(now: datetime) -> None:
         from . import stats                     # Stats opens at once too (its slow part is kept per run)
         for pid in config.profile_ids():
             stats.report(conn, pid)
+        if first:
+            from . import appliedview
+            for pid in config.profile_ids():
+                appliedview.board(conn, pid, "all", None, now)
+                jobs(conn, pid, "archived", now)
     finally:
         conn.close()
 
@@ -468,9 +505,9 @@ def triage(conn, pid: str, uid: str, state: str, now: datetime) -> None:
         raise ValueError(f"state must be one of {TRIAGE_STATES}")
     if conn.execute("SELECT 1 FROM jobs WHERE uid = ?", (uid,)).fetchone() is None:
         raise KeyError(uid)
-    with tx(conn):
-        conn.execute("INSERT INTO triage_events(profile, uid, at, state) VALUES (?,?,?,?)",
-                     (pid, uid, iso(now), state))
+    with tx(conn):                                             # GOAL32: every city copy of the role
+        conn.executemany("INSERT INTO triage_events(profile, uid, at, state) VALUES (?,?,?,?)",
+                         [(pid, copy, iso(now), state) for copy in feedcache.copies(pid, uid)])
 
 
 def apply_click(conn, pid: str, uid: str, now: datetime) -> int:

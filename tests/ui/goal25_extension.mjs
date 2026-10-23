@@ -57,7 +57,7 @@ try {
   b.on((m) => {
     if (m.sessionId !== t.sessionId || m.method !== "Runtime.executionContextCreated") return;
     const c = m.params.context;
-    if (c.name === "job-hunt-agent Autofill" && c.auxData && c.auxData.frameId === mainFrame && c.auxData.type === "isolated") extCtx = c.id;
+    if (c.name === "Job Hunt Agent Autofill" && c.auxData && c.auxData.frameId === mainFrame && c.auxData.type === "isolated") extCtx = c.id;
   });
   mainFrame = (await t.send("Page.getFrameTree")).frameTree.frame.id;
   const ext = async (expr) => {
@@ -87,7 +87,7 @@ try {
   const typeInto = async (sel, text) => { await t.clickSel(sel); await t.send("Input.insertText", { text }); await sleep(150); };
   const layout = () => ext("return JH.panel.layout()");
   const margin = () => t.js("return getComputedStyle(document.documentElement).marginRight");
-  const filled = async (ms = 150000) => { await sleep(800); for (let i = 0; i < ms / 300; i++) { const s = await t.panelText(); if (s.includes("Filled ") && !s.includes("Filling…")) return true; await sleep(300); } return false; };
+  const filled = async (ms = 150000) => { await sleep(800); for (let i = 0; i < ms / 300; i++) { const s = await t.panelText(); if (/Filled \d+ · Needs you/.test(s) && !s.includes("Filling…")) return true; await sleep(300); } return false; };
   // a panel control by one of its attributes (the panel is a closed shadow root: reached through the DOM domain)
   async function panelNodes() {
     const { root } = await t.send("DOM.getDocument", { depth: -1, pierce: true });
@@ -125,9 +125,9 @@ try {
     await panelHas("DoorDash · Shift Lead") && await panelHas("Tailored resume") && await panelHas("808 Comet Dr, Foster City, CA 94404") &&
     await panelHas("Future sponsorship question: No") && await panelHas("Zztest") && (await panelNodes()).some((n) => attr(n, "data-slot") === "sponsorship"), await t.panelText());
   check("the panel shows the extension version", await panelHas(`v${OWN}`), await t.panelText());
-  check("a newer extension in job-hunt-agent shows the update notice", await panelHas(`Update ${NEWER} is ready: click ↻`), await t.panelText());
+  check("a newer extension in job-hunt-agent shows the update notice", await panelHas(`Update ${NEWER} is ready: download it again from Job Hunt Agent`), await t.panelText());
   const docked = await layout();
-  const vw = await t.js("return innerWidth");
+  const vw = await t.js("return document.documentElement.clientWidth");   // the viewport without a scrollbar (Linux shows one)
   check("docked on the right, 340 px, the page moved over", docked.mode === "dock" && !docked.collapsed && Math.round(docked.rect.width) === 340 &&
     Math.round(docked.rect.x + docked.rect.width) === vw && (await margin()) === "340px", [docked, vw, await margin()]);
   await inject(QUESTIONS.greenhouse);
@@ -170,7 +170,7 @@ try {
   check("Lever: the team size picked in the panel fills", (await val("#l_team")) === "6-20", await val("#l_team"));
   check("Lever: sponsorship stays the usual answer at another company", (await checked("l_sp")) === "No", await checked("l_sp"));
   check("Lever: the long answer is offered, not filled", (await val("#l_why")) === "", await val("#l_why"));
-  { const n = (await panelNodes()).find((x) => attr(x, "title") === "Same as Mark applied in job-hunt-agent");   // the list's very end
+  { const n = (await panelNodes()).find((x) => attr(x, "title") === "Same as Mark applied in Job Hunt Agent");   // the list's very end
     const { object } = await t.send("DOM.resolveNode", { backendNodeId: n.backendNodeId });
     const { result } = await t.send("Runtime.callFunctionOn", { objectId: object.objectId, returnByValue: true, functionDeclaration: `function () { ${SHOW} const r = this.getBoundingClientRect(); return [r.top, r.bottom, innerHeight, r.height]; }` });
     const [top, bottom, height, tall] = result.value;
@@ -198,8 +198,11 @@ try {
   const next = await t.js(`const r = document.querySelector("[data-automation-id=bottom-navigation-next-button]").getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }`);
   check("Workday's fixed Next bar stays clear", !overlaps(wd.rect, next) && !wd.collapsed, [wd, next]);
   const undoable = await panelHas("Saved with this application");
-  await t.panelClick("Undo");
-  await sleep(800);
+  for (let i = 0; i < 3; i++) {                        // the panel may redraw between finding Undo and clicking it
+    await t.panelClick("Undo");
+    if (await panelHas("Undone", 2000)) break;
+  }
+  await sleep(300);
   const snips = await api("/api/autofill/snippets?q=Why");
   check("Undo in the panel removes what was learned", undoable && snips.snippets.length === 1 && snips.snippets[0].company === "DoorDash" && await panelHas("Undone"),
     [snips.snippets.map((s) => s.company), await t.panelText()]);
@@ -256,7 +259,7 @@ try {
   check("the error is reported to job-hunt-agent with the page", health.errors.some((e) => e.board === "greenhouse" && e.kind === "error" && /forced adapter error/.test(e.message)), health.errors);
   await settings("http://127.0.0.1:9");
   await t.panelClick("Autofill");
-  check("job-hunt-agent asleep: the panel says so before filling", await panelHas("job-hunt-agent is not answering") && await panelHas("asleep or offline"), await t.panelText());
+  check("job-hunt-agent asleep: the panel says so before filling", await panelHas("Job Hunt Agent is not answering") && await panelHas("asleep or offline"), await t.panelText());
   await settings(BASE);
   await ext("await chrome.storage.local.set({ auto: true }); return true");
 
@@ -264,7 +267,7 @@ try {
   await t.panelClick("Autofill");
   await filled();
   const text = await t.panelText();
-  check("every status has an icon and a word", ["▲ Needs you (", "✓ Filled ("].every((s) => text.includes(s)) && /– Skipped \(|✎ Yours \(/.test(text), text);
+  check("every status has an icon and a word", ["▲ Needs you (", "✓ Filled ("].every((s) => text.includes(s)) && /○ Skipped \(|✎ Yours \(/.test(text), text);
   await t.js("window.scrollTo(0, 0); return true");
   const shots = [];
   for (const [name, type] of [["normal", "none"], ["deuteranopia", "deuteranopia"], ["protanopia", "protanopia"]]) {

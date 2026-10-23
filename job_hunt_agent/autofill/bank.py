@@ -24,6 +24,7 @@ SIGN_HEADING = re.compile(r"self[- ]?identif|disabilit|veteran|signature|e-?sign
 HISTORY_KEYS = ("history", "education_list")
 ADDRESS_KEYS = ("address1", "address2", "city", "state", "zip", "location", "country")   # = address.ADDRESS_KEYS
 CHOICE_KINDS = ("select", "radio", "checkboxes")
+REPEATER_GROUPS = ("work", "edu")
 US_COUNTRY = "United States of America"
 STATE_NAMES = {code: name.title() for name, code in resume_place.STATE_CODES.items()}
 _DATES = re.compile(r"([A-Za-z]{3,9})\.?\s+(\d{4})")
@@ -33,6 +34,11 @@ _YES_NO = re.compile(r":\s*(yes|no)\b", re.I)
 _MONTH_YEAR = re.compile(r"(0[1-9]|1[0-2])/\d{4}")
 HISTORY_FIELDS = ("company", "title", "location", "start", "end", "current", "school", "degree", "field")
 SPONSOR_AUTO = "sponsor_auto"         # GOAL24 §6 setting: On / Off (autofill/sponsor.py reads it)
+START_WEEKS = "start_weeks"           # GOAL30 §1.5 setting: start date = this many weeks from today
+START_DEFAULT = "2"
+MAX_WEEKS = 26
+_A_WAIT = re.compile(r"\b\d+\s*(day|week|month)s?\b|\b(one|two|three|four|a|an)\s+(day|week|month)s?\b|immediate|asap|"
+                     r"as soon as possible|right away|^\d{1,2}/(\d{1,2}/)?\d{4}$|^\d{4}-\d{2}(-\d{2})?$", re.I)
 ON_OFF = ("On", "Off")
 _YES = re.compile(r"^\s*yes\b", re.I)
 
@@ -128,7 +134,7 @@ def seed_values(pid: str) -> dict[str, str]:
             "github": str(saved.get("github") or profile.get("github") or ""),
             "salary": str(saved.get("salary") or ""), "start_date": str(saved.get("start") or ""),
             "relocate": str(saved.get("relocate") or ""), "years_exp": years.group(0) if years else "",
-            "sponsor_now": sponsor, "sponsor_future": sponsor, SPONSOR_AUTO: "On",
+            "sponsor_now": sponsor, "sponsor_future": sponsor, SPONSOR_AUTO: "On", START_WEEKS: START_DEFAULT,
             "degree": school.get("degree", ""), "field_of_study": school.get("field", ""),
             "school": school.get("school", ""), "grad_date": school.get("end", ""),
             "history": json.dumps(jobs), "education_list": json.dumps(schools)}
@@ -137,9 +143,15 @@ def seed_values(pid: str) -> dict[str, str]:
 def ensure(conn, pid: str) -> None:
     """Seed the person's bank once (a key they later cleared stays cleared). A bank from before GOAL24 gets the
     sponsorship setting row once (On, as the goal says)."""
-    have = {r["key"] for r in conn.execute("SELECT key FROM autofill_answers WHERE profile = ? AND key IN (?, ?)",
-                                           (pid, "sponsor_now", SPONSOR_AUTO))}
-    if have == {"sponsor_now"}:
+    have = {r["key"] for r in conn.execute("SELECT key FROM autofill_answers WHERE profile = ? AND key IN (?, ?, ?)",
+                                           (pid, "sponsor_now", SPONSOR_AUTO, START_WEEKS))}
+    if "sponsor_now" in have and START_WEEKS not in have:  # GOAL30 §1.5: a bank from before gets the setting (2 weeks)
+        entry = keys.BY_KEY[START_WEEKS]
+        with db.tx(conn):
+            conn.execute("INSERT OR IGNORE INTO autofill_answers(profile, key, label, category, answer, updated_at) "
+                         "VALUES (?,?,?,?,?,?)", (pid, START_WEEKS, entry.label, entry.category, START_DEFAULT, _now()))
+        have.add(START_WEEKS)
+    if have == {"sponsor_now", START_WEEKS}:
         entry = keys.BY_KEY[SPONSOR_AUTO]
         with db.tx(conn):
             conn.execute("INSERT OR IGNORE INTO autofill_answers(profile, key, label, category, answer, updated_at) "
@@ -199,15 +211,35 @@ def _derived(key: str, bank: dict, ctx: dict) -> str:
         found_on_board = re.search(r"linkedin\.|jobright\.|indeed\.|glassdoor\.|ziprecruiter\.|dice\.com",
                                    str(ctx.get("source_url") or ""))     # by where the user found the job
         return "Job Board" if found_on_board else "Company Website"
-    if key in ("current_company", "current_title"):
-        jobs = _list(bank, "history")
+    if key in ("current_company", "current_title"):         # GOAL27: the resume this job uploads, else the user's list
+        jobs = (ctx["resume_jobs"]() if callable(ctx.get("resume_jobs")) else None) or _list(bank, "history")
         return str(jobs[0].get("company" if key == "current_company" else "title") or "") if jobs else ""
     return ""
 
 
 def _out(field: dict, key: keys.Key | None, value: str, option: str, source: str, status: str) -> dict:
     return {"id": field.get("id"), "key": key.key if key else None, "label": key.label if key else None,
-            "value": value, "option": option, "legal": bool(key and key.legal), "source": source, "status": status}
+            "value": value, "option": option, "legal": bool(key and key.legal), "source": source, "status": status,
+            "personal": bool(key and key.no_guess)}
+
+
+def weeks(bank: dict) -> int:
+    """GOAL30 §1.5: the Answers page's "start date = N weeks from today" (2 when not set)."""
+    try:
+        return max(0, min(MAX_WEEKS, int(_answer(bank, START_WEEKS) or START_DEFAULT)))
+    except ValueError:
+        return int(START_DEFAULT)
+
+
+def _start(key: keys.Key, bank: dict) -> tuple[str, str]:
+    """(value, source) for a start date / notice question: the user's saved words when they say a wait or a date ("2 weeks
+    after offer acceptance"), else the user's N weeks setting ("2 weeks"). A date box turns either into a date (extension)."""
+    stored = _answer(bank, key.key)
+    if stored and _A_WAIT.search(stored):
+        return stored, "bank"
+    if key.key == "notice" and _answer(bank, "start_date") and _A_WAIT.search(_answer(bank, "start_date")):
+        return _answer(bank, "start_date"), "bank"
+    return f"{weeks(bank)} weeks", "setting"
 
 
 def _signing(field: dict, ctx: dict) -> bool:
@@ -231,18 +263,29 @@ def _one(field: dict, bank: dict, own: dict, ctx: dict) -> dict:
     board = str(ctx.get("board") or "")
     qnorm = keys.norm(label, ctx.get("company"))
     company = ctx.get("overrides") or {}                # this company's own answers (legal / EEO)
+    job = ctx.get("job_answers") or {}                  # what the user kept for this job only
+    if job.get(CUSTOM + qnorm):
+        return _out(field, None, job[CUSTOM + qnorm], "", "job", "fill")
     if company.get(CUSTOM + qnorm):
         return _out(field, None, company[CUSTOM + qnorm], "", "company", "fill")
-    key = keys.classify(qnorm, field.get("hints") or []) or keys.by_choices(field.get("options"))
+    if field.get("group") in REPEATER_GROUPS:           # GOAL30 §0: a field of one job / school entry
+        return _out(field, None, "", "", "", "skip")    # comes from the work history, never the user's address
+    hinted = keys.BY_KEY.get(str(field.get("key") or ""))   # GOAL27: the extension's classifier, when it is sure
+    key = ((hinted if hinted and keys.hint_ok(hinted, label) else None)
+           or keys.classify(qnorm, field.get("hints") or []) or keys.by_choices(field.get("options")))
     if key and key.key == "full_name" and _signing(field, ctx):
         key = keys.BY_KEY["signature_name"]
+    if key and job.get(key.key) and key.key not in ADDRESS_KEYS:
+        return _out(field, key, job[key.key], "", "job", "fill")
     if key and company.get(key.key):
         option = ((bank.get(key.key) or {}).get("options") or {}).get(board, "")
         option = option if keys.norm(option).startswith(keys.norm(company[key.key])) else ""
         return _out(field, key, company[key.key], option, "company", "fill")
     saved = _own_answer(own, qnorm, fuzzy=key is None)
     if saved:
-        return _out(field, None, saved["answer"], saved["options"].get(board, ""), "saved", "fill")
+        out = _out(field, None, saved["answer"], saved["options"].get(board, ""), "saved", "fill")
+        origin = ctx["origin"](saved.get("key")) if callable(ctx.get("origin")) else None
+        return {**out, "origin": origin} if origin else out
     if key is None:
         long_q = ctx.get("long_question")               # saved long answers are offered, never filled
         offer = bool(long_q) and field.get("kind") == "textarea" and bool(long_q.search(qnorm))
@@ -262,6 +305,9 @@ def _one(field: dict, bank: dict, own: dict, ctx: dict) -> dict:
         saved_yes = bool(_YES.match(_answer(bank, key.key)))
         option = ((bank.get(key.key) or {}).get("options") or {}).get(board, "") if saved_yes else ""
         return _out(field, key, "Yes", option, "sponsor", "fill")
+    if key.key in ("start_date", "notice"):              # GOAL30 §1.5: one fact, the user's N weeks
+        value, source = _start(key, bank)
+        return {**_out(field, key, value, "", source, "fill"), "weeks": weeks(bank)}
     stored = _answer(bank, key.key)
     value = stored or ("" if key.legal else _derived(key.key, bank, ctx))
     if value:
@@ -272,7 +318,7 @@ def _one(field: dict, bank: dict, own: dict, ctx: dict) -> dict:
 
 def own_questions(bank: dict) -> dict:
     """question (normalized) -> the person's saved answer to it."""
-    return {key[len(CUSTOM):]: {"answer": entry["answer"], "options": entry["options"]}
+    return {key[len(CUSTOM):]: {"answer": entry["answer"], "options": entry["options"], "key": key}
             for key, entry in bank.items() if key.startswith(CUSTOM)}
 
 
@@ -288,7 +334,60 @@ def resolve(conn, pid: str, fields, ctx: dict) -> list[dict]:
     ctx = {**ctx, "past": past_employers.profile_keys({**config.profile(pid), "id": pid}),
            "overrides": overrides_for(conn, pid, ctx.get("company")), "long_question": LONG_QUESTION if snippets else None}
     own = own_questions(bank)
-    return [_one(f, bank, own, ctx) for f in fields[:MAX_FIELDS] if isinstance(f, dict)]
+    from . import meaning, origin
+    ctx = {**ctx, "job_answers": meaning.job_answers(conn, pid, ctx.get("job_key") or ""),
+           "origin": lambda key: origin.of(conn, pid, key, ctx.get("job_key") or "")}
+    fields = [f for f in fields[:MAX_FIELDS] if isinstance(f, dict)]
+    out = [_one(f, bank, own, ctx) for f in fields]
+    if ctx.get("ask_claude"):                           # GOAL30 §1: wordings no rule knows, one short call
+        out = _by_meaning(conn, pid, fields, out, bank, own, ctx)
+    return out
+
+
+ASK_MAX_LABEL = 300
+
+
+def _askable(field: dict, got: dict, ctx: dict) -> bool:
+    """A question worth one Haiku mapping: unanswered (needs the user, or optional and left empty), in the user's own words not
+    known, not a long free-text question, not a follow-up, not inside a job / school entry."""
+    label = str(field.get("label") or "")
+    if got["status"] not in ("needs", "skip") or got["key"] or not label or len(label) > ASK_MAX_LABEL:
+        return False
+    if field.get("group") or field.get("kind") in ("file", "checkbox"):
+        return False
+    qnorm = keys.norm(label, ctx.get("company"))
+    long_q = ctx.get("long_question_all")
+    if keys.FOLLOW_UP.search(qnorm) or (field.get("kind") == "textarea" and long_q and long_q.search(qnorm)):
+        return False
+    return True
+
+
+def _by_meaning(conn, pid: str, fields: list, out: list, bank: dict, own: dict, ctx: dict) -> list:
+    from . import meaning
+    items = [{"id": f.get("id"), "label": f.get("label"), "qnorm": keys.norm(f.get("label"), ctx.get("company")),
+              "options": f.get("options") or []} for f, got in zip(fields, out) if _askable(f, got, ctx)]
+    if not items:
+        return out
+    mapped = meaning.ask(conn, pid, items, [q for q in own if own[q]["answer"]], runner=ctx.get("runner"))
+    if not mapped:
+        return out
+    by_id = {str(f.get("id")): f for f in fields}
+    fixed = []
+    for got in out:
+        target = mapped.get(got["id"]) if got["id"] is not None else None
+        field = by_id.get(str(got["id"]))
+        if not target or field is None:
+            fixed.append(got)
+            continue
+        why = f"Claude read this question as {meaning.label_of(target)}: check it"
+        if target.startswith(CUSTOM):
+            saved = own.get(target[len(CUSTOM):])
+            again = (_out(field, None, saved["answer"], saved["options"].get(str(ctx.get("board") or ""), ""), "saved",
+                          "fill") if saved and saved["answer"] else got)
+        else:
+            again = _one({**field, "key": target, "mapped": True}, bank, own, ctx)
+        fixed.append({**again, "review": again["status"] == "fill", "why": why, "mapped": target})
+    return fixed
 
 
 def _clean_history(value: str) -> str:
@@ -328,6 +427,11 @@ def save(conn, pid: str, key: str, answer, board: str | None = None, option: str
         text = next((v for v in ON_OFF if v.lower() == text.lower()), None) or ""
         if not text:
             raise ValueError("this setting is On or Off")
+    elif key == START_WEEKS:                            # GOAL30 §1.5: "2" or "2 weeks", 0 to 26
+        found = re.fullmatch(r"(\d{1,2})( ?weeks?)?", text.lower())
+        if not found or int(found.group(1)) > MAX_WEEKS:
+            raise ValueError(f"a number of weeks from 0 to {MAX_WEEKS}")
+        text = str(int(found.group(1)))
     elif not key.startswith(CUSTOM) and (key not in keys.BY_KEY or key in keys.DERIVED):
         raise ValueError(f"unknown answer {key!r}")
     if key.startswith(CUSTOM) and len(key) <= len(CUSTOM):

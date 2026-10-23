@@ -147,9 +147,33 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_baseline_master(args: argparse.Namespace) -> int:
+    """GOAL28 §1: the person's one master resume becomes the base (old bases archived, nothing deleted)."""
+    from . import config
+    from .resume import master
+    if not args.profile:
+        print("error: baseline master needs -p <profile>", file=sys.stderr)
+        return 2
+    src = Path(args.docx)
+    try:
+        out = master.install(src, config.PROFILES / args.profile, args.name or src.stem,
+                             Path(args.pdf) if args.pdf else None)
+    except (ValueError, FileNotFoundError) as err:
+        print(f"error: {err}", file=sys.stderr)
+        return 2
+    norm = out["normalized"]
+    print(f"master installed as {out['docx']}; links shown as {', '.join(norm['links']) or 'nothing'}; dates on a "
+          f"right tab: {len(norm['dates_tabbed'])} lines; archived: {', '.join(out['archived']) or 'nothing'}")
+    if out["resume"]["_import"]["known_added"]:
+        print(f"known_skills.txt += {', '.join(out['resume']['_import']['known_added'])}")
+    return 0
+
+
 def cmd_baseline(args: argparse.Namespace) -> int:
     from . import config
     from .resume import baseline
+    if args.action == "master":
+        return cmd_baseline_master(args)
     try:
         resume = baseline.import_baseline(args.docx, config.PROFILES / args.profile)
     except (ValueError, FileNotFoundError) as err:
@@ -169,9 +193,48 @@ def cmd_baseline(args: argparse.Namespace) -> int:
 def _top_line(rank: int, row: dict, result) -> str:
     more = len(row.get("also", ()))
     where = (row.get("location") or "")[:28] + (f" +{more} locations" if more else "")
-    worth = f"{result.worth:>3}" if result.scored else "  —"
+    worth = f"{result.worth:>3}" if result.scored else "  ?"
     head = f"{rank:>2}. {worth}  {row['company'][:22]:<22} {row['title'][:58]:<58} {where}"
     return f"{head}\n            " + " · ".join(f"[{c}]" for c in result.chips[:6])
+
+
+def cmd_genai_backfill(args) -> int:
+    """GOAL28 §4: write each open job's GenAI terms into its fit rows and re-judge a person's JD gate, once."""
+    from . import db, genai_backfill
+    conn = db.connect(args.db) if args.db else db.connect()
+    for result in genai_backfill.main(conn, args.gb_profiles or None, args.dry_run):
+        print(genai_backfill.report(result))
+    return 0
+
+
+def cmd_prune(args) -> int:
+    """GOAL33 §3b: archive, then delete, the logs nobody reads (the fetch does it daily after the backup)."""
+    from . import db, prune
+    conn = db.connect(args.db) if args.db else db.connect()
+    got = prune.run(conn, apply=args.apply)
+    print(("pruned (archived in data/archive/): " if args.apply else "would prune (dry run; --apply to do it): ")
+          + ", ".join(f"{table} {n:,}" for table, n in got.items()))
+    return 0
+
+
+def cmd_compact(args) -> int:
+    """GOAL33 §3b: VACUUM INTO a new file and check it; the live file is only read. Swap it by hand (PROGRESS33)."""
+    from . import db, prune
+    conn = db.connect(args.db) if args.db else db.connect()
+    got = prune.compact(conn, args.into)
+    print(json.dumps(got, indent=1))
+    return 0 if got["ok"] else 1
+
+
+def cmd_ghost_scan(args) -> int:
+    """GOAL29 §3: re-check every open title-matched job for ghost signals; prints how many are flagged per signal."""
+    from . import db, ghost
+    conn = db.connect(args.db) if args.db else db.connect()
+    got = ghost.scan(conn, db.utcnow())
+    print(f"ghost check: {got['checked']} open matched jobs, {got['read']} JDs read, {got['flagged']} flagged")
+    for kind in ghost.ORDER:
+        print(f"  {kind:<10} {got['by_kind'][kind]}")
+    return 0
 
 
 def cmd_resignal(args) -> int:
@@ -376,9 +439,11 @@ def build_parser() -> argparse.ArgumentParser:
     status.add_argument("state", choices=["saved", "applied", "screen", "interview", "offer", "rejected", "ghosted"])
     status.set_defaults(func=cmd_status)
     base = sub.add_parser("baseline", help="parse a resume .docx into profiles/<p>/baseline.json")
-    base.add_argument("action", choices=["import"])
+    base.add_argument("action", choices=["import", "master"])
     base.add_argument("docx")
     base.add_argument("-p", "--profile", default=None)
+    base.add_argument("--pdf", default=None, help="master: the PDF to keep beside it")
+    base.add_argument("--name", default=None, help="master: file name stem (default: the .docx's own)")
     base.set_defaults(func=cmd_baseline)
     top = sub.add_parser("top", help="best open jobs for a profile by worth score, with reason chips")
     top.add_argument("-p", "--profile", default=None)
@@ -386,6 +451,22 @@ def build_parser() -> argparse.ArgumentParser:
     top.add_argument("-n", type=int, default=20)
     top.add_argument("--json", action="store_true")
     top.set_defaults(func=cmd_top)
+    gb = sub.add_parser("genai-backfill", help="GOAL28: GenAI terms into the fit rows + the JD gate, counts per family")
+    gb.add_argument("--only", action="append", dest="gb_profiles", help="one profile (repeatable); default every profile")
+    gb.add_argument("--dry-run", action="store_true", help="count only, write nothing")
+    gb.add_argument("--db", default=None, help="a database file to use instead of the live one (a backup copy)")
+    gb.set_defaults(func=cmd_genai_backfill)
+    pr = sub.add_parser("prune", help="GOAL33: archive then delete old job events, fetch logs and JD versions nobody reads")
+    pr.add_argument("--apply", action="store_true", help="do it (default: count only)")
+    pr.add_argument("--db", default=None, help="a database file to use instead of the live one (a copy)")
+    pr.set_defaults(func=cmd_prune)
+    cp = sub.add_parser("compact", help="GOAL33: VACUUM INTO a new, smaller file and check it (swap it by hand)")
+    cp.add_argument("into", help="the new file (must not exist)")
+    cp.add_argument("--db", default=None, help="a database file to use instead of the live one (a copy)")
+    cp.set_defaults(func=cmd_compact)
+    gh = sub.add_parser("ghost-scan", help="GOAL29: flag possible ghost jobs (badge + small Priority penalty), counts")
+    gh.add_argument("--db", default=None, help="a database file to use instead of the live one (a backup copy)")
+    gh.set_defaults(func=cmd_ghost_scan)
     resig = sub.add_parser("resignal", help="re-derive title families, required years, employment type, staffing and "
                                              "sponsorship signals for stored jobs, then rebuild fits")
     resig.add_argument("--dry", action="store_true", help="only count what would change")

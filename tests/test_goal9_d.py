@@ -85,7 +85,7 @@ class Goal9DBrowserTest(unittest.TestCase):
                            "the status counts follow", "the total follows", "the table was not reloaded",
                            "the server has the move", "⌘Z brings the row back where it was", "and the counts and total with it",
                            "the server undid it", "a refused change is put back with a message",
-                           "on Applied a row moved to Interview leaves at once", "⌘Z puts it back on Applied",
+                           "on Interviewing a row moved to Rejected leaves at once", "⌘Z puts it back on Interviewing",
                            "Move to… on a card paints at once"])
 
     def test_inline_edit_and_editor_update_without_reload(self):

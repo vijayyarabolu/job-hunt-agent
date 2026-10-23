@@ -40,7 +40,7 @@ class StatsHtmlTest(unittest.TestCase):
 
     def test_rates_round_half_up_like_the_old_view(self):
         self.assertEqual(stats_html._pct(0.0625), "6.3%")                  # 1 of 16 (Python's round() said 6.2)
-        self.assertEqual(stats_html._pct(None), "—")
+        self.assertEqual(stats_html._pct(None), "none yet")   # GOAL30-app: no em dash
 
 
 class ResumePanelHtmlTest(unittest.TestCase):

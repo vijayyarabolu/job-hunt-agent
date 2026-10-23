@@ -58,3 +58,8 @@ def _no_live_resume_service() -> None:
 
 
 _no_live_resume_service()
+
+
+# a browser test opening a well-matched job ran the real Offer check (a Claude call). Every Claude call the product
+# makes through the CLI goes through claude_bin(); here it is /usr/bin/false, so it fails at once ("no answer came back").
+os.environ["JOB_HUNT_AGENT_CLAUDE_BIN"] = "/usr/bin/false"

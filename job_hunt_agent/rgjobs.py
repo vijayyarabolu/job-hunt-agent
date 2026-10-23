@@ -13,6 +13,8 @@
 - GOAL22: a job whose city can't be worked out (or that names several) is not sent: generate() returns it under
   `needs_place` with its cities, and the browser asks; the pick ("City, ST" or Remote) is kept for that job.
 """
+import threading
+import time
 from urllib.parse import quote
 
 from . import config, db, outside, resume_place, resumes, rg_html, rgclient, rqueue, tailored
@@ -53,9 +55,59 @@ def _latest(jobs: list[dict], key: str) -> dict:
     return out
 
 
-def listing(pid: str) -> list[dict]:
-    jobs = rgclient.request("GET", f"/api/jobs?profile={quote(pid)}&lean=1").get("jobs") or []   # all, small
+# One answer past the 4 s timeout (the resume service paged out on a computer short of memory) showed "Resume app is
+# offline" and Queue 0 / Ready 0 / Done today 0. The list waits longer; askers share the outcome of a call that
+# started after they asked (never an older one: it may predate their own change); and for the page's lists
+# (keep=True) one failed call answers the last good list (if not older than LAST_GOOD_MAX_S) and only two failed
+# tries in a row are offline. Autofill, approving and archiving ask strictly: an old list would pick a resume it
+# cannot get.
+LISTING_TIMEOUT_S = 10
+OFFLINE_AFTER = 2
+LAST_GOOD_MAX_S = 300
+_LISTED: dict[tuple, dict] = {}   # (resume service address, pid) -> {"jobs", "good_at", "tried", "error", "fails"}
+_NOTHING = {"jobs": None, "good_at": 0.0, "tried": -1.0, "error": None, "fails": 0}
+_LISTING_LOCKS: dict[tuple, threading.Lock] = {}
+_LOCKS_LOCK = threading.Lock()
+
+
+def _list_once(pid: str) -> list[dict]:
+    jobs = rgclient.request("GET", f"/api/jobs?profile={quote(pid)}&lean=1",       # all, small
+                            timeout=LISTING_TIMEOUT_S).get("jobs") or []
     return [j for j in jobs if j.get("profile") == pid]
+
+
+def _fetch(pid: str, kept: dict) -> list[dict]:
+    try:
+        return _list_once(pid)
+    except rgclient.Offline:
+        if kept["jobs"] is not None:
+            raise
+        return _list_once(pid)                   # nothing to show meanwhile: a second try decides
+
+
+def _attempt(key: tuple, pid: str, kept: dict) -> dict:
+    started = time.monotonic()
+    try:
+        jobs = _fetch(pid, kept)
+    except rgclient.Offline as err:
+        return {**kept, "tried": started, "error": str(err), "fails": kept["fails"] + 1}
+    return {"jobs": jobs, "good_at": started, "tried": started, "error": None, "fails": 0}
+
+
+def listing(pid: str, keep: bool = False) -> list[dict]:
+    asked, key = time.monotonic(), (rgclient.address(), pid)
+    with _LOCKS_LOCK:
+        lock = _LISTING_LOCKS.setdefault(key, threading.Lock())
+    with lock:
+        state = _LISTED.get(key) or _NOTHING
+        if state["tried"] < asked:               # no call started since this ask: make one (else share its outcome)
+            state = _LISTED[key] = _attempt(key, pid, state)
+    if state["error"] is None:
+        return state["jobs"]
+    fresh = state["jobs"] is not None and time.monotonic() - state["good_at"] <= LAST_GOOD_MAX_S
+    if keep and fresh and state["fails"] < OFFLINE_AFTER:
+        return state["jobs"]
+    raise rgclient.Offline(state["error"])
 
 
 def scores(conn, pid: str) -> dict:
@@ -69,7 +121,7 @@ def statuses(conn, pid: str, rescore=None, now=None) -> dict:
     a real ready resume). `rescore(jobs)` brings them in step."""
     now = now or db.utcnow()
     try:
-        jobs = listing(pid)
+        jobs = listing(pid, keep=True)
         new = outside.sync(conn, pid, jobs)
         if rescore is not None:
             rescore(jobs)
@@ -159,7 +211,7 @@ def _item(conn, pid: str, uid: str) -> dict:
         raise KeyError(uid)
     text = jd_for(conn, pid, uid)
     if len(text) < MIN_JD_CHARS:
-        text = _read_posting(conn, uid, row["url"] or row["apply_url"], f"{row['company']}, {row['title']}")
+        text = _read_posting(conn, uid, row["url"] or row["apply_url"], f"{row['company']} · {row['title']}")
     place = resume_place.resolve(row["workplace"], row["location"], text)      # the contact line's city
     chosen = picked(conn, pid, uid)
     if chosen is None and place["pick"]:
@@ -232,7 +284,7 @@ def detail(pid: str, rg_id: int) -> dict:
             "file_name": _file_name(pid, result), "reasons": job.get("reasons") or [], "times": job.get("times") or {},
             "outdated": job.get("outdated") or [], "badge": job.get("badge"), "archived_at": job.get("archived_at"),
             "fix_note": job.get("fix_note"), "ats_html": rg_html.ats(result.get("ats")),
-            "diff_html": rg_html.diff(result.get("diff")),
+            "diff_html": rg_html.diff(result.get("diff"), result.get("mirror")),
             # GOAL19 §4 (resumegen GOAL5): the last edit in one line, how many edits Undo can take back (None: this
             # resumegen has no Undo, the button stays hidden), and when the files were made (file URLs carry it so
             # no viewer keeps the old PDF after a note or a re-import)

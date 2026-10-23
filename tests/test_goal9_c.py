@@ -19,7 +19,7 @@ import docx
 from job_hunt_agent import config, db, fits, gsync, resume_upload, rgclient, server, store, trackapi
 from job_hunt_agent.ats.common import FetchResult, make_job
 from job_hunt_agent.finder import http, hunter, ledger, service
-from tests.test_goal6_contacts import JD, KEY, fake_apollo
+from tests.test_goal6_contacts import JD, KEY, PEOPLE, fake_apollo
 from tests.test_goal7_hunter import ACCOUNT, emails
 from tests.test_goal7_ui import CHROME
 from tests.test_goal8_flow import PID as TESTER, PROFILE, TOKEN as RG_TOKEN, FakeResumegen
@@ -71,7 +71,8 @@ class UidPanelTest(TrackerCase):
         self.assertEqual((panel["app"], panel["uid"], panel["company"]), (None, self.job, "Acme"))
         self.assertEqual(panel["domain"], {"value": "acme.ai", "source": "link in the JD"})
         self.assertTrue(any(s["name"] == "Jane Doe" for s in panel["suggestions"]))     # named in the JD
-        self.assertEqual(panel["providers"]["apollo"]["estimate"]["credits"], 2)        # the cost, before any click
+        self.assertEqual(panel["providers"]["apollo"]["estimate"]["credits"], 0)        # the cost, before any click
+        self.assertIn("0 credits (documented)", panel["providers"]["apollo"]["estimate"]["detail"])   # GOAL28 §5
         self.assertEqual(len(panel["links"]["linkedin"]), 4)
         self.assertEqual(panel["contacts"], [])
         self.assertEqual(self.rows(), 0)
@@ -86,11 +87,11 @@ class UidPanelTest(TrackerCase):
         calls = []
         with mock.patch.object(http, "call", side_effect=fake_apollo(calls)):
             out = service.lookup(self.conn, PID, None, "apollo", "acme.ai", uid=self.job)
-        self.assertEqual(out["spent"], 2)
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(out["spent"], 0)                               # GOAL28: the documented search, 0 credits
+        self.assertEqual(len(calls), 2)                                 # the manager and the peer (the JD names the recruiter)
         self.assertTrue(any(s["source"] == "apollo" for s in out["panel"]["suggestions"]))
         self.assertEqual(self.rows(), 0)
-        self.assertEqual(ledger.usage(self.conn, PID)["used_today"], 2)
+        self.assertEqual(ledger.usage(self.conn, PID)["used_today"], 0)
         with no_call:                                                   # the next open shows it free, from the cache
             again = service.panel(self.conn, PID, None, uid=self.job)
         self.assertEqual(again["providers"]["apollo"]["estimate"]["credits"], 0)
@@ -142,7 +143,7 @@ class UidPanelTest(TrackerCase):
         calls = []
         with mock.patch.object(http, "call", side_effect=fake_apollo(calls)):
             out = server.route(self.conn, "POST", "/api/contacts/lookup", {**args, "provider": "apollo", "domain": "acme.ai"}, NOW)
-        self.assertEqual((out["spent"], self.rows()), (2, 0))
+        self.assertEqual((out["spent"], self.rows()), (0, 0))
         with no_call:
             row = server.route(self.conn, "POST", "/api/contacts/add", {**args, "contact": {"name": "Jane Doe", "source": "jd"}}, NOW)
         self.assertEqual((row["status"], self.rows()), ("saved", 1))
@@ -165,8 +166,9 @@ def seed_feed(conn) -> None:
 
 
 def fake_providers(calls: list):
-    """Apollo (goal6's fake) and Hunter (goal7's answers) in one http.call double; every call is recorded."""
-    apollo = fake_apollo([])
+    """Apollo (goal6's fake: a manager, no peer, so Hunter is still asked) and Hunter (goal7's answers) in one
+    http.call double; every call is recorded."""
+    apollo = fake_apollo([], people={"people": [p for p in PEOPLE["people"] if "Engineer" not in p["title"]]})
 
     def call(provider, method, url, headers, params=None, body=None):
         calls.append((provider, url.rsplit("/", 1)[-1]))
@@ -267,8 +269,8 @@ class Goal9cBrowserTest(unittest.TestCase):
                            "the pane shows the new row without a reload", "phone: Find contacts is one tap away in the sheet",
                            "phone: opening it sends no lookup", "phone: Apollo asks first with the cost",
                            "phone: Cancel sends nothing"])
-        paid = [c for c in self.calls if c[1] in ("enrich", "organization_top_people", "domain-search")]
-        self.assertEqual(paid, [("apollo", "enrich"), ("apollo", "organization_top_people"), ("hunter", "domain-search")])
+        paid = [c for c in self.calls if c[1] in ("api_search", "domain-search")]
+        self.assertEqual(paid, [("apollo", "api_search"), ("apollo", "api_search"), ("hunter", "domain-search")])
         self.assertNotIn(KEY, json.dumps(self.checks))                          # a key never reaches the page
 
     def test_the_saved_row_from_a_contact_never_reaches_the_sheet(self):

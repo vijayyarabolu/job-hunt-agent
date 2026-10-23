@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- GOAL34: Dice's Easy Apply wizard, step 1 (Resume & Cover Letter), as the user saw it 2026-10-22 (Prompts/ux34/dice-cover-letter.png).
+     Modeled, not saved from dice.com (no snapshot of the page was sent): the cover letter card's file box is a hidden input
+     placed after the card's text, so its only nearby text is the whole card; the drop zone is a button that opens Dice's
+     own file picker, and the widget takes a file from that picker or a real drop only. A file set on the hidden input
+     (what Autofill's Upload as PDF does) changes nothing on the card, the way it did for him. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Apply | Dice.com</title>
+<style>
+  body { font-family: sans-serif; background: #f5f5f5; margin: 0; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px; }
+  .card { background: #fff; border-radius: 8px; padding: 20px 24px; margin: 16px 0; }
+  .card-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .card-title { font-size: 20px; font-weight: 500; margin: 0 0 12px; }
+  .optional { font-style: italic; font-size: 14px; }
+  .dropzone { width: 100%; padding: 22px; border: 2px dashed #6cc; background: #effcfc; color: #1a6a8a; font-size: 18px; cursor: pointer; }
+  .hint { color: #555; }
+  .next { background: #1a6a8a; color: #fff; border: 0; border-radius: 30px; padding: 16px 40px; font-size: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="progress" role="progressbar" aria-valuenow="50"></div>
+  <p>Step 1 of 2</p>
+  <h1>Resume &amp; Cover Letter</h1>
+  <div class="card" data-testid="resume-card">
+    <div class="card-header"><h3 class="card-title">Resume <span aria-hidden="true">*</span></h3></div>
+    <div class="file"><a href="#" class="file-name">Zz_Testcase_AI_Engineer_Resume.pdf</a>
+      <button type="button" aria-label="File options">•••</button></div>
+    <p>New file</p>
+  </div>
+  <div class="card" data-testid="cover-letter-card">
+    <div class="card-body"><div class="card-header"><h3 class="card-title">Cover letter</h3>
+      <span class="optional">Optional</span></div><button type="button" class="dropzone" id="cover-drop"><svg aria-hidden="true" width="24" height="24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor"/></svg><span id="cover-text">Upload your cover letter</span></button><p class="hint">File types supported .pdf, .doc, .docx, .txt, .rtf up to 2MB</p></div>
+    <input type="file" accept=".pdf,.doc,.docx,.txt,.rtf" style="display:none">
+  </div>
+  <button type="button" class="next" id="next">Next</button>
+</main>
+<script>
+  // Dice's widget: its own picker (a fresh input made on click) or a real drop. The card's hidden input is not wired.
+  window.__dice = { cover: null, pickerOpened: 0, nextClicks: 0 };
+  const take = (file) => { window.__dice.cover = file.name; document.getElementById("cover-text").textContent = file.name; };
+  const drop = document.getElementById("cover-drop");
+  drop.addEventListener("click", () => {
+    window.__dice.pickerOpened++;
+    const picker = Object.assign(document.createElement("input"), { type: "file", accept: ".pdf,.doc,.docx,.txt,.rtf" });
+    picker.addEventListener("change", () => picker.files[0] && take(picker.files[0]));
+    picker.click();
+  });
+  drop.addEventListener("dragover", (e) => e.preventDefault());
+  drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.isTrusted && e.dataTransfer.files[0]) take(e.dataTransfer.files[0]); });
+  document.getElementById("next").addEventListener("click", () => { window.__dice.nextClicks++; });
+</script>
+</body>
+</html>

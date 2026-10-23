@@ -108,6 +108,43 @@ def _questions(conn, pid: str, since: str) -> list[dict]:
         "ORDER BY seen DESC, last_at DESC LIMIT ?", (pid, since, TOP_QUESTIONS))]
 
 
+FIELD_STATUSES = ("filled", "review", "needs", "failed", "kept", "skipped")
+MAX_FIELDS = 150
+KEEP_FIELD_DAYS = 30
+
+
+def record_fields(conn, pid: str, board: str | None, step: str, items, version: str, now) -> int:
+    """GOAL27: one row per field of a fill (label, kind, canonical key, result and why; never a value). Rows older
+    than 30 days go."""
+    rows = []
+    for item in (items if isinstance(items, list) else [])[:MAX_FIELDS]:
+        if not isinstance(item, dict) or item.get("status") not in FIELD_STATUSES:
+            continue
+        rows.append((pid, str(board or "generic")[:40], str(step or "")[:60], " ".join(str(item.get("label") or "").split())[:200],
+                     str(item.get("kind") or "text")[:20], str(item.get("key") or "")[:40] or None, item["status"],
+                     str(item.get("why") or "")[:200], str(version or "")[:20], db.iso(now or db.utcnow())))
+    with db.tx(conn):
+        conn.executemany("INSERT INTO autofill_fields(profile, board, step, label, kind, key, status, why, version, at) "
+                         "VALUES (?,?,?,?,?,?,?,?,?,?)", rows)
+        conn.execute("DELETE FROM autofill_fields WHERE at < ?",
+                     (_iso((now or datetime.now(timezone.utc)) - timedelta(days=KEEP_FIELD_DAYS)),))
+    return len(rows)
+
+
+def _field_results(conn, pid: str, since: str) -> dict:
+    """Per board: how many fields ended filled / review / needs / failed, and the fields that failed or needed the user
+    most (with why), so a break shows in one place."""
+    boards: dict[str, dict] = {}
+    for r in conn.execute("SELECT board, status, count(*) AS n FROM autofill_fields WHERE profile = ? AND at >= ? "
+                          "GROUP BY board, status", (pid, since)):
+        boards.setdefault(r["board"], {"board": r["board"], **{k: 0 for k in FIELD_STATUSES}})[r["status"]] = r["n"]
+    worst = [dict(r) for r in conn.execute(
+        "SELECT board, label, kind, key, status, why, count(*) AS n, max(at) AS last_at FROM autofill_fields "
+        "WHERE profile = ? AND at >= ? AND status IN ('failed', 'needs') GROUP BY board, label, status, why "
+        "ORDER BY status = 'failed' DESC, n DESC, last_at DESC LIMIT 20", (pid, since))]
+    return {"boards": sorted(boards.values(), key=lambda b: (-b["failed"], b["board"])), "worst": worst}
+
+
 def last_canary(conn) -> dict | None:
     row = conn.execute("SELECT max(run_at) AS at FROM autofill_canary").fetchone()
     if not row or not row["at"]:
@@ -121,6 +158,7 @@ def report(conn, pid: str, now: datetime | None = None) -> dict:
     since = _iso((now or datetime.now(timezone.utc)) - timedelta(days=DAYS))
     return {"days": DAYS, "boards": _fill_rates(conn, pid, since), "errors": _errors(conn, pid, since),
             "questions": _questions(conn, pid, since), "canary": last_canary(conn), "notices": notices(conn),
+            "fields": _field_results(conn, pid, since),
             "extension": extension(conn, pid)}
 
 
@@ -128,50 +166,71 @@ def _rate(filled: int, fields: int) -> float:
     return filled / fields if fields else 0.0
 
 
-def _judge(conn, page: dict) -> tuple[bool, str]:
-    """(ok, the notice line when not ok) for one canary page against its last good run and its expected fills. A live
-    page is another posting each night: it fails only on an error or when it filled nothing; a closed posting (no
-    form) is skipped."""
+def _day(at) -> str:
+    """'Oct 15' from '2026-10-15T08:10:05Z'."""
+    try:
+        return datetime.fromisoformat(str(at).replace("Z", "+00:00")).strftime("%b %-d")
+    except ValueError:
+        return str(at or "")[:10]
+
+
+def _judge(conn, page: dict) -> tuple[bool, str, str]:
+    """(ok, the notice line when not ok, what to keep in detail) for one canary page. GOAL30 §0c: a fixture fails on
+    a real drop (fewer fields filled than its last good run, and clearly less of the page) or when it fills fewer than
+    its fixture expects; more fields found while the fills held is no drop (the detail says so). A live page is
+    another posting each night: it fails only on an error or when it filled nothing; a closed posting (no form) is
+    skipped."""
     name, fields, filled = str(page["name"]), int(page.get("fields") or 0), int(page.get("filled") or 0)
+    why = f": {page['error']}" if page.get("error") else ""
     if page.get("skip"):
-        return True, ""
+        return True, "", str(page["skip"])
     ok = not page.get("error")
     if page.get("source") == "live":
         ok = ok and (fields == 0 or filled > 0)
-        return ok, "" if ok else f"{page.get('board') or '?'}: live page filled {filled} of {fields}" + (
-            f": {page['error']}" if page.get("error") else "")
-    prev = conn.execute("SELECT fields, filled FROM autofill_canary WHERE name = ? AND ok = 1 AND fields > 0 "
+        return ok, "" if ok else f"{page.get('board') or '?'}: live page filled {filled} of {fields}{why}", page.get("error") or ""
+    prev = conn.execute("SELECT fields, filled, run_at FROM autofill_canary WHERE name = ? AND ok = 1 AND fields > 0 "
                         "ORDER BY run_at DESC LIMIT 1", (name,)).fetchone()
     expected = page.get("expected")
-    if expected is not None and filled < int(expected):
-        ok = False
-    if prev and _rate(filled, fields) + DROP < _rate(prev["filled"], prev["fields"]):
-        ok = False
-    if ok:
-        return True, ""
-    was = f" (was {prev['filled']})" if prev else f" (expected {expected})" if expected is not None else ""
-    why = f": {page['error']}" if page.get("error") else ""
-    return False, f"{page.get('board') or '?'}: {page.get('step') or name} filled {filled} of {fields}{was}{why}"
+    short = expected is not None and filled < int(expected)
+    dropped = bool(prev) and filled < prev["filled"] and _rate(filled, fields) + DROP < _rate(prev["filled"], prev["fields"])
+    grew = (f"{fields} fields found (was {prev['fields']} on {_day(prev['run_at'])}), fills held at {filled}"
+            if prev and fields > prev["fields"] and filled >= prev["filled"] else "")
+    if ok and not short and not dropped:
+        return True, "", grew
+    reason = (f"down from {prev['filled']} of {prev['fields']} on {_day(prev['run_at'])}" if dropped
+              else f"it should fill at least {expected}" if short else "")
+    what = f"{page.get('board') or '?'}: {page.get('step') or name} page filled {filled} of {fields}"
+    return False, what + (f", {reason}" if reason else "") + why, "; ".join(x for x in (reason, page.get("error"), grew) if x)
+
+
+def _again(conn, page: dict) -> bool:
+    """The same failure as the run before (same page, same counts): already in a notice, not a new one."""
+    last = conn.execute("SELECT fields, filled, ok FROM autofill_canary WHERE name = ? ORDER BY run_at DESC, id DESC "
+                        "LIMIT 1", (str(page["name"]),)).fetchone()
+    return bool(last) and not last["ok"] and (last["fields"], last["filled"]) == (int(page.get("fields") or 0),
+                                                                                int(page.get("filled") or 0))
 
 
 def record_canary(conn, run_at: str, pages: list[dict]) -> list[str]:
-    """One nightly run: each page's fill. A page filling clearly less than its last good run (or below what its
-    fixture expects) is a notice for the morning: '<board>: <step> filled 4 of 12 (was 11)'."""
-    drops = []
+    """One nightly run: each page's fill. A page that dropped (or fills below what its fixture expects) is a notice
+    for the morning, once: '<board>: <step> page filled 4 of 12, down from 11 of 12 on Oct 13'. The same failure
+    night after night is not a new notice."""
+    lines = []
     with db.tx(conn):
         for page in pages:
-            ok, line = _judge(conn, page)
+            ok, line, detail = _judge(conn, page)
+            repeat = not ok and _again(conn, page)
             conn.execute("INSERT INTO autofill_canary(run_at, name, board, source, step, fields, filled, expected, ok, detail) "
                          "VALUES (?,?,?,?,?,?,?,?,?,?)",
                          (run_at, str(page["name"]), str(page.get("board") or "?"), str(page.get("source") or "fixture"),
                           str(page.get("step") or ""), int(page.get("fields") or 0), int(page.get("filled") or 0),
-                          page.get("expected"), int(ok), str(page.get("error") or page.get("skip") or "")[:500]))
-            if not ok:
-                drops.append(line)
-        if drops:
+                          page.get("expected"), int(ok), str(detail or "")[:500]))
+            if not ok and not repeat:
+                lines.append(line)
+        if lines:
             conn.execute("INSERT INTO app_notices(kind, text, at) VALUES (?,?,?)",
-                         ("canary", "Autofill's nightly check found a drop: " + "; ".join(drops[:6]), run_at))
-    return drops
+                         ("canary", "Autofill's nightly check: " + "; ".join(lines[:6]), run_at))
+    return lines
 
 
 def notices(conn) -> list[dict]:

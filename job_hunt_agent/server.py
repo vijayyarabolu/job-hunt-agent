@@ -19,19 +19,21 @@ import re
 import secrets
 import socket
 import socketserver
+import sqlite3
 import subprocess
 import sys
 import threading
+import time
 from functools import lru_cache
 from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 from urllib.parse import parse_qs, quote, urlsplit
 
-from . import (api, applyback, applydialog, applyq, config, contacts, db, export_full, fetch, filters, google_move,
-               google_page, gridapi, history, jd_doc, jdcopy, live, notify, ops, outreach, profile_admin,
-               profile_settings, removal, resume_swap, resume_upload, rgclient, rgjobs, rqueue, setup_status,
-               sheet_look, stats, stats_html, trackapi, vendor_howpage, vendors)
+from . import (api, appliedview, applyback, applydialog, applyq, config, contacts, db, export_full, fetch, filters,
+               google_move, google_page, gridapi, history, jd_doc, jdcopy, live, logrotate, notify, ops, outreach,
+               profile_admin, profile_settings, removal, resume_swap, resume_upload, rgclient, rgjobs, rgwatch, rqueue,
+               setup_status, sheet_look, stats, stats_html, trackapi, vendor_howpage, vendors)
 from .autofill import api as autofill, health as autofill_health, package as autofill_pkg
 from .finder import service as finder
 from .google import GoogleError, accounts
@@ -572,7 +574,8 @@ def _tracker_post(conn, pid: str, path: str, args: dict):
     if path == "/api/tracker/undo":                            # the person's last edit
         if args.get("ready"):                                  # Done today → back in Ready
             return trackapi.undo_to_ready(conn, pid, int(args["app"]), person(pid))
-        return trackapi.undo(conn, pid, int(args["app"]) if args.get("app") else None, person(pid))
+        return trackapi.undo(conn, pid, int(args["app"]) if args.get("app") else None, person(pid),
+                             field=str(args["field"]) if args.get("field") else None)
     if path == "/api/vendors":
         return {"vendors": vendors.save(conn, pid, args.get("vendors"), clear=bool(args.get("clear")))}
     if path == "/api/contacts/lookup":                         # one source, on the person's click
@@ -642,6 +645,8 @@ def route(conn, method: str, path: str, args: dict, now):
     if method == "GET":
         if path == "/api/jobs" and args.get("tab") == "resumes":    # Queue / Ready / Done today
             return rqueue.board(conn, pid, args.get("rq") or "ready", now)
+        if path == "/api/jobs" and args.get("tab") == "applied" and args.get("view") == "cards":   # Applied as cards
+            return appliedview.board(conn, pid, args.get("seg") or "all", args.get("q"), now)
         if path == "/api/jobs":
             return api.jobs(conn, pid, args.get("tab", "recommended"), now, filters.parse(args))
         if path == "/api/job":
@@ -679,6 +684,9 @@ def person(pid: str) -> str:
 
 def _post(conn, pid: str, path: str, args: dict, now):
     """Every write the web UI makes."""
+    if path == "/api/offer":                                       # GOAL29 §2: Claude's three areas, once per JD
+        detail = api.job_detail(conn, pid, args["uid"], now)
+        return {"offer": api.offer_panel(conn, pid, args["uid"], detail.get("card"), now, run_llm=True)}
     if path == "/api/triage":
         api.triage(conn, pid, args["uid"], args["state"], now)
         return {"ok": True, "resumes": rqueue.follow_triage(conn, pid, args["uid"], args["state"])}   # GOAL20
@@ -735,11 +743,43 @@ def _digest_loop(stop: threading.Event) -> None:
             log.exception("digest loop: digest failed")
 
 
-def _warm() -> None:
-    try:
-        api.warm(db.utcnow())
-    except Exception:                                       # a cold cache only makes the first load slower
-        log.exception("feed warm-up failed")
+WARM_RETRY_S = (5, 15, 60)                  # GOAL33 §3: a warm-up that met a locked DB tries again
+CHECKPOINT_S = 300
+
+
+def _warm(retry_s: tuple = WARM_RETRY_S, first: bool = False) -> None:
+    for wait in (*retry_s, None):
+        try:
+            api.warm(db.utcnow(), first=first)
+            return
+        except sqlite3.OperationalError as err:              # locked by a long write elsewhere: wait, try again
+            if wait is None:
+                log.exception("feed warm-up failed")
+                return
+            log.warning("feed warm-up: %s; trying again in %s s", err, wait)
+            time.sleep(wait)
+        except Exception:                                   # a cold cache only makes the first load slower
+            log.exception("feed warm-up failed")
+            return
+
+
+def _warm_after_change() -> None:
+    """live.watch's on_change: one try, no waiting on a lock (that would hold the run and edit news back from the
+    tabs); the next change warms again and a page computes what it needs anyway."""
+    _warm(retry_s=())
+
+
+def _checkpoints(stop: threading.Event) -> None:
+    """GOAL33 §3b: the WAL is copied back every few minutes (PASSIVE: never waits on a reader), so it stays small."""
+    while not stop.wait(CHECKPOINT_S):
+        try:
+            conn = db.connect()
+            try:
+                db.checkpoint(conn)
+            finally:
+                conn.close()
+        except sqlite3.Error as err:
+            log.warning("WAL checkpoint skipped: %s", err)
 
 
 def make_server(lan: bool = False, port: int | None = None) -> Server:
@@ -762,12 +802,15 @@ def serve(lan: bool = False, port: int | None = None, fetch_loop: bool = True, s
         threading.Thread(target=poll.loop, args=(stop,), daemon=True, name="mail").start()
         threading.Thread(target=google_move.resume_stopped, args=(config.profile_ids(),), daemon=True,  # GOAL15 §2
                          name="google-move-resume").start()
+        threading.Thread(target=logrotate.loop, args=(stop,), daemon=True, name="log-rotate").start()   # GOAL33 §3
     threading.Thread(target=_digest_loop, args=(stop,), daemon=True, name="digest").start()        # 08:00 digest
     if fetch_loop:                                 # the daily email check and the monthly H-1B refresh
         threading.Thread(target=ops.loop, args=(stop,), daemon=True, name="daily").start()
-    threading.Thread(target=live.watch, args=(stop,), kwargs={"on_change": _warm}, daemon=True,   # GOAL7 SSE + the
+    threading.Thread(target=live.watch, args=(stop,), kwargs={"on_change": _warm_after_change}, daemon=True,   # GOAL7 SSE + the
                      name="live-watch").start()                                        # kept feed refreshed
-    threading.Thread(target=_warm, daemon=True, name="warm-feed").start()
+    threading.Thread(target=rgwatch.watch, args=(stop,), daemon=True, name="rg-watch").start()   # GOAL33 §1
+    threading.Thread(target=_checkpoints, args=(stop,), daemon=True, name="wal-checkpoint").start()   # GOAL33 §3b
+    threading.Thread(target=_warm, kwargs={"first": True}, daemon=True, name="warm-feed").start()
     where = lan_urls(server.server_port, server.token) if lan else [f"http://localhost:{server.server_port}/"]
     print("job-hunt-agent UI on " + "\n   or ".join(where), flush=True)
     try:

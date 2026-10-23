@@ -1,0 +1,16 @@
+<!doctype html>
+<!-- 1.3.1 (AUTOFILL-BUGS #6): an unknown site's Create Account form (email, password, confirm password, terms box,
+     a robots-only box). Synthetic; the test's fake account only. -->
+<html lang="en"><head><meta charset="utf-8"><title>Create your candidate account</title>
+<style>body{font:14px sans-serif;padding:24px}label{display:block;font-weight:600;margin-top:10px}.hp{position:absolute;left:-9999px}</style></head>
+<body><main><h1>Create an account</h1>
+<form id="register" action="#" onsubmit="return false">
+<label for="reg-email">Email address</label><input id="reg-email" name="email" type="email" autocomplete="email">
+<label for="reg-pw">Password</label><input id="reg-pw" name="password" type="password" autocomplete="new-password">
+<label for="reg-pw2">Confirm password</label><input id="reg-pw2" name="password_confirmation" type="password" autocomplete="new-password">
+<div class="hp"><label for="hp-box">Leave this box empty (robots only)</label><input id="hp-box" type="checkbox" name="robots_only" tabindex="-1"></div>
+<label><input id="reg-terms" type="checkbox" name="accept_terms"> I agree to the Terms of Use and Privacy Policy</label>
+<button type="submit" id="reg-submit">Create Account</button>
+</form></main>
+<script>window.__clicks = []; document.addEventListener("click", (e) => { if (e.target.closest("#reg-submit, #si-submit")) window.__clicks.push(e.isTrusted); }, true);</script>
+</body></html>

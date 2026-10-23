@@ -8,6 +8,7 @@ three different roles), so two feed jobs with different ones are never the same 
 URL_SHARE_MAX items is a careers page, not a posting, so it pairs nothing. Groups chain (A~B, B~C: one group). The newest of each group is kept; every other one is a duplicate of it. ranking.collapse already folds copies
 of one req with the same JD into one card ("+2 locations"); this catches the rest (a repost with an edited JD, a row
 typed twice into the Sheet)."""
+import functools
 import re
 from datetime import date
 from urllib.parse import parse_qsl, urlencode, urlsplit
@@ -79,14 +80,23 @@ def _groups(items: list, keys_of, newest) -> dict:
     return out
 
 
-def _job_keys(row: dict) -> list[tuple]:
-    company = applied.company_key(row.get("company"))
-    req = str(row.get("req_id") or "").strip().lower()
-    keys = [("t", company, _title(row.get("title")), _place(row.get("location")), req)]
-    keys += [("u", url) for url in {_url(row.get("apply_url")), _url(row.get("url"))} - {""}]
-    if row.get("board") and row.get("ext_id"):                      # posting ids are per company on most boards
-        keys.append(("a", str(row["board"]).split(":")[0], company, str(row["ext_id"])))
-    return keys
+KEYS_KEPT = 50_000          # GOAL30-app: a job's keys are a pure function of these fields; the feed asks every call
+
+
+def _job_keys(row: dict) -> tuple:
+    return _keys_of(row.get("company"), row.get("req_id"), row.get("title"), row.get("location"),
+                    row.get("apply_url"), row.get("url"), row.get("board"), row.get("ext_id"))
+
+
+@functools.lru_cache(maxsize=KEYS_KEPT)
+def _keys_of(company_name, req_id, title, location, apply_url, url, board, ext_id) -> tuple:
+    company = applied.company_key(company_name)
+    req = str(req_id or "").strip().lower()
+    keys = [("t", company, _title(title), _place(location), req)]
+    keys += [("u", u) for u in {_url(apply_url), _url(url)} - {""}]
+    if board and ext_id:                                           # posting ids are per company on most boards
+        keys.append(("a", str(board).split(":")[0], company, str(ext_id)))
+    return tuple(keys)
 
 
 def jobs(rows: list[dict]) -> dict[str, str]:

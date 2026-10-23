@@ -1,5 +1,5 @@
 // Lazy (via editor.js): Follow-ups, Add a job, Vendors.
-import { $, $$, B, btn, OPEN_TIP, S, api, ask, fail, get, ghost, h, isoToday, muted, shortDate, sm, toast, still } from "./core.js";
+import { $, $$, B, btn, OPEN_TIP, S, api, ask, fail, get, ghost, h, isoToday, loadError, muted, placeholder, refreshFailed, shortDate, sm, toast, still } from "./core.js";
 import { showPanel } from "./detail.js";
 import { reloadTracker, setFollowupCount } from "./editor.js";
 import { ADD_FIELDS, clearOpenRow, followupLine, formGrid, labelled, note, openRowEditor, readFields, renderEditor,
@@ -7,6 +7,7 @@ import { ADD_FIELDS, clearOpenRow, followupLine, formGrid, labelled, note, openR
 
 const VENDOR_FIELDS = [["company", "Vendor Companies"], ["target_name", "Target name"], ["target_role", "Target role"],
   ["linkedin", "Linkedin connection"], ["email", "Mail"], ["email_sent", "Mail Sent"], ["notes", "Notes"]];
+const MAIL_KIND = { received: "application received", other: "an email about it", rejected: "rejected", screen: "screen", interview: "interview", offer: "offer" };
 const BUCKETS = [["Overdue", "overdue", "due-overdue"], ["Due today", "today", "due-today"], ["Next 3 days", "upcoming", "due-upcoming"]];
 
 function followupItem(row) {
@@ -15,6 +16,9 @@ function followupItem(row) {
     h("div", "fu-head", B({ class: "linklike", title: OPEN_TIP, onclick: () => openRowEditor(row.id) }, h("b", {}, row.company), ` · ${row.role_title}`),
       muted(`applied ${shortDate(row.applied_on)}`, "muted small")),
     who ? h("p", "small", `Contacts: ${who}`) : null,
+    row.mail ? h("p", { class: "small fu-mail", title: row.mail.subject || "" }, `✉ Email ${shortDate(row.mail.day)}: ${MAIL_KIND[row.mail.kind] || row.mail.kind}`,
+      row.mail.subject ? muted(` · ${row.mail.subject}`) : null,
+      row.mail.link ? [" ", h("a", { href: row.mail.link, target: "_blank", rel: "noopener", class: "lnk" }, "Open in Gmail ↗")] : null) : null,
     [[row.fu1, 1], [row.fu2, 2]].filter(([fu]) => fu && fu.state !== "done").map(([fu, n]) => followupLine(row, fu, n, (fresh) => settle(li, fresh))));
   return li;
 }
@@ -48,16 +52,25 @@ function paintFollowupCounts() {
 const group = (title, rows, cls) => h("section", { class: `fu-group ${cls}`, "data-bucket": cls },
   h("h2", {}, `${title} `, muted(String(rows.length))), rows.length ? h("ul", "fu-list", rows.map(followupItem)) : note("Nothing here."));
 
+// GOAL31 §3: the last Follow-ups page comes back at once (never "Loading…"); always redrawn after, since its "Did you
+// apply?" part is not in this answer
+let lastFu = null;
+
 export async function loadFollowups() {
   const view = $("#view");
-  if (!$(".fu-view")) view.replaceChildren(h("p", "pad muted", "Loading…"));
+  if (!$(".fu-view")) view.replaceChildren(lastFu?.profile === S.profile ? lastFu.el : placeholder());
   try {
     const d = await get("/api/tracker/followups");
     if (S.tab !== "followups") return;
-    view.replaceChildren(h("div", "fu-view", h("header", "t-head", h("h1", { tabindex: "-1" }, "Follow-ups"), h("p", "muted small fu-due")),
-      S.g8?.followupsTop(), BUCKETS.map(([title, key, cls]) => group(title, d[key], cls))));
+    const el = h("div", "fu-view", h("header", "t-head", h("h1", { tabindex: "-1" }, "Follow-ups"), h("p", "muted small fu-due")),
+      S.g8?.followupsTop(), BUCKETS.map(([title, key, cls]) => group(title, d[key], cls)));
+    lastFu = { el, profile: S.profile };
+    view.replaceChildren(el);
     paintFollowupCounts();
-  } catch (err) { view.replaceChildren(h("p", "pad", `Could not load: ${err.message}`)); }
+  } catch (err) {
+    if (S.tab !== "followups") return;
+    if ($(".fu-view")) refreshFailed(err, loadFollowups); else view.replaceChildren(loadError(err, loadFollowups));
+  }
 }
 
 export function openAddJob() {

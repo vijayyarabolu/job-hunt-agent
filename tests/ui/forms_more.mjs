@@ -44,7 +44,7 @@ try {
     await panelHas("Autofill", 15000);
     await t.panelClick("Autofill");
     await sleep(800);
-    for (let i = 0; i < 300; i++) { const s = await t.panelText(); if (s.includes("Filled ") && !s.includes("Filling…")) return s; await sleep(300); }
+    for (let i = 0; i < 300; i++) { const s = await t.panelText(); if (/Filled \d+ · Needs you/.test(s) && !s.includes("Filling…")) return s; await sleep(300); }
     return t.panelText();
   }
   const noNeeds = (s) => /Needs you 0\b/.test(s);
@@ -92,7 +92,7 @@ try {
   // ---- a site nothing knows: its own words, an entry it parsed wrong, its layout learned ----
   const unknownChecks = async (prefix) => {
     const rows = await vals(["#emp1", "#jt1", "#city1", "#emp2", "#jt2"]);
-    const okRows = (await count("fieldset.employer")) === 2 && JSON.stringify(rows) === JSON.stringify([j1.company, j1.title, j1.location, j2.company, j2.title]);
+    const okRows = (await count("fieldset.employer")) === 2 && JSON.stringify(rows) === JSON.stringify([j1.company, j1.title, "", j2.company, j2.title]);   // GOAL30 §0: a City box takes no country
     const when = [...(await vals(["#from1", "#to1", "#from2", "#to2"])), await isOn("#still1"), await isOn("#still2")];
     const okWhen = JSON.stringify(when) === JSON.stringify(["03/2023", "", "06/2020", "02/2023", true, false]);
     const resp = await vals(["#resp1", "#resp2"]);

@@ -1,5 +1,6 @@
 """Application tracker: lossless xlsx import/export (GOAL §6), pipeline status, follow-ups."""
 import difflib
+import functools
 import json
 import re
 import shutil
@@ -403,11 +404,25 @@ def _left_statuses(conn, app_id: int) -> set[str]:
     return had - {current}
 
 
+PARSED_KEPT = 8192        # GOAL30-app: rows' stored JSON, parsed once (the tracker list parsed it once per cell)
+
+
+@functools.lru_cache(maxsize=PARSED_KEPT)
+def stored_cells(raw_json: str) -> list:
+    """A row's raw_json, parsed once per text. Shared: read it, never change it."""
+    return json.loads(raw_json)
+
+
+@functools.lru_cache(maxsize=PARSED_KEPT)
+def edited_fields(edited: str | None) -> frozenset:
+    return frozenset(json.loads(edited or "[]"))
+
+
 def _cell_value(app: dict, idx: int):
     """Original typed cell unless the app edited that field. Returns (value, write_as_text)."""
     field = FIELDS[idx]
-    raw = json.loads(app["raw_json"]) if app["raw_json"] else None
-    if raw and field not in json.loads(app["edited"] or "[]"):
+    raw = stored_cells(app["raw_json"]) if app["raw_json"] else None
+    if raw and field not in edited_fields(app["edited"]):
         tagged = raw[idx]
         if tagged["t"] == "f":
             return tagged["v"], False
@@ -498,9 +513,9 @@ def export_tracker(out: Path | None = None, profile: str | None = None, template
 def _cell_link(app: dict, idx: int, template_links: dict) -> dict | None:
     """The hyperlink the row's cell had when imported; none for a field edited in the app. Rows imported before
     links were recorded keep the template's link at their own sheet row."""
-    if FIELDS[idx] in json.loads(app["edited"] or "[]") or not app["raw_json"]:
+    if FIELDS[idx] in edited_fields(app["edited"]) or not app["raw_json"]:
         return None
-    tagged = json.loads(app["raw_json"])[idx]
+    tagged = stored_cells(app["raw_json"])[idx]
     if "h" in tagged:
         return tagged["h"]
     return template_links.get((app["xlsx_row"], idx + 1))
@@ -592,6 +607,11 @@ def track_job(conn, profile: str, uid: str, source: str = "ui") -> int:
     now = db.iso(db.utcnow())
     cols = {**facts, "jd": facts["job_url"], "source": "feed"}
     with db.tx(conn):
+        # GOAL33 §3: looked for again inside the write lock: Autofill's Mark applied and the page's "Did you apply?"
+        # can save the same job at the same moment
+        found = conn.execute("SELECT id FROM applications WHERE profile=? AND job_uid=?", (profile, uid)).fetchone()
+        if found:
+            return found["id"]
         cur = conn.execute(
             f"INSERT INTO applications(profile, job_uid, {', '.join(cols)}, status, updated_at) "
             f"VALUES (?,?{',?' * len(cols)}, 'saved', ?)", (profile, uid, *cols.values(), now))
@@ -634,5 +654,5 @@ def set_jd_text(conn, app_id: int, text: str, url: str | None = None) -> None:
 
 
 def followups_due(conn, profile: str) -> list[dict]:
-    rows = conn.execute("SELECT * FROM followups_due WHERE profile=? ORDER BY applied_on", (profile,)).fetchall()
+    rows = conn.execute("SELECT * FROM followups_due WHERE profile=? ORDER BY applied_on DESC, id DESC", (profile,)).fetchall()
     return [dict(r) for r in rows]

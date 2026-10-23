@@ -6,6 +6,7 @@ wrong, its layout learned) and Workday's My Experience: every job of the tailore
 bullets, education without a start date unless required, the Summary box word for word, nothing duplicated.
 Driven by tests/ui/forms_more.mjs. Skipped without node or Google Chrome."""
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -20,7 +21,7 @@ from job_hunt_agent.autofill import bank, experience, match
 from tests import test_goal8_flow as g8
 
 ROOT = Path(__file__).resolve().parent.parent
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME = os.environ.get("JH_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 RUNNER = Path(__file__).parent / "ui" / "forms_more.mjs"
 FIXTURES = Path(__file__).parent / "fixtures" / "autofill"
 TOKEN = "forms-test-token"
@@ -155,8 +156,8 @@ class ExperienceRowsTest(unittest.TestCase):
     def test_jobs_keep_the_resume_order_with_dates_and_current(self):
         rows = experience.job_rows(TAILORED["jobs"])
         self.assertEqual([(r["title"], r["company"], r["location"], r["start"], r["end"], r["current"]) for r in rows],
-                         [("Senior ML Engineer", "Globex Corp", "Austin TX", "03/2023", "", True),
-                          ("ML Engineer", "Initech", "USA", "06/2020", "02/2023", False)])
+                         [("Senior ML Engineer", "Globex Corp", "United States", "03/2023", "", True),   # 1.3.1: the country
+                          ("ML Engineer", "Initech", "United States", "06/2020", "02/2023", False)])
         self.assertEqual(rows[1]["description"], "• Shipped fraud models.\n• Ran A/B tests.")
 
 

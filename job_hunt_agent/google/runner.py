@@ -50,17 +50,25 @@ def sync(conn) -> dict:
         if not got:
             return {"skipped": "another sync is running"}
         seq, report, errors = state.dirty(conn)[1], {}, {}
+        before = state.get_json(conn, "last_sync_errors") or {}
         for pid in gsync.profiles_linked(conn):
+            # GOAL33 §3: one line when a failure starts (or changes) and one when it works again, not one per retry
+            # (1,177 a person in two offline days)
             try:
                 report[pid] = gsync_cycle.sync_profile(conn, pid)
+                if pid in before:
+                    log.info("Google sync %s works again", pid)
             except NeedsConsent:
                 raise
             except GoogleError as err:
-                log.error("Google sync %s failed: %s", pid, err)
                 errors[pid] = str(err)
+                log.log(logging.DEBUG if before.get(pid) == errors[pid] else logging.ERROR, "Google sync %s failed: %s", pid, err)
             except Exception as err:                     # a bug in one person's cycle must not stop the other's
-                log.exception("Google sync %s crashed", pid)
                 errors[pid] = f"sync error: {type(err).__name__}: {err}"
+                if before.get(pid) == errors[pid]:
+                    log.debug("Google sync %s crashed again: %s", pid, err)
+                else:
+                    log.exception("Google sync %s crashed", pid)
         now = db.iso(db.utcnow())
         with db.tx(conn):
             state.put(conn, "last_sync_at", now)
@@ -104,8 +112,9 @@ def loop(stop: threading.Event, tick_s: float = TICK_S) -> None:
             log.exception("google sync loop: cycle failed")
 
 
-def health(conn, now: datetime | None = None) -> dict:
-    """Sync status for the UI and doctor: linked people, last sync, last good sync, errors, conflicts (7 days)."""
+def health(conn, now: datetime | None = None, cells: bool = True) -> dict:
+    """Sync status for the UI and doctor: linked people, last sync, last good sync, errors, conflicts (7 days).
+    `cells`: also the cells left differing (every linked row's cells; the page never shows them, GOAL30-app)."""
     now = now or datetime.now(timezone.utc)
     errors = state.get_json(conn, "last_sync_errors") or {}
     linked = gsync.profiles_linked(conn)
@@ -113,13 +122,12 @@ def health(conn, now: datetime | None = None) -> dict:
     conflicts = conn.execute("SELECT count(*) FROM gsync_log WHERE kind = 'conflict' AND at >= ?",
                              (since,)).fetchone()[0]
     missing = conn.execute("SELECT count(*) FROM gsync_rows WHERE missing_since IS NOT NULL").fetchone()[0]
-    differ = diverged(conn)
     last_ok = state.get(conn, "last_ok_at")
     ok_age = _age_s(last_ok, now)
     healthy = bool(linked) and not errors and ok_age is not None and ok_age < STALE_S
-    return {"linked": linked, "last_sync_at": state.get(conn, "last_sync_at"), "last_ok_at": last_ok,
-            "errors": errors, "conflicts_7d": conflicts, "missing_rows": missing, "diverged": differ,
-            "healthy": healthy}
+    found = {"linked": linked, "last_sync_at": state.get(conn, "last_sync_at"), "last_ok_at": last_ok,
+             "errors": errors, "conflicts_7d": conflicts, "missing_rows": missing, "healthy": healthy}
+    return {**found, "diverged": diverged(conn)} if cells else found
 
 
 def diverged(conn) -> dict[str, dict[str, int]]:
@@ -137,7 +145,7 @@ def diverged(conn) -> dict[str, dict[str, int]]:
 def banner(conn, now: datetime | None = None) -> dict:
     """For the web UI header: token state, sync health, and one message when something needs a person."""
     now = now or datetime.now(timezone.utc)
-    status, sync_state = auth.status(now), health(conn, now)
+    status, sync_state = auth.status(now), health(conn, now, cells=False)
     message = None
     if status["lapsed"]:
         message = "Google sign-in lapsed: run `job-hunt-agent google login` on the Mac (the Sheets catch up after that)"

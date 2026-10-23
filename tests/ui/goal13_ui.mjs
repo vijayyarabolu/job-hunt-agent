@@ -99,7 +99,7 @@ try {
   await js("[...document.querySelectorAll('.rq-seg button')].find((b) => b.textContent.startsWith('Done today')).click(); return true");
   await until("document.querySelector('.rq-seg [aria-pressed=true]')?.textContent.startsWith('Done today') && !document.querySelector('#list .row[data-i]')", 8000);
   await idle();
-  check("GOAL17: an empty Done today says so, with no filters and no 'null'", (await under()) === "Nothing here.", S(await under()));
+  check("GOAL17: an empty Done today says so, with no filters and no 'null'", (await under()) === "No applies with a tailored resume yet today.", S(await under()));   // GOAL30-app §0 words
   await js("[...document.querySelectorAll('.rq-seg button')].find((b) => b.textContent.startsWith('Ready')).click(); return true");
   await until("document.querySelectorAll('#list .row[data-i]').length === 3", 8000);
   await idle();
@@ -123,7 +123,7 @@ try {
   check("the answer chips are in the detail", await until("document.querySelector('#detail .ans .chip')", 6000));
   // GOAL21 W10: the job's posted pay is its own chip; "My salary ask" is the saved answer (it was one "Salary" chip)
   const salary = await js("return [...document.querySelectorAll('#detail .ans .chip')].find((c) => c.textContent === 'Posted pay')?.title || ''");
-  check("the job's pay range is the Posted pay chip", salary.includes("$150,000 – $180,000"), salary);
+  check("the job's pay range is the Posted pay chip", salary.includes("$150,000 to $180,000"), salary);
   check("My salary ask is the saved answer, not the job's pay", await js("return [...document.querySelectorAll('#detail .ans .chip')].some((c) => c.textContent.startsWith('My salary ask'))"));
   await clickText("#detail .ans .chip", "Years of experience");
   check("a chip copies its answer", await until("window.__copied.includes('4 years')"), await js("return window.__copied"));

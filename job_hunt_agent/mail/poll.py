@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from .. import config, db
 from ..google import state
-from . import START_DAY, MailError, classify, llm, match, prefilter, update
+from . import START_DAY, classify, llm, match, prefilter, update
 from .gmail import GmailReader
 from .imap import ADDRESS_KEY, HOST_KEY, ImapReader
 from .signin import status as signin_status

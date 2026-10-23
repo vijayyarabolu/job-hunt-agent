@@ -2,6 +2,9 @@
 <!-- GOAL23 test fixture: Workday's apply flow after sign-in (My Information … Review), steps swapped in by
      ../workday_sim.js from steps/*.html like Workday's single-page app. Authored in Workday's DOM shape; no real data. -->
 <html lang="en-US"><head><meta charset="utf-8"><title>Careers</title></head>
-<body><div data-automation-id="header"><a data-automation-id="logoLink" href="#">ZZ Test Corp</a></div>
+<body><div data-automation-id="header"><a data-automation-id="logoLink" href="#">ZZ Test Corp</a>
+<!-- GOAL30: the header's menus, as on Workday's real pages (never a form question) -->
+<button type="button" aria-haspopup="listbox" data-automation-id="utilityMenuButton" aria-label="Careers at ZZ Test Corp">Careers at ZZ Test Corp</button>
+<button type="button" aria-haspopup="listbox" aria-label="Search Careers">Search Careers</button></div>
 <main><div data-automation-id="applyFlowPage"></div></main>
 <script src="/__sim/workday_sim.js"></script></body></html>

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Job Hunt Agent Autofill",
-  "version": "1.2.1",
+  "version": "1.6.4",
   "description": "Fills job applications with your tailored resume and saved answers from Job Hunt Agent. Never clicks Next or Submit.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxRX90KosIzMpKxsY+6H+09RAkoAuyhzffMXseTMXshDp3aGdjxMr7Z79TlE6c91/N+uFexwRMuZ9n4Yd/VPm7DH2TeYd0Fj7KznayiuCLkHzLZyMjFh9YMANFbQz0sMLlK+jr4dduLLCDnwvH5QH/sukevbBChJrZRljf8rmLU9sZjspMmUQIzpd4CDIVymku0vqpSwOdyJOrPpbt1SS8Dn1FTpdLfAwweFjiop7d1EvJ6MNJBO8TfmcOaTWlNDn6br8IVo0y2iGoB1oA66zOlat+ltIP3cY8TzIHK+w93SAlH8OQy9WE+DUVu1bewpQpmnK7o1509FWH0DdM3QQIQIDAQAB",
   "minimum_chrome_version": "111",
@@ -16,15 +16,15 @@
       "matches": ["http://*/*", "https://*/*"],
       "all_frames": true,
       "run_at": "document_idle",
-      "js": ["content/core.js", "content/guard.js", "content/pick.js", "content/fields.js", "content/fill.js", "content/learn.js", "content/experience.js",
+      "js": ["content/core.js", "content/guard.js", "content/pick.js", "content/classify.js", "content/fields.js", "content/fill.js", "content/marks.js", "content/account.js", "content/learn.js", "content/experience.js", "content/engine.js",
              "content/boards/workday.js", "content/boards/greenhouse.js", "content/boards/lever.js",
              "content/boards/ashby.js", "content/boards/smartrecruiters.js", "content/boards/icims.js",
              "content/boards/bamboohr.js", "content/boards/rippling.js", "content/boards/jobvite.js",
              "content/boards/taleo.js", "content/boards/successfactors.js", "content/boards/oracle.js",
              "content/boards/paylocity.js", "content/boards/adp.js", "content/boards/dayforce.js",
              "content/boards/jazzhr.js", "content/boards/breezy.js", "content/boards/workable.js",
-             "content/boards/gem.js", "content/boards/generic.js",
-             "content/panel.js", "content/main.js", "content/queue.js"]
+             "content/boards/gem.js", "content/boards/dover.js", "content/boards/wellfound.js", "content/boards/generic.js",
+             "content/answers.js", "content/panel.js", "content/main.js", "content/queue.js"]
     },
     {
       "matches": ["http://*/*", "https://*/*"],

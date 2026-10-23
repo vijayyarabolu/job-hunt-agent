@@ -56,12 +56,15 @@ var JH = globalThis.JH || (globalThis.JH = {});
       for (const f of fields) if ([f.el, ...(f.els || [])].some((e) => e.hasAttribute("data-jh-filled")) && show(f)) entry(f.id).ours = show(f);
     },
     panelSet(id) { entry(id).panel = true; },
+    // GOAL30 §4: saved by the panel where the user chose (this job / company / everywhere): never learned a second time
+    explicit(id) { entry(id).explicit = true; entry(id).panel = true; },
     mine: isMine,
     status(f) {                                     // the panel's group for one field
       const value = show(f);
-      if (!value) return f.el.closest("[data-jh-need]") ? "needs" : "skipped";   // the mark sits on the question's box
+      const mark = JH.marks ? JH.marks.get(f.el) : null;   // GOAL27: the engine's result for this field
+      if (!value) return mark === "needs" || mark === "failed" || f.el.closest("[data-jh-need]") ? "needs" : "skipped";
       const t = entry(f.id);
-      return t.panel || (isMine(f) && value !== (t.ours ?? null)) ? "yours" : "filled";
+      return t.panel || (isMine(f) && value !== (t.ours ?? null)) ? "yours" : mark === "review" ? "review" : mark === "failed" ? "needs" : "filled";
     },
     // this step's lessons: { items, hand } (hand = fields the user filled themselves, for Stats)
     batch(fields, b, password = "") {
@@ -73,6 +76,7 @@ var JH = globalThis.JH || (globalThis.JH = {});
         if (f.el && (f.el.type === "search" || f.el.getAttribute("role") === "searchbox")) continue;   // a site's search box
         const t = entry(f.id);
         const value = show(f);
+        if (t.explicit) continue;                                                // saved already, where the user chose
         if (!value || (!t.panel && value === (t.base ?? ""))) continue;          // unchanged
         if (t.ours != null && value === t.ours && !t.panel) continue;            // Autofill's answer, only clicked
         if (t.ours == null) hand++;

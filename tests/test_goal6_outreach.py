@@ -80,6 +80,6 @@ class OutreachTest(TrackerCase):
 
 class BlankNameTest(unittest.TestCase):
     def test_a_contact_whose_name_is_only_spaces_gets_hi_there(self):
-        out = outreach._template({"name": "Jane Doe"}, {"name": "   "}, {"company": "Acme", "role_title": "MLE"},
-                                 None, [], [])
+        out = outreach.compose("alex", {"company": "Acme", "role_title": "MLE"}, "", "recruiter", {"name": "   "})
         self.assertIn("Hi there", out["email"])
+        self.assertTrue(out["note"].startswith("Hi there,"))

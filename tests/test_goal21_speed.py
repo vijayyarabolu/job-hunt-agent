@@ -16,7 +16,7 @@ def _old_rows(conn, profile):
     """The ranking's rows as the old single query read them (the reference)."""
     where, params = family_filter(tuple(profile["families"]))
     return conn.execute(
-        f"SELECT {ranking._JOB_COLUMNS}, f.jd_state, f.terms, f.dealbreaker FROM jobs j "
+        f"SELECT {ranking._JOB_COLUMNS}, f.jd_state, f.terms, f.dealbreaker, f.genai FROM jobs j "
         "JOIN boards b ON b.board = j.board LEFT JOIN fits f ON f.profile = ? AND f.uid = j.uid "
         f"WHERE j.closed_at IS NULL AND b.active = 1 AND b.review = 0 AND {where}", [profile["id"], *params]).fetchall()
 

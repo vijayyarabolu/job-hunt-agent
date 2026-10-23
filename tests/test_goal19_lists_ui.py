@@ -31,6 +31,10 @@ class Goal19ListsBrowserTest(Goal8Case):
         dup_new = seed_job(self.conn, "22", title="Machine Learning Engineer, Search", description=OTHER_JD)
         earlier = db.iso(NOW - timedelta(hours=1))                     # the older copy is the duplicate
         self.conn.execute("UPDATE jobs SET first_posted_at = ?, posted_at = ? WHERE uid = ?", (earlier, earlier, dup_old))
+        # GOAL32: three copies of one role are one card and Not interested covers all three; this runner passes on
+        # one and then works with the others, so they are other roles here (another level)
+        for uid, level in zip(self.uids[1:], ("II", "III")):
+            self.conn.execute("UPDATE jobs SET title = ? WHERE uid = ?", (f"Machine Learning Engineer {level}", uid))
         self.conn.commit()
         for i in range(3):
             trackapi.create(self.conn, PID, {"company": f"Row Co {i}", "role_title": "ML Engineer", "status": "applied"})
@@ -68,8 +72,9 @@ class Goal19ListsBrowserTest(Goal8Case):
         sent = [name for job, name, _ in self.rg.actions if job == rg_id]
         for name in ("reimport", "undo_edit", "approve", "cancel"):
             self.assertIn(name, sent)
-        # the feed's Not interested ("Not remote") on this job archives its resume in resumegen first
-        self.assertEqual([name for job, name, _ in self.rg.actions if job == needs],
+        # the feed's Not interested ("Not remote") on this job archives its resume in resumegen first (this job is
+        # now the first row when Shift+X removes one and Undo brings it back, an archive of its own)
+        self.assertEqual([name for job, name, _ in self.rg.actions if job == needs][-4:],
                          ["archive", "fix", "accept", "regenerate"])
 
 

@@ -49,6 +49,8 @@ async function intercept(b, t, page) {
     if (page.source === "live") return readOnly(request) ? t.send("Fetch.continueRequest", { requestId }).catch(() => {}) : fail();
     const u = new URL(request.url);
     if (u.hostname !== host) return fail();
+    if (u.pathname === "/__sim/ats_sim.js") return t.send("Fetch.fulfillRequest", { requestId, responseCode: 200,   // GOAL27 sites' widgets
+      responseHeaders: [{ name: "Content-Type", value: "text/javascript" }], body: readFileSync(join(FIX, "goal27", "ats_sim.js")).toString("base64") }).catch(() => {});
     const hit = page.sim === "workday" ? workdaySim(u) : u.pathname === new URL(page.url).pathname ? { file: page.file, type: "text/html" } : null;
     if (!hit) return t.send("Fetch.fulfillRequest", { requestId, responseCode: 404, body: "" }).catch(() => {});
     t.send("Fetch.fulfillRequest", { requestId, responseCode: 200, responseHeaders: [{ name: "Content-Type", value: hit.type }],
@@ -62,7 +64,7 @@ async function extWorld(b, t) {                        // the extension's conten
   b.on((m) => {
     if (m.sessionId !== t.sessionId || m.method !== "Runtime.executionContextCreated") return;
     const c = m.params.context;
-    if (c.name === "job-hunt-agent Autofill" && c.auxData && c.auxData.frameId === frame && c.auxData.type === "isolated") ctx = c.id;
+    if (c.name === "Job Hunt Agent Autofill" && c.auxData && c.auxData.frameId === frame && c.auxData.type === "isolated") ctx = c.id;
   });
   return async (expr) => {
     for (let i = 0; i < 50 && !ctx; i++) await sleep(100);
@@ -131,7 +133,7 @@ try {
     $("form").requestSubmit(); return true`);
   await sleep(1500);                                   // the options page may reload after Save
   await o.until("document.readyState === 'complete'", 10000);
-  const saved = await o.js(`await chrome.storage.local.set({ auto: false }); return (await chrome.storage.local.get(["base", "profile"]))`);
+  const saved = await o.js(`await chrome.storage.local.set({ auto: false, suggest: false }); return (await chrome.storage.local.get(["base", "profile"]))`);
   if (saved.base !== BASE || saved.profile !== PID) throw new Error(`the extension's settings were not saved: ${JSON.stringify(saved)}`);
   for (const page of pages) out.push(await one(b, page));
 } catch (err) {

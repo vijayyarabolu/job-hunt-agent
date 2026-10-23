@@ -33,6 +33,11 @@ def external() -> bool:
     return bool(_base())
 
 
+def address() -> str:
+    """Which resumegen this is (its URL), so what job-hunt-agent keeps from one is never shown for another."""
+    return _base()
+
+
 _HOST = re.compile(r"[A-Za-z0-9.-]{1,253}")
 
 

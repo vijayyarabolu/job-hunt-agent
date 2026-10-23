@@ -10,13 +10,14 @@ function masked(account) {
 }
 
 async function load() {
-  const s = await chrome.storage.local.get(["base", "token", "profile", "account", "auto"]);
+  const s = await chrome.storage.local.get(["base", "token", "profile", "account", "auto", "suggest"]);
   $("base").value = s.base || "http://127.0.0.1:8765";
   $("token").value = s.token || "";
   await loadProfiles(s.profile);
   $("email").value = (s.account && s.account.email) || "";
   $("password").value = (s.account && s.account.password) || "";
   $("auto").checked = s.auto !== false;
+  $("suggest").checked = s.suggest !== false;
   $("masked").textContent = masked(s.account);
 }
 
@@ -47,7 +48,7 @@ async function save(e) {
   const account = { email: $("email").value.trim(), password: $("password").value };
   if (account.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(account.email)) return say($("saved"), "That email does not look right", false);
   const profile = document.querySelector("input[name=profile]:checked")?.value || (await chrome.storage.local.get("profile")).profile || "";
-  await chrome.storage.local.set({ base, token: $("token").value.trim(), profile, account, auto: $("auto").checked });
+  await chrome.storage.local.set({ base, token: $("token").value.trim(), profile, account, auto: $("auto").checked, suggest: $("suggest").checked });
   $("masked").textContent = masked(account);
   say($("saved"), "Saved", true);
 }

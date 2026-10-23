@@ -129075,12 +129075,6 @@ companies:
   source: cc
   us60: 2
   name_src: slug
-- name: Novel Place Overland Park
-  ats: paylocity
-  token: a526d5a3-cc44-4705-ac06-b435053a085e
-  segment: unknown
-  source: cc
-  us60: 5
 - name: Hope House Colorado
   ats: paylocity
   token: a528ed51-0e72-43fc-95e4-b001aa7281ee
@@ -134261,12 +134255,6 @@ companies:
   source: cc
   us60: 2
   name_src: slug
-- name: Ignite Medical Resort Overland Park
-  ats: paylocity
-  token: c8c66607-b052-4fa9-8f60-fa7b58f9f077
-  segment: unknown
-  source: cc
-  us60: 170
 - name: GIRARD RESOURCES & RECYCLING
   ats: paylocity
   token: c8d12552-8c41-445f-a9b7-555afe6ecbcf

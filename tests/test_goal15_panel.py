@@ -22,6 +22,11 @@ class SummaryTest(unittest.TestCase):
 
 
 class ColdGroupTest(MailCase):
+    def setUp(self):
+        super().setUp()
+        with db.tx(self.conn):          # MailCase's rows say 2026-09-20: from 2026-10-19 on they went Cold here too
+            self.conn.execute("UPDATE applications SET applied_on = ?", (date.today().isoformat(),))
+
     def add_rows(self, n: int, applied_on: str) -> None:
         with db.tx(self.conn):
             for i in range(n):

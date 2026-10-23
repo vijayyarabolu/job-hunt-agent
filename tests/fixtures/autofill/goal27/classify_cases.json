@@ -1,0 +1,1160 @@
+[
+{
+"field": {
+"label": "First Name",
+"hints": [
+"first_name"
+],
+"kind": "text"
+},
+"expect": "first_name"
+},
+{
+"field": {
+"label": "Legal First Name *",
+"kind": "text"
+},
+"expect": "first_name"
+},
+{
+"field": {
+"label": "Given name",
+"kind": "text"
+},
+"expect": "first_name"
+},
+{
+"field": {
+"label": "",
+"name": "firstName",
+"kind": "text"
+},
+"expect": "first_name"
+},
+{
+"field": {
+"label": "",
+"placeholder": "First name",
+"kind": "text"
+},
+"expect": "first_name"
+},
+{
+"field": {
+"label": "Name",
+"autocomplete": "given-name",
+"kind": "text"
+},
+"expect": "first_name"
+},
+{
+"field": {
+"label": "Last Name",
+"hints": [
+"last_name"
+],
+"kind": "text"
+},
+"expect": "last_name"
+},
+{
+"field": {
+"label": "Surname",
+"kind": "text"
+},
+"expect": "last_name"
+},
+{
+"field": {
+"label": "",
+"name": "applicant.lastName",
+"kind": "text"
+},
+"expect": "last_name"
+},
+{
+"field": {
+"label": "Family name",
+"kind": "text"
+},
+"expect": "last_name"
+},
+{
+"field": {
+"label": "Preferred First Name",
+"kind": "text"
+},
+"expect": "preferred_name"
+},
+{
+"field": {
+"label": "Middle Name",
+"kind": "text"
+},
+"expect": "middle_name"
+},
+{
+"field": {
+"label": "Full name",
+"name": "name",
+"kind": "text"
+},
+"expect": "full_name"
+},
+{
+"field": {
+"label": "Name",
+"hints": [
+"_systemfield_name"
+],
+"kind": "text"
+},
+"expect": "full_name"
+},
+{
+"field": {
+"label": "Full Legal Name",
+"kind": "text"
+},
+"expect": "full_name"
+},
+{
+"field": {
+"label": "Name",
+"section": "Voluntary Self-Identification of Disability",
+"kind": "text"
+},
+"expect": "signature_name"
+},
+{
+"field": {
+"label": "Your Signature",
+"kind": "text"
+},
+"expect": "signature_name"
+},
+{
+"field": {
+"label": "Email",
+"hints": [
+"email"
+],
+"kind": "text"
+},
+"expect": "email"
+},
+{
+"field": {
+"label": "Email Address",
+"kind": "text"
+},
+"expect": "email"
+},
+{
+"field": {
+"label": "",
+"type": "email",
+"placeholder": "you@example.com",
+"kind": "text"
+},
+"expect": "email"
+},
+{
+"field": {
+"label": "Confirm Email",
+"kind": "text"
+},
+"expect": "email_confirm"
+},
+{
+"field": {
+"label": "Re-enter your email address",
+"kind": "text"
+},
+"expect": "email_confirm"
+},
+{
+"field": {
+"label": "Referrer's email",
+"kind": "text"
+},
+"expect": null
+},
+{
+"field": {
+"label": "Phone",
+"hints": [
+"phone"
+],
+"kind": "text"
+},
+"expect": "phone"
+},
+{
+"field": {
+"label": "Mobile Phone Number",
+"kind": "text"
+},
+"expect": "phone"
+},
+{
+"field": {
+"label": "Phone Number",
+"hints": [
+"phonenumber--phonenumber"
+],
+"kind": "text"
+},
+"expect": "phone"
+},
+{
+"field": {
+"label": "",
+"name": "cell",
+"kind": "text",
+"autocomplete": "tel"
+},
+"expect": "phone"
+},
+{
+"field": {
+"label": "Phone Device Type",
+"kind": "listbox"
+},
+"expect": "phone_type"
+},
+{
+"field": {
+"label": "Country Phone Code",
+"kind": "combo"
+},
+"expect": "phone_code"
+},
+{
+"field": {
+"label": "Country",
+"section": "Phone",
+"hints": [
+"country"
+],
+"kind": "combo"
+},
+"expect": "phone_code"
+},
+{
+"field": {
+"label": "Country",
+"hints": [
+"country"
+],
+"kind": "listbox"
+},
+"expect": "country"
+},
+{
+"field": {
+"label": "Country/Region",
+"kind": "select",
+"options": [
+"United States",
+"Canada",
+"Mexico"
+]
+},
+"expect": "country"
+},
+{
+"field": {
+"label": "Phone Extension",
+"kind": "text"
+},
+"expect": "phone_ext"
+},
+{
+"field": {
+"label": "Address Line 1",
+"kind": "text"
+},
+"expect": "address1"
+},
+{
+"field": {
+"label": "Street Address",
+"kind": "text"
+},
+"expect": "address1"
+},
+{
+"field": {
+"label": "Address",
+"kind": "text"
+},
+"expect": "address1"
+},
+{
+"field": {
+"label": "Address Line 2",
+"kind": "text"
+},
+"expect": "address2"
+},
+{
+"field": {
+"label": "Apt / Suite",
+"kind": "text"
+},
+"expect": "address2"
+},
+{
+"field": {
+"label": "City",
+"kind": "text"
+},
+"expect": "city"
+},
+{
+"field": {
+"label": "Locality",
+"kind": "text"
+},
+"expect": "city"
+},
+{
+"field": {
+"label": "State",
+"kind": "select",
+"options": [
+"Alabama",
+"Alaska",
+"Arizona"
+]
+},
+"expect": "state"
+},
+{
+"field": {
+"label": "State/Province",
+"kind": "listbox"
+},
+"expect": "state"
+},
+{
+"field": {
+"label": "Administrative Area",
+"kind": "text"
+},
+"expect": "state"
+},
+{
+"field": {
+"label": "Zip Code",
+"kind": "text"
+},
+"expect": "zip"
+},
+{
+"field": {
+"label": "Postal Code",
+"kind": "text"
+},
+"expect": "zip"
+},
+{
+"field": {
+"label": "Location (City)",
+"hints": [
+"candidate-location"
+],
+"kind": "combo"
+},
+"expect": "location"
+},
+{
+"field": {
+"label": "Current Location",
+"kind": "text"
+},
+"expect": "location"
+},
+{
+"field": {
+"label": "Where are you currently located?",
+"kind": "text"
+},
+"expect": "location"
+},
+{
+"field": {
+"label": "Preferred work location",
+"kind": "select",
+"options": [
+"Remote",
+"NYC"
+]
+},
+"expect": null
+},
+{
+"field": {
+"label": "LinkedIn Profile",
+"kind": "text"
+},
+"expect": "linkedin"
+},
+{
+"field": {
+"label": "",
+"name": "urls[LinkedIn]",
+"kind": "text"
+},
+"expect": "linkedin"
+},
+{
+"field": {
+"label": "Website",
+"placeholder": "https://linkedin.com/in/...",
+"kind": "text"
+},
+"expect": "linkedin"
+},
+{
+"field": {
+"label": "GitHub URL",
+"kind": "text"
+},
+"expect": "github"
+},
+{
+"field": {
+"label": "Portfolio",
+"kind": "text"
+},
+"expect": "portfolio"
+},
+{
+"field": {
+"label": "Personal website",
+"kind": "text"
+},
+"expect": "portfolio"
+},
+{
+"field": {
+"label": "Twitter",
+"kind": "text"
+},
+"expect": "twitter"
+},
+{
+"field": {
+"label": "Are you legally authorized to work in the United States?",
+"kind": "combo"
+},
+"expect": "work_auth"
+},
+{
+"field": {
+"label": "Are you eligible to work in the US without restrictions?",
+"kind": "radio"
+},
+"expect": "work_auth"
+},
+{
+"field": {
+"label": "Will you now require immigration sponsorship by our company to attain or maintain your employment eligibility (e.g., H-1B)?",
+"kind": "combo"
+},
+"expect": "sponsor_now"
+},
+{
+"field": {
+"label": "Will you in the future require immigration require immigration sponsorship by our company?",
+"kind": "combo"
+},
+"expect": "sponsor_future"
+},
+{
+"field": {
+"label": "Will you now or in the future require sponsorship for employment visa status (e.g. H-1B visa status)?",
+"kind": "select"
+},
+"expect": "sponsor_future"
+},
+{
+"field": {
+"label": "Do you require visa sponsorship?",
+"kind": "radio"
+},
+"expect": "sponsor_now"
+},
+{
+"field": {
+"label": "Are you a U.S. citizen?",
+"kind": "radio"
+},
+"expect": "citizenship"
+},
+{
+"field": {
+"label": "Do you have an active security clearance?",
+"kind": "select"
+},
+"expect": "clearance"
+},
+{
+"field": {
+"label": "Have you ever been convicted of a felony?",
+"kind": "radio"
+},
+"expect": "criminal"
+},
+{
+"field": {
+"label": "Are you 18 years or older?",
+"kind": "combo"
+},
+"expect": "age18"
+},
+{
+"field": {
+"label": "Are you at least 18 years of age?",
+"kind": "radio"
+},
+"expect": "age18"
+},
+{
+"field": {
+"label": "Have you worked at DoorDash?",
+"kind": "combo"
+},
+"expect": "prev_worked"
+},
+{
+"field": {
+"label": "Have you previously worked for Acme?",
+"kind": "radio"
+},
+"expect": "prev_worked"
+},
+{
+"field": {
+"label": "Have you ever been employed by Acme before?",
+"kind": "radio"
+},
+"expect": "prev_worked"
+},
+{
+"field": {
+"label": "Are you a current or former employee?",
+"kind": "select"
+},
+"expect": "prev_worked"
+},
+{
+"field": {
+"label": "Do you have any relatives employed by the company?",
+"kind": "radio"
+},
+"expect": "related_employee"
+},
+{
+"field": {
+"label": "Were you referred by an employee?",
+"kind": "radio"
+},
+"expect": "referred"
+},
+{
+"field": {
+"label": "How did you hear about us?",
+"kind": "select"
+},
+"expect": "how_heard"
+},
+{
+"field": {
+"label": "Source",
+"hints": [
+"source--source"
+],
+"kind": "combo"
+},
+"expect": "how_heard"
+},
+{
+"field": {
+"label": "How did you find out about this job?",
+"kind": "text"
+},
+"expect": "how_heard"
+},
+{
+"field": {
+"label": "Desired salary",
+"kind": "text"
+},
+"expect": "salary"
+},
+{
+"field": {
+"label": "What are your compensation expectations?",
+"kind": "text"
+},
+"expect": "salary"
+},
+{
+"field": {
+"label": "When can you start?",
+"kind": "text"
+},
+"expect": "start_date"
+},
+{
+"field": {
+"label": "Earliest Start Date",
+"kind": "date"
+},
+"expect": "start_date"
+},
+{
+"field": {
+"label": "Are you willing to relocate?",
+"kind": "radio"
+},
+"expect": "relocate"
+},
+{
+"field": {
+"label": "Are you able to work in our office 3 days per week?",
+"kind": "radio"
+},
+"expect": "onsite"
+},
+{
+"field": {
+"label": "Willing to travel up to 25%?",
+"kind": "radio"
+},
+"expect": "travel"
+},
+{
+"field": {
+"label": "How many years of Python experience do you have?",
+"kind": "text"
+},
+"expect": null
+},
+{
+"field": {
+"label": "Current Company",
+"kind": "text"
+},
+"expect": "current_company"
+},
+{
+"field": {
+"label": "Current Job Title",
+"kind": "text"
+},
+"expect": "current_title"
+},
+{
+"field": {
+"label": "Cover Letter",
+"kind": "textarea"
+},
+"expect": "cover_letter"
+},
+{
+"field": {
+"label": "I agree to the privacy policy",
+"kind": "checkbox"
+},
+"expect": "terms"
+},
+{
+"field": {
+"label": "Applicant Privacy Acknowledgement",
+"kind": "combo"
+},
+"expect": "terms"
+},
+{
+"field": {
+"label": "I certify that the information provided is true and complete",
+"kind": "checkbox"
+},
+"expect": "terms"
+},
+{
+"field": {
+"label": "We would like to contact you via SMS or WhatsApp. Mark yes if you agree.",
+"kind": "combo"
+},
+"expect": "sms_consent"
+},
+{
+"field": {
+"label": "Highest level of education",
+"kind": "select"
+},
+"expect": "degree"
+},
+{
+"field": {
+"label": "Degree",
+"kind": "select"
+},
+"expect": "degree"
+},
+{
+"field": {
+"label": "School",
+"kind": "combo"
+},
+"expect": "school"
+},
+{
+"field": {
+"label": "University",
+"kind": "text"
+},
+"expect": "school"
+},
+{
+"field": {
+"label": "Major",
+"kind": "text"
+},
+"expect": "field_of_study"
+},
+{
+"field": {
+"label": "Field of Study",
+"kind": "combo"
+},
+"expect": "field_of_study"
+},
+{
+"field": {
+"label": "GPA",
+"kind": "text"
+},
+"expect": "gpa"
+},
+{
+"field": {
+"label": "Graduation Date",
+"kind": "text"
+},
+"expect": "grad_date"
+},
+{
+"field": {
+"label": "Gender",
+"kind": "combo"
+},
+"expect": "gender"
+},
+{
+"field": {
+"label": "What is your gender?",
+"kind": "radio",
+"options": [
+"Male",
+"Female",
+"Decline"
+]
+},
+"expect": "gender"
+},
+{
+"field": {
+"label": "Please check one of the boxes below:",
+"kind": "radio",
+"options": [
+"Male",
+"Female",
+"I don't wish to answer"
+]
+},
+"expect": "gender"
+},
+{
+"field": {
+"label": "Are you Hispanic or Latinx?",
+"kind": "combo"
+},
+"expect": "hispanic"
+},
+{
+"field": {
+"label": "Race (*Please select one option that best describes how you identify*)",
+"kind": "combo"
+},
+"expect": "race"
+},
+{
+"field": {
+"label": "Ethnicity",
+"kind": "listbox"
+},
+"expect": "race"
+},
+{
+"field": {
+"label": "Protected Veteran Status",
+"kind": "combo"
+},
+"expect": "veteran"
+},
+{
+"field": {
+"label": "Veteran Status",
+"kind": "select"
+},
+"expect": "veteran"
+},
+{
+"field": {
+"label": "Disability Status",
+"kind": "combo"
+},
+"expect": "disability"
+},
+{
+"field": {
+"label": "Do you identify as transgender?",
+"kind": "combo"
+},
+"expect": "transgender"
+},
+{
+"field": {
+"label": "Sexual Orientation",
+"kind": "select"
+},
+"expect": "orientation"
+},
+{
+"field": {
+"label": "Pronouns",
+"kind": "select"
+},
+"expect": "pronouns"
+},
+{
+"field": {
+"label": "Date",
+"section": "Self Identify",
+"kind": "date"
+},
+"expect": "signature_date"
+},
+{
+"field": {
+"label": "Today's Date",
+"kind": "text"
+},
+"expect": "signature_date"
+},
+{
+"field": {
+"label": "Skills",
+"kind": "combo"
+},
+"expect": "skills"
+},
+{
+"field": {
+"label": "Summary",
+"kind": "textarea"
+},
+"expect": "summary"
+},
+{
+"field": {
+"label": "Tell us about yourself",
+"kind": "textarea"
+},
+"expect": "summary"
+},
+{
+"field": {
+"label": "Why do you want to work here?",
+"kind": "textarea"
+},
+"expect": null
+},
+{
+"field": {
+"label": "Resume/CV",
+"kind": "file"
+},
+"expect": "resume"
+},
+{
+"field": {
+"label": "Attach",
+"hints": [
+"resume"
+],
+"kind": "file"
+},
+"expect": "resume"
+},
+{
+"field": {
+"label": "Attach",
+"hints": [
+"cover_letter"
+],
+"kind": "file"
+},
+"expect": "cover_letter_file"
+},
+{
+"field": {
+"label": "Transcript",
+"kind": "file"
+},
+"expect": "other_file"
+},
+{
+"field": {
+"label": "Social Security Number",
+"kind": "text"
+},
+"expect": "sensitive"
+},
+{
+"field": {
+"label": "Date of Birth",
+"kind": "date"
+},
+"expect": "sensitive"
+},
+{
+"field": {
+"label": "",
+"name": "ssn",
+"kind": "text"
+},
+"expect": "sensitive"
+},
+{
+"field": {
+"label": "Driver's License Number",
+"kind": "text"
+},
+"expect": "sensitive"
+},
+{
+"field": {
+"label": "Birthdate (MM/DD/YYYY)",
+"kind": "text"
+},
+"expect": "sensitive"
+},
+{
+"field": {
+"label": "Job Title",
+"section": "Work Experience",
+"kind": "text"
+},
+"expect": "work.title"
+},
+{
+"field": {
+"label": "Company",
+"section": "Work Experience",
+"kind": "text"
+},
+"expect": "work.company"
+},
+{
+"field": {
+"label": "Location",
+"section": "Work Experience",
+"kind": "text"
+},
+"expect": "work.location"
+},
+{
+"field": {
+"label": "I currently work here",
+"section": "Work Experience",
+"kind": "checkbox"
+},
+"expect": "work.current"
+},
+{
+"field": {
+"label": "From",
+"section": "Work Experience",
+"kind": "text"
+},
+"expect": "work.start"
+},
+{
+"field": {
+"label": "To",
+"section": "Work Experience",
+"kind": "text"
+},
+"expect": "work.end"
+},
+{
+"field": {
+"label": "Start Month",
+"section": "Employment History",
+"kind": "select"
+},
+"expect": "work.start_month"
+},
+{
+"field": {
+"label": "Start Year",
+"section": "Employment History",
+"kind": "select"
+},
+"expect": "work.start_year"
+},
+{
+"field": {
+"label": "End Month",
+"section": "Employment History",
+"kind": "select"
+},
+"expect": "work.end_month"
+},
+{
+"field": {
+"label": "End Year",
+"section": "Employment History",
+"kind": "select"
+},
+"expect": "work.end_year"
+},
+{
+"field": {
+"label": "Role Description",
+"section": "Work Experience",
+"kind": "textarea"
+},
+"expect": "work.desc"
+},
+{
+"field": {
+"label": "Title",
+"name": "jobs[1][title]",
+"kind": "text"
+},
+"expect": "work.title"
+},
+{
+"field": {
+"label": "Employer",
+"name": "employment[0][employer]",
+"kind": "text"
+},
+"expect": "work.company"
+},
+{
+"field": {
+"label": "School or University",
+"section": "Education",
+"kind": "combo"
+},
+"expect": "edu.school"
+},
+{
+"field": {
+"label": "Degree",
+"section": "Education",
+"kind": "listbox"
+},
+"expect": "edu.degree"
+},
+{
+"field": {
+"label": "Field of Study",
+"section": "Education",
+"kind": "combo"
+},
+"expect": "edu.field"
+},
+{
+"field": {
+"label": "Overall Result (GPA)",
+"section": "Education",
+"kind": "text"
+},
+"expect": "edu.gpa"
+},
+{
+"field": {
+"label": "From",
+"section": "Education",
+"kind": "text"
+},
+"expect": "edu.start"
+},
+{
+"field": {
+"label": "To (Actual or Expected)",
+"section": "Education",
+"kind": "text"
+},
+"expect": "edu.end"
+},
+{
+"field": {
+"label": "School",
+"name": "educations[2][school]",
+"kind": "text"
+},
+"expect": "edu.school"
+},
+{
+"field": {
+"label": "How many years of experience do you have with AWS?",
+"section": "Experience",
+"kind": "text"
+},
+"expect": null
+},
+{
+"field": {
+"label": "What is your favorite programming language?",
+"kind": "text"
+},
+"expect": null
+},
+{
+"field": {
+"label": "Anything else we should know?",
+"kind": "textarea"
+},
+"expect": null
+},
+{
+"field": {
+"label": "How many years of professional experience do you have?",
+"kind": "text"
+},
+"expect": "years_exp"
+},
+{
+"field": {
+"label": "Total years of experience",
+"kind": "select",
+"options": [
+"0-2",
+"3-5",
+"5+"
+]
+},
+"expect": "years_exp"
+}
+]

@@ -100,7 +100,7 @@ try {
   await key("7");                                     // a job on the open list is asked on its row; off it, here
   await back();
   check("coming back asks Did you apply?", await until("document.querySelector('dialog.back-dlg[open]')"), await dialogText());
-  check("it names the company and role", (await dialogText()).includes("Did you apply to Acme – "), await dialogText());
+  check("it names the company and role", (await dialogText()).includes("Did you apply to Acme · "), await dialogText());
   await clickText("dialog.back-dlg .btn", "Yes");
   check("Yes marks applied and attaches the tailored resume", await until("document.querySelector('dialog.back-dlg[open]')?.textContent.includes('Tailored resume attached')", 8000), await dialogText());
   const fields = await js("return [...document.querySelectorAll('dialog.back-dlg label.field > span')].map((s) => s.textContent)");
@@ -155,7 +155,7 @@ try {
     await js("return JSON.stringify({ tab: document.body.dataset.view, g8: !!window.S, more: document.querySelector('#list-more')?.textContent.slice(0, 200), head: document.querySelector('#list-head')?.textContent.slice(0, 100) })"));
   check("with its resume chip", await until("document.querySelector('.out-row .rgc')?.textContent === 'Resume ready'", 6000));
   await clickText(".out-row .btn", "Mark applied");
-  check("Mark applied works for it", await until("document.querySelector('dialog.back-dlg[open]')?.textContent.includes('Applied: Recruiter Co – AI Engineer')", 8000), await dialogText());
+  check("Mark applied works for it", await until("document.querySelector('dialog.back-dlg[open]')?.textContent.includes('Applied: Recruiter Co · AI Engineer')", 8000), await dialogText());
   await clickText("dialog.back-dlg .btn", "Skip");
   const outsideRow = (await server(`/api/tracker?profile=${P}&q=Recruiter`)).rows?.[0];
   check("its row is applied", outsideRow?.status === "applied", JSON.stringify(outsideRow || {}).slice(0, 200));
@@ -165,6 +165,17 @@ try {
   await settings.set("filters", "Hide jobs that ask for more", "3");
   await settings.close();
   check("it is saved to the profile", (await server(`/api/settings?profile=${P}`)).max_required_years === 3);
+
+  // ---- GOAL33 §3d lag: Generate again on a job that has a resume says Queued in the click itself ----
+  await load(`recommended:${P}`);
+  await until("document.body.classList.contains('rg-on') && document.querySelector('#list .rgc.rg-ready')", 10000);
+  await js("document.querySelector('#list .rgc.rg-ready').closest('.row').querySelector('.row-title, h3, .t')?.click() || document.querySelector('#list .rgc.rg-ready').closest('.row').click()");
+  await until("[...document.querySelectorAll('#detail .rg-gen-label')].some((b) => b.textContent === 'Generate again')", 8000);
+  const again = await js(`const row = document.querySelector('#list .row[aria-selected=true], #list .row.sel, #list .row.on') || document.querySelector('#list .rgc.rg-ready').closest('.row');
+    const uid = document.querySelector('#detail .rg-gen-label').dataset.uid, chip = document.querySelector('#list .rgc[data-uid="' + uid + '"]');
+    const before = chip?.textContent; document.querySelector('#detail .rg-gen-label').click(); return [before, chip?.textContent]`);
+  check("Generate again shows Queued at once", again[1] === "Resume queued", again);
+  await sleep(800);
 
   // ---- phone sheet ----
   await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
@@ -181,6 +192,7 @@ try {
 
   // ---- offline ----
   await fake("/__down", {});
+  await js(`await fetch("/api/resumes?profile=${P}")`);             // GOAL30-app §0: one failed call is not offline yet
   await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await load(`recommended:${P}`);
   check("job-hunt-agent keeps working when the resume app is down", (await rows()) >= 3);

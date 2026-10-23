@@ -1,0 +1,9 @@
+/* GOAL29 (lazy, with offer.js / appq.js): the Offer check and Application questions. A grade is an icon, a letter and a word */
+.of-line{font-weight:600}.of-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.of-a{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center}.of-e{grid-column:1/3}
+.og{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:10px;border:var(--line);font-size:12px;white-space:nowrap}
+.og-A,.og-B{border-color:var(--mark);color:var(--mark)}.og-D,.og-F{border-color:var(--bad);color:var(--bad)}.og-u{border-style:dashed;color:var(--quiet)}
+.aq textarea,.aq input{width:100%;font:inherit;padding:8px 8px;border:var(--line);border-radius:6px;background:var(--raised);color:var(--ink)}
+.aq-list{display:grid;gap:12px;width:100%}.aq-item{border-top:var(--line);padding-top:8px;display:grid;gap:8px}
+.aq-q{font-weight:600}.aq-txt{white-space:pre-wrap}.aq-btns{display:flex;flex-wrap:wrap;gap:8px}
+.aq-st{display:flex;gap:8px;align-items:center;font-weight:600}.aq-st.ready{color:var(--mark)}.aq-st.limit,.aq-st.login{color:var(--signal)}.aq-st.failed{color:var(--bad)}

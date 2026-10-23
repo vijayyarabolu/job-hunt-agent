@@ -21,6 +21,21 @@
                     currentTarget: { value, setSelectionRange: noop }, target: el });
       return true;
     },
+    // GOAL27: a value the page's React did not keep: its own onChange with the value already set natively
+    change: (el, arg) => {
+      const p = props(el); if (!p || !p.onChange) return false;
+      const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, "value").set.call(el, arg);
+      p.onChange({ target: el, currentTarget: el, nativeEvent: new Event("change"), preventDefault: noop, stopPropagation: noop, persist: noop });
+      return true;
+    },
+    // GOAL27: select2 / chosen dropdowns listen through jQuery: the page's own jQuery tells them
+    jq: (el, arg) => {
+      const $ = window.jQuery || window.$;
+      if (!$ || !$.fn) return false;
+      $(el).val(arg).trigger("change").trigger("chosen:updated");
+      return true;
+    },
     drop: (el) => {
       const p = props(el); const input = el.querySelector("input[type=file]") || document.querySelector("input[type=file][data-jh-filled]");
       if (!p || !p.onDrop || !input || !input.files || !input.files.length) return false;

@@ -43,6 +43,15 @@ try {
   check("a bank edit saves on its own", await until(`${row}.querySelector('.saved-state').textContent === 'Saved ✓'`));
   const after = await server("/api/autofill/answers?profile=alex");
   check("the server has the edit", after.bank.some((r) => r.label.startsWith("Salary expectation") && r.answer === "$140,000"));
+  // GOAL30 §1.5: the start date setting is a narrow weeks box (2 by default); "3" saves, 40 is refused and put back
+  const weeks = "[...document.querySelectorAll('.af-row')].find((r) => r.textContent.startsWith('Start date: this many weeks'))?.querySelector('input[type=number]')";
+  check("the start date setting is a weeks box at 2", await js(`const i = ${weeks}; return !!i && i.value === '2' && i.getBoundingClientRect().width < 120`),
+    await js(`const i = ${weeks}; return i ? [i.value, i.getBoundingClientRect().width] : null`));
+  await js(`const i = ${weeks}; i.value = '3'; i.dispatchEvent(new Event('change'))`);
+  check("3 weeks saves", await until(`${weeks}.closest('.af-row').querySelector('.saved-state').textContent === 'Saved ✓'`));
+  await js(`const i = ${weeks}; i.value = '40'; i.dispatchEvent(new Event('change'))`);
+  check("40 weeks is refused", await until(`/^Not saved/.test(${weeks}.closest('.af-row').querySelector('.saved-state').textContent)`));
+  check("the server keeps 3", (await server("/api/autofill/answers?profile=alex")).bank.some((r) => r.key === "start_weeks" && r.answer === "3"));
   check("work history is listed", await js("return [...document.querySelectorAll('.af-sec h2')].some((h) => h.textContent === 'Work history') && document.querySelectorAll('.af-hrow').length >= 1"));
 
   // ---- Settings › Autofill extension ----

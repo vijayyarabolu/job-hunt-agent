@@ -6,9 +6,11 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 
-from . import fresh, keywords, score, signals
+from . import fresh, genai, keywords, score, signals
 
-WEIGHTS = {"skills": 0.40, "experience": 0.25, "title": 0.20, "industry": 0.15}
+# GOAL28 §4.3: "genai" (the JD's GenAI work, both people) sorts the strongest fits first; it never hides a job. The
+# overall % renormalizes over the parts that have data, so a job whose fit predates it keeps its old %.
+WEIGHTS = {"skills": 0.40, "experience": 0.25, "title": 0.20, "industry": 0.15, "genai": 0.20}
 FAMILY_LABELS = {"ai_engineer": "AI Engineer", "genai_engineer": "GenAI Engineer", "ml_engineer": "ML Engineer",
                  "dl_engineer": "Deep Learning Engineer", "data_scientist": "Data Scientist",
                  "data_engineer": "Data Engineer"}
@@ -276,11 +278,23 @@ def title_part(row: dict, who: Who) -> Part:
     return Part("title", "Title", pct, f"{track}; {LEVEL_NAMES[level].lower()} title {fit} {yrs}")
 
 
+def genai_part(found: str | None) -> Part:
+    """GOAL28 §4.3: how much GenAI work the JD's required / preferred lines name (fits.genai: comma-joined terms;
+    None = this job's fit was computed before GOAL28, left out of the %)."""
+    if found is None:
+        return Part("genai", "GenAI work", None, "Not read for this job yet")
+    names = [n for n in found.split(",") if n]
+    if not names:
+        return Part("genai", "GenAI work", genai.pct(names), "The JD names no GenAI work")
+    return Part("genai", "GenAI work", genai.pct(names), f"The JD names {_named(tuple(names))}", tuple(names))
+
+
 def breakdown(row: dict, who: Who, industry: str | None) -> dict:
-    """{'pct': overall match %, 'parts': [Part...]} over the parts that have data (weights renormalized)."""
+    """{'pct': overall match %, 'parts': [Part...]} over the parts that have data (weights renormalized). The first four
+    are the ring's quarters; GenAI work is listed after them."""
     parts = [experience_part(row.get("min_years"), who),
              skills_part(row.get("fit_terms"), row.get("jd_state"), who, row.get("families")),
-             industry_part(industry, who), title_part(row, who)]
+             industry_part(industry, who), title_part(row, who), genai_part(row.get("genai"))]
     scored = [(WEIGHTS[p.key], p.pct) for p in parts if p.pct is not None]
     total = sum(w for w, _ in scored)
     pct = round(sum(w * v for w, v in scored) / total) if total else None
@@ -312,7 +326,7 @@ def exact_age(hours: float | None, exact: bool = True) -> str | None:
 
 def salary_label(lo, hi) -> str | None:
     if lo and hi:
-        return f"${lo / 1000:.0f}k to {hi / 1000:.0f}k"
+        return f"${lo / 1000:.0f}k to ${hi / 1000:.0f}k"
     return f"${lo / 1000:.0f}k+" if lo else None
 
 

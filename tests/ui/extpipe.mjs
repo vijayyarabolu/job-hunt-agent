@@ -8,7 +8,7 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function launch(chromePath, profileDir) {
   const chrome = spawn(chromePath, ["--headless=new", "--remote-debugging-pipe", "--enable-unsafe-extension-debugging",
-    `--user-data-dir=${profileDir}`, "--no-first-run", "--no-default-browser-check", "--window-size=1400,1000", "about:blank"],
+    `--user-data-dir=${profileDir}`, "--no-first-run", "--no-default-browser-check", "--window-size=1400,1000", ...(process.getuid && process.getuid() === 0 ? ["--no-sandbox"] : []), "about:blank"],
     { stdio: ["ignore", "ignore", "ignore", "pipe", "pipe"] });
   spawn("/bin/sh", ["-c", `while kill -0 ${process.pid} 2>/dev/null; do sleep 1; done; kill ${chrome.pid} 2>/dev/null`],
     { stdio: "ignore", detached: true }).unref();
@@ -115,6 +115,7 @@ export async function tab(b, url = "about:blank") {
     await clickAt(result.value[0], result.value[1]);
     return true;
   }
+  if (url !== "about:blank") await until("document.readyState === 'complete'");   // its scripts have run (a slow machine)
   return { targetId, sessionId, send, js, until, errors, logs, clickAt, clickSel, clickNode, panelText, panelClick };
 }
 

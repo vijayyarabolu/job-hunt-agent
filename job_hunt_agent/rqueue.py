@@ -15,7 +15,7 @@ Feed jobs carry their usual feed card (so the job list, keys and detail pane wor
 import logging
 from datetime import datetime
 
-from . import api, daygroups, outside, removal, rgclient, rgjobs
+from . import api, daygroups, outside, outside_card, removal, rgclient, rgjobs
 from .db import tx
 from .google import state as gstate
 
@@ -45,7 +45,7 @@ def _entries(conn, pid: str, jobs: list[dict]) -> dict[str, dict]:
 
 def _apps(conn, pid: str) -> tuple[dict, dict]:
     rows = [dict(r) for r in conn.execute(
-        "SELECT id, job_uid, company, role_title, job_url, address, status, applied_on, coalesce(resume, '') <> '' "
+        "SELECT id, job_uid, company, role_title, job_url, location, status, applied_on, coalesce(resume, '') <> '' "
         "OR EXISTS (SELECT 1 FROM resume_uploads u WHERE u.app_id = applications.id AND u.removed_at IS NULL) AS cv "
         "FROM applications WHERE profile = ?", (pid,))]
     return {r["job_uid"]: r for r in rows if r["job_uid"]}, {r["id"]: r for r in rows}
@@ -153,22 +153,12 @@ def made_at(job: dict, view: str) -> str | None:
     return job.get("finished_at") or times.get("made")
 
 
-def _outside_card(key: str, job: dict, app: dict | None) -> dict:
-    """A small card for an outside job (or a feed job no longer in the DB)."""
-    app = app or {}
-    url = app.get("job_url") or job.get("jd_url")
-    return {"uid": key, "outside": app.get("id"), "company": app.get("company") or job.get("company"),
-            "title": app.get("role_title") or job.get("role"), "location": app.get("address"), "url": url,
-            "apply_url": url, "match": None, "worth": None, "posted_ts": None,
-            "app": {"id": app["id"], "status": app["status"]} if app else None}
-
-
 def board(conn, pid: str, view: str, now: datetime) -> dict:
     """GET /api/jobs?tab=resumes&rq=<view>: the cards of one view, in order, with every view's count."""
     if view not in VIEWS:
         raise ValueError(f"rq must be one of {VIEWS}")
     try:
-        jobs = rgjobs.listing(pid)
+        jobs = rgjobs.listing(pid, keep=True)
     except rgclient.Offline as err:
         return {"tab": "resumes", "rq": view, "online": False, "message": str(err), "jobs": [], "total": 0,
                 "counts": {}, **progress(conn, pid, now)}
@@ -177,7 +167,8 @@ def board(conn, pid: str, view: str, now: datetime) -> dict:
     views = classify(conn, pid, jobs, now)
     feed = api.cards_for(conn, pid, [k for k, *_ in views[view] if not k.startswith("app:")], now)
     pos = positions(jobs)
-    cards = daygroups.stamp([{**(feed.get(key) or _outside_card(key, job, app)), "rq": _rq(job, app, view, closed, pos)}
+    who = outside_card.person(pid) if any(k not in feed for k, *_ in views[view]) else None
+    cards = daygroups.stamp([{**(feed.get(key) or outside_card.card(conn, who, key, app, job)), "rq": _rq(job, app, view, closed, pos)}
                              for key, job, app, closed in views[view]], now, keep_order=view == "queue")
     return {"tab": "resumes", "rq": view, "online": True, "jobs": cards, "total": len(cards),
             "counts": counts(views), "cancelled_closed": len(gone), **progress(conn, pid, now)}

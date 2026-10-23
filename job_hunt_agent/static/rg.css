@@ -6,7 +6,7 @@
 .rg-ready.rg-ok { background: color-mix(in oklab, var(--good) 12%, var(--paper)); color: var(--good); }   /* GOAL21 §4: a status, not a second primary button */
 .rg-ok::before { content: "✓"; margin-right: 4px; }
 .rg-needs-you { border-color: var(--bad); color: var(--bad); }
-.acts .rgc { height: 38px; padding: 0 14px; border-radius: var(--r); font-size: 13.5px; }
+.acts .rgc { height: 38px; padding: 0 16px; border-radius: var(--r); font-size: 13.5px; }
 .rg-off { align-self: center; }
 /* GOAL9 bug 2: the row's Generate resume lives in the chip slot after the tags, never over the time / worth / score */
 #list .rg-gen:hover { border-color: var(--mark); color: var(--mark); }
@@ -22,7 +22,7 @@
 .rg-on .row[aria-checked="true"] { background: color-mix(in oklab, var(--soft) 70%, transparent); }
 .pick::after { content: ""; position: absolute; inset: -14px -4px -14px -2px; }      /* bigger hit area */
 .pickbar { position: fixed; left: 50%; bottom: 52px; transform: translateX(-50%); z-index: 40; display: flex; align-items: center;
-  gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: var(--raised); border: var(--line);
+  gap: 8px; flex-wrap: wrap; padding: 8px 16px; border-radius: 12px; background: var(--raised); border: var(--line);
   box-shadow: 0 6px 24px color-mix(in oklab, var(--ink) 18%, transparent); width: max-content; max-width: calc(100vw - 24px); }
 .pb-n { font-weight: 700; }
 .rg-on.picking .foot { padding-bottom: 200px; }          /* the last rows can scroll out from under the floating bar */
@@ -30,16 +30,16 @@
 
 /* resume panel */
 .rg-status { display: grid; gap: 4px; }
-.rg-fails { padding-left: 18px; list-style: disc; color: var(--bad); }
+.rg-fails { padding-left: 16px; list-style: disc; color: var(--bad); }
 .rg-ats b { font-size: 18px; font-variant-numeric: tabular-nums; }
-.rg-acts { display: grid; gap: 10px; }
+.rg-acts { display: grid; gap: 8px; }
 .rg-acts [data-armed] { color: var(--bad); }
 .rg-changed { padding-left: 8px; border-left: 3px solid var(--mark); }
 .rg-note { flex: 1 1 220px; }
 .rg-pdf { width: 100%; height: min(80vh, 1000px); border: var(--line); border-radius: var(--r); background: #fff; }
 .rg-png { width: 100%; height: auto; border: var(--line); border-radius: var(--r); background: #fff; }
 .rg-diff summary { cursor: pointer; font-weight: 650; min-height: 32px; display: flex; align-items: center; }
-.rg-diff ul { display: grid; gap: 10px; margin-top: 8px; }
+.rg-diff ul { display: grid; gap: 8px; margin-top: 8px; }
 .rg-diff li { line-height: 1.5; }
 .rg-k { display: block; font-size: 12px; color: var(--quiet); }
 .rg-diff del { color: var(--bad); text-decoration-thickness: 1px; }
@@ -53,13 +53,13 @@
 /* "Did you apply?" + Settings */
 .back-dlg { width: min(520px, calc(100vw - 32px)); }
 .back-dlg .row-btns { margin-top: 4px; }
-.back-later { padding: 14px 0; display: grid; gap: 8px; justify-items: start; }
+.back-later { padding: 16px 0; display: grid; gap: 8px; justify-items: start; }
 
 @media (max-width: 760px) {
   .pick { left: 0; }                                   /* the phone gutter is 16 px: the box must not touch the ring */
   .rg-on:not(.picking) .pick { visibility: hidden; }   /* GOAL21: on a phone the box shows in Select mode only */
   .rg-on.picking .row { padding-left: 44px; }
-  .rg-on.picking .pick { left: 12px; width: 22px; height: 22px; margin-top: -11px; }
+  .rg-on.picking .pick { left: 12px; width: 22px; height: 22px; margin-top: -12px; }
   .pickbar { bottom: calc(64px + env(safe-area-inset-bottom)); left: 12px; right: 12px; width: auto; transform: none; }
   .pickbar .pb-n { flex-basis: 100%; }
   .pickbar .btn, .sel-mode, .out-acts .btn, .back-dlg .btn { min-height: 44px; }
@@ -75,13 +75,14 @@
   .sheet-open .toast-zone { bottom: calc(126px + env(safe-area-inset-bottom, 0px)); }
 }
 /* resumegen GOAL3 §5: an Outdated resume (old base / old title rule / wrapped date) and its one-click regenerate */
-.rg-old { display: grid; gap: 6px; justify-items: start; padding: 8px 10px; border-left: 3px solid var(--signal); }
+.rg-old { display: grid; gap: 8px; justify-items: start; padding: 8px 8px; border-left: 3px solid var(--signal); }
 .rg-old b { color: var(--signal); }
 /* GOAL13: Resumes tab rows, "Applied?" on the job, today's progress, answers */
-.rq-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
-.ask-in { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px; background: var(--soft); }
+.rq-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.ask-in { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px; background: var(--soft); }
 .rq-seg { justify-self: start; }
-.ans-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ans-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip.ghost { border-style: dashed; color: var(--quiet); }
 .rq-needs { margin-left: 2px; }
 .place-dlg #pd-status:empty { display: none; }
+.rg-mirror{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border-radius:10px;font-size:12px;border:var(--line);color:var(--ink)}.rg-cover p{display:flex;align-items:center;gap:8px}.rg-cover{margin-top:8px}

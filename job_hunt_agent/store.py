@@ -113,6 +113,8 @@ def _write_item(conn, run_id: int, board_id: str, item: dict, now: datetime, see
             state["repost_count"] = prior
             events.append(("repost", {"prior": prior, "chained": chained}))
     _upsert(conn, board_id, item, values, state)
+    if values["families"] == ",":                   # GOAL33 §3b: outside the user's families no JD history and no events,
+        return old is None                          # like no JD text (1.3 M rows nothing read)
     if old is None or old["content_hash"] != values["content_hash"]:
         conn.execute("INSERT OR IGNORE INTO jd_versions(uid, content_hash, seen_at) VALUES (?,?,?)",
                      (item["uid"], values["content_hash"], now_s))

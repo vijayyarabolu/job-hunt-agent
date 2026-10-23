@@ -21,7 +21,6 @@ import time
 import urllib.error
 import urllib.request
 import webbrowser
-from contextlib import contextmanager
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path

@@ -1,9 +1,8 @@
-// Boot: profile, theme, navigation (side menu, phone sections), the status button, Settings, live updates.
-import { $, $$, B, JOB_TABS, S, TABLE_TABS, TABS, api, closePop, get, h, menu, motion, openPop, opt, phone, sectionOf, store, tabName, titled, toast } from "./core.js";
+// Boot: profile, theme, navigation, status button, Settings, live updates.
+import { $, $$, B, JOB_TABS, S, TABLE_TABS, TABS, api, closePop, get, h, menu, openPop, opt, phone, placeholder, sectionOf, store, tabName, titled, toast } from "./core.js";
 import { applyProfileFilters, dropDupes, initFilters } from "./filters.js";
-import { checkNew, loadFeed, tickAges } from "./feed.js";
-import { closeDetail, wireSwipe } from "./detail.js";
-import { loadTracker, resetTracker } from "./tracker.js";
+import { checkNew, keepList, loadFeed, tickAges } from "./feed.js";
+import { closeDetail, openOnReload, wireSwipe } from "./detail.js";
 import { loadFollowups, refreshFollowups as refreshFollowupCount, setTrackerReload } from "./editor.js";
 import { initKeys } from "./keys.js";
 
@@ -12,7 +11,7 @@ const GOOGLE_MS = 60000;
 const AGES_MS = 60000;
 const AFTER_FIRST_PAINT_MS = 1500;
 let live = null;
-let backTab = "recommended";      // the view Settings goes back to
+let backTab = "recommended";
 
 function setTheme(t) {
   if (t) document.documentElement.dataset.theme = t;
@@ -42,29 +41,43 @@ function paintTabs() {
 
 function route() {
   const jobs = JOB_TABS.includes(S.tab);
+  const noFilters = S.tab === "resumes" || S.tab === "applied";
   $("#pane-list").hidden = !jobs;
-  $("#filters").hidden = !jobs || S.tab === "resumes";
+  $("#filters").hidden = !jobs || noFilters;           // GOAL33 §3d: a page with no filters has no empty band
   $("#view").hidden = jobs;
   paintTabs();
   if (jobs) return loadFeed();
   closeDetail();
-  if (TABLE_TABS.includes(S.tab)) return loadTracker();
-  if (S.tab === "answers") return import("./answers.js").then((m) => m.loadAnswers());   // lazy
-  return S.tab === "followups" ? loadFollowups() : import("./stats.js").then((m) => m.loadStats());
+  if (TABLE_TABS.includes(S.tab)) return lazyPage("./tracker.js", (m) => m.loadTracker());   // lazy, startup JS cap
+  if (S.tab === "answers") return lazyPage("./answers.js", (m) => m.loadAnswers());   // lazy
+  return S.tab === "followups" ? loadFollowups() : lazyPage("./stats.js", (m) => m.loadStats());
+}
+
+// a placeholder while a lazy page's module first loads, then drawn at once
+const mods = {};
+const quietTracker = () => mods["./tracker.js"]?.loadTracker({ quiet: true });
+function lazyPage(path, draw) {
+  if (mods[path]) return Promise.resolve(draw(mods[path]));
+  $("#view").replaceChildren(placeholder());
+  return import(path).then((m) => draw(mods[path] = m));
 }
 
 function switchTab(tab) {
   if (!TABS.includes(tab)) return;
-  closePop({ refocus: false });                                  // a menu of the old view never stays over the new one
+  closePop({ refocus: false });
   document.body.classList.remove("panel-open");
-  if (S.tab !== "settings") S.place[S.tab] = { uid: S.items[S.cur]?.uid, top: $("#list-wrap").scrollTop };
+  if (S.tab !== "settings") S.place[S.tab] = S.tab === "resumes" ? { top: 0 }    // numbered cards, from #1
+    : { uid: S.items[S.cur]?.uid, top: $("#list-wrap").scrollTop };
   if (tab !== S.tab) dropDupes();      // "Duplicates only" is per list
-  motion(() => {
-    S.tab = tab;
-    S.cur = 0;
-    history.replaceState(null, "", `#${tab}`);
-    route();
-  });
+  if (JOB_TABS.includes(S.tab)) keepList();
+  // no view transition (old and new page showed over each other): its last data at once, a 140 ms fade-in
+  S.tab = tab;
+  S.cur = 0;
+  history.replaceState(null, "", `#${tab}`);
+  route();
+  const pane = JOB_TABS.includes(tab) ? $("#pane-list") : $("#view");
+  pane.classList.remove("enter");
+  requestAnimationFrame(() => pane.classList.add("enter"));
 }
 
 // Settings is a page (side menu of sections), not a dialog; Back, Esc and the side menu leave it
@@ -82,7 +95,7 @@ function openSettings(section) {
   $("#filters").hidden = true;
   $("#view").hidden = false;
   paintTabs();
-  return import("./settings.js").then((m) => m.showSettings({ section, close: closeSettings }))
+  return lazyPage("./settings.js", (m) => m.showSettings({ section, close: closeSettings }))
     .catch(() => toast("Settings could not load: reload the page", { error: true }));
 }
 function closeSettings() {
@@ -95,7 +108,7 @@ const answerCount = () => { const n = $('#tabs [data-tab="answers"] .n')?.textCo
 const refreshAnswers = () => import("./answers.js").then((m) => m.refreshBadge()).catch(() => {});
 
 function moreMenu(anchor) {
-  const key = (k) => (phone.matches ? "" : ` (${k})`);   // no key hints on a phone
+  const key = (k) => (phone.matches ? "" : ` (${k})`);
   openPop(menu(
     titled(opt("Settings", () => openSettings()), `Your answers, job filters, daily goal, accounts${key(",")}`),
     titled(opt(`Answers${answerCount()}`, () => switchTab("answers")), "What the Autofill extension fills in, and the questions it needs you for"),
@@ -152,7 +165,7 @@ function setProfile(pid) {
   paintRemembered();
   applyProfileFilters();
   closeDetail();
-  resetTracker();
+  mods["./tracker.js"]?.resetTracker();
   live?.restartLive();
   loadGoogle().then(() => (S.tab === "settings" ? openSettings() : route()));
   loadHealth();
@@ -161,11 +174,16 @@ function setProfile(pid) {
   S.g8?.profile();
 }
 
+// GOAL33 §3d (user 2026-10-22): a reload stays on the page the user was on (and the job open there) with that page's
+// default filters, sort and scroll; a new open still starts on Recommended (resumegen GOAL3 §7).
 function applyDeepLink() {
   const [tab, pid] = decodeURIComponent(location.hash.slice(1)).split(":");
-  if (TABS.includes(tab) && performance.getEntriesByType("navigation")[0]?.type === "back_forward") S.tab = tab;
+  const how = performance.getEntriesByType("navigation")[0]?.type;
+  if (TABS.includes(tab) && (how === "back_forward" || how === "reload")) S.tab = tab;
   else if (tab && tab !== S.tab) history.replaceState(null, "", `#${S.tab}`);
   if (pid && S.profiles.some((p) => p.id === pid)) { S.profile = pid; store.set("jh.profile", pid); }
+  const open = how === "reload" ? openOnReload() : null;
+  if (open?.tab === S.tab && JOB_TABS.includes(S.tab)) S.place[S.tab] = { uid: open.uid, top: 0 };
 }
 
 // one status button (dot + a word) with a popover; a banner only when the user must act
@@ -251,7 +269,7 @@ async function loadGoogle() {
 function onEdit() {
   refreshFollowupCount();
   refreshAnswers();
-  if (TABLE_TABS.includes(S.tab) && !$("#view .editing, #view .g-ed")) loadTracker({ quiet: true });
+  if (TABLE_TABS.includes(S.tab) && !$("#view .editing, #view .g-ed")) quietTracker();
   if (S.tab === "followups") loadFollowups();
 }
 
@@ -262,6 +280,7 @@ async function init() {
   $("#who").addEventListener("click", (e) => { const b = e.target.closest("[data-person]"); if (b) setProfile(b.dataset.person); else profileMenu($("#who")); });
   $("#status").addEventListener("click", (e) => statusPop(e.currentTarget));
   paintRemembered(decodeURIComponent(location.hash.slice(1)).split(":")[1] || S.profile); // before any await: no shift
+  applyProfileFilters();
   S.profiles = await api("/api/profiles").catch(() => []);
   applyDeepLink();
   if (S.profiles.length && !S.profiles.some((p) => p.id === S.profile)) {
@@ -273,7 +292,7 @@ async function init() {
   applyProfileFilters();
   wireTabs();
   wireSwipe();
-  setTrackerReload(() => { if (TABLE_TABS.includes(S.tab)) loadTracker({ quiet: true }); });
+  setTrackerReload(() => { if (TABLE_TABS.includes(S.tab)) quietTracker(); });
   initKeys({ switchTab, toggleTheme, setProfile, profileMenu, openSettings, closeSettings });
   S.switchTab = switchTab;
   S.openSettings = openSettings;
@@ -282,7 +301,7 @@ async function init() {
     openSettings("profiles");
     return;
   }
-  phone.addEventListener("change", () => { if (TABLE_TABS.includes(S.tab)) loadTracker({ quiet: true }); });
+  phone.addEventListener("change", () => { if (TABLE_TABS.includes(S.tab)) quietTracker(); });
   const google = loadGoogle();
   if (!JOB_TABS.includes(S.tab)) await google;
   if (location.hash.startsWith("#settings")) openSettings(location.hash.split("/")[1] || "setup");   // back from Google
@@ -292,7 +311,7 @@ async function init() {
     .catch(() => toast("Resumes and “Did you apply?” could not load: reload the page", { error: true }));
   import("./tip.js").then((m) => m.initTips()).catch(() => {});
   import("./edges.js").then((m) => m.initEdges()).catch(() => {});
-  import("./live.js").then((m) => { live = m; m.startLive({ onRun: () => { checkNew(); loadHealth(); }, onEdit }); }).catch(() => {}); },
+  import("./live.js").then((m) => { live = m; m.startLive({ onRun: () => { checkNew(); loadHealth(); }, onEdit, onRg: () => S.g8?.poll() }); }).catch(() => {}); },
     AFTER_FIRST_PAINT_MS);
   setInterval(loadHealth, HEALTH_MS);
   setInterval(tickAges, AGES_MS);

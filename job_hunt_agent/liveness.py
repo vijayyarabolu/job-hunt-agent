@@ -1,7 +1,7 @@
 """Is a posting still open? Asked of the ATS's own per-job endpoint (decision 001, release review C1).
 
-Used by /tailor before writing a resume and by fetch before believing that a board really emptied or died: a list
-endpoint whose JSON key was renamed looks empty, but its jobs still answer on their own pages.
+Used by fetch before believing that a board really emptied or died: a list endpoint whose JSON key was renamed looks
+empty, but its jobs still answer on their own pages.
 """
 import random
 

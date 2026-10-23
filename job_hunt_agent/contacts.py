@@ -11,7 +11,9 @@ from datetime import date
 
 from . import db, history, tracker
 
-FIELDS = ("name", "role", "email", "linkedin", "linkedin_sent", "email_sent", "replied", "notes", "source")
+FIELDS = ("name", "role", "email", "linkedin", "linkedin_sent", "email_sent", "replied", "notes", "source", "kind",
+          "found_at")                                         # GOAL28 §5: the type of contact and when it was found
+KINDS = ("recruiter", "manager", "peer")
 FLAGS = ("linkedin_sent", "email_sent", "replied")
 LEGACY = ("target_name", "target_role", "email_address", "linkedin_request", "email_sent")
 MAX_CONTACTS = 20
@@ -144,6 +146,8 @@ def _clean(contact: dict) -> dict:
         raise ValueError(f"not an email address: {out['email']!r}")
     if out["linkedin"] and not re.match(r"^https?://", out["linkedin"]):
         raise ValueError("LinkedIn must be a link (https://...)")
+    if out["kind"] and out["kind"] not in KINDS:
+        raise ValueError(f"kind must be one of {', '.join(KINDS)}")
     return out
 
 

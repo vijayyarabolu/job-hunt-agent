@@ -22,3 +22,5 @@ config/google_client.json
 node_modules/
 build/
 dist/
+Prompts/
+.claude/settings.local.json

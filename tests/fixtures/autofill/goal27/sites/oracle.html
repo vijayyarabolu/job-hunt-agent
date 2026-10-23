@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- GOAL27 matrix fixture: Oracle Cloud HCM. Synthetic: modeled on Oracle Cloud HCM's public apply form (its field names, label wording and
+     widget kinds); our own markup, the fake person's values only. Regenerate with make_fixtures.py. -->
+<html lang="en"><head><meta charset="utf-8"><title>Oracle Cloud HCM: ML Engineer</title>
+<meta property="og:title" content="ML Engineer"><meta property="og:site_name" content="ZZ Test Corp">
+<style>body{font:14px sans-serif;padding:20px 24px 120px;max-width:760px}.field,.application-question,._fieldEntry,.iCIMS_InfoField,.row,fieldset{margin:8px 0}
+label,legend,._label{display:block;font-weight:600}input[type=text],input:not([type]),input[type=email],input[type=tel],textarea,select{width:340px;padding:4px}
+.select__control{border:1px solid #888;width:340px;min-height:28px;position:relative;display:flex}.select__value-container{flex:1;display:flex}
+.select__input{border:0;width:100%}.select__menu{position:absolute;background:#fff;border:1px solid #888;width:340px;z-index:9}.select__option{padding:3px 6px;cursor:pointer}
+.typeahead{position:relative}.typeahead-results{position:absolute;background:#fff;border:1px solid #888;list-style:none;margin:0;padding:0;width:340px;z-index:9}
+.typeahead-results li{padding:3px 6px;cursor:pointer}._yesno button{margin-right:6px;padding:4px 14px}._active{background:#1f5fbf;color:#fff}
+.entry{border:1px solid #ccc;padding:8px;margin:8px 0}.select2-selection{display:inline-block;border:1px solid #888;width:340px;padding:4px}</style></head>
+<body><main><h1>ML Engineer</h1><p>ZZ Test Corp · Springfield, MO</p>
+<form id="application-form" action="#" onsubmit="return false">
+<h3>Contact Information</h3>
+<div class="field"><label for="firstName-1">First Name</label><input id="firstName-1" name="firstName" type="text" data-expect="Zz" data-type="text"></div>
+<div class="field"><label for="lastName-2">Last Name</label><input id="lastName-2" name="lastName" type="text" data-expect="Testcase" data-type="text"></div>
+<div class="field"><label for="email-3">Email Address</label><input id="email-3" name="email" type="text" data-expect="zz.testcase@example.com" data-type="email"></div>
+<div class="field"><label for="phoneCountry-4">Country Code</label><select id="phoneCountry-4" name="phoneCountryCode" data-expect="United States (+1)" data-type="select"><option value="">Select...</option><option value="United States (+1)">United States (+1)</option><option value="India (+91)">India (+91)</option></select></div>
+<div class="field"><label for="phoneNumber-5">Phone Number</label><input id="phoneNumber-5" name="phoneNumber" type="text" data-expect="555-010-0199" data-type="phone"></div>
+<h3>Address</h3>
+<div class="field"><label for="addressLine1-6">Address Line 1</label><input id="addressLine1-6" name="addressLine1" type="text" data-expect="123 Main St" data-type="text"></div>
+<div class="field"><label for="city-7">City</label><input id="city-7" name="city" type="text" data-expect="Springfield" data-type="text"></div>
+<div class="field"><label for="postalCode-8">ZIP Code</label><input id="postalCode-8" name="postalCode" type="text" data-expect="65801" data-type="text"></div>
+<h3>Application Questions</h3>
+<div data-w="yesno" data-label="Are you legally authorized to work in the United States?" data-field="cx-select-pills" data-expect="Yes" data-type="legal"></div>
+<div data-w="yesno" data-label="Will you now or in the future require sponsorship?" data-field="cx-select-pills" data-expect="No" data-type="legal"></div>
+<div class="field"><label for="oracle-resume">Resume</label><input type="file" id="oracle-resume" name="oracle-resume" accept=".pdf,.doc,.docx" data-expect="re:_Resume\.pdf$" data-type="file"></div>
+<h3>E-Signature</h3>
+<div class="field"><label for="fullName-9">Full Name</label><input id="fullName-9" name="fullName" type="text" data-expect="Zz Testcase" data-type="text"></div>
+<div class="actions"><button type="submit" class="btn-submit">Submit Application</button></div>
+</form></main>
+<script src="/__sim/ats_sim.js"></script></body></html>

@@ -169,13 +169,13 @@ try {
   const people = await text("#people");
   check("it names the person in the JD and the domain from the JD link", people.includes("Jane Doe") && (await js("return document.querySelector('#fd-domain').value")) === "acme.ai", people.slice(0, 300));
   check("LinkedIn search links are there", (await js("return document.querySelectorAll('#people .finder-links a').length")) >= 4);
-  check("Apollo and Hunter show their cost before any click", people.includes("Look up with Apollo (up to 2 credits)") && people.includes("Look up with Hunter (up to 1 credit)"), people.slice(0, 600));
+  check("Apollo and Hunter show their cost before any click", people.includes("Look up with Apollo (0 credits)") && people.includes("Look up with Hunter (up to 1 credit)"), people.slice(0, 600));
   check("the Hunter account line shows searches left", await until("document.querySelector('#people .hunter-account')?.textContent.includes('49 searches')", 5000), await text("#people .hunter-account"));
   await labelsOk("Find contacts open (desktop)", "#detail");
   await shot("find-contacts-1440");
   check("no tracker row was made by opening it", (await trackerRows("Acme")).length === 0);
   await clickText("#people .provider .btn", "Look up with Apollo");
-  check("Apollo asks first with the cost", await until("document.querySelector('#ask[open]')") && (await text("#ask-h")) === "Spend up to 2 Apollo credits?", await text("#ask"));
+  check("Apollo asks first with the cost", await until("document.querySelector('#ask[open]')") && (await text("#ask-h")) === "Ask Apollo? It costs 0 credits", await text("#ask"));
   check("nothing was sent before the answer", (await lookups()) === 0);
   await labelsOk("the credit ask dialog", "#ask");
   await shot("apollo-ask-1440");
@@ -186,7 +186,7 @@ try {
   await until("document.querySelector('#ask[open]')");
   await click("#ask-ok");
   check("OK sends exactly one lookup and shows Apollo's people", await until("document.querySelector('#people')?.textContent.includes('Sam Lee')", 8000) && (await lookups()) === 1, `${await lookups()} lookups`);
-  check("the spend is reported and the next click would be free", (await toasts()).some((t) => t.startsWith("Apollo: 2 credits used")) && (await text("#people")).includes("Show Apollo results (free)"), JSON.stringify(await toasts()));
+  check("the spend is reported and the next click would be free", (await toasts()).some((t) => t.startsWith("Apollo: 0 credits used")) && (await text("#people")).includes("Show Apollo results (free)"), JSON.stringify(await toasts()));
   check("still no tracker row after a lookup", (await trackerRows("Acme")).length === 0);
   await clickText("#people .provider .btn", "Look up with Hunter");
   check("Hunter asks first with the cost", await until("document.querySelector('#ask[open]')") && (await text("#ask-h")) === "Spend up to 1 Hunter credit?", await text("#ask"));
@@ -362,9 +362,9 @@ try {
   await shot("find-contacts-phone");
   await js("const d = document.querySelector('#fd-domain'); d.value = 'acme-two.io'");
   await clickText("#people .finder-domain .btn", "Use");
-  await until("document.querySelector('#people')?.textContent.includes('Look up with Apollo (up to 2 credits)')", 6000);
+  await until("document.querySelector('#people')?.textContent.includes('Look up with Apollo (0 credits)')", 6000);
   await js("[...document.querySelectorAll('#people .provider .btn')].find((b) => b.textContent.startsWith('Look up with Apollo')).click()");
-  check("phone: Apollo asks first with the cost", await until("document.querySelector('#ask[open]')") && (await text("#ask-h")) === "Spend up to 2 Apollo credits?", await text("#ask"));
+  check("phone: Apollo asks first with the cost", await until("document.querySelector('#ask[open]')") && (await text("#ask-h")) === "Ask Apollo? It costs 0 credits", await text("#ask"));
   await shot("apollo-ask-phone");
   await click("#ask .btn.ghost");
   check("phone: Cancel sends nothing", (await lookups()) === 0);

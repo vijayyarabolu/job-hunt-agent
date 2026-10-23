@@ -1,15 +1,15 @@
 /* GOAL12 "Updates from email" (mail/panel.py), loaded by the panel itself: app.css is at its 40 KB cap */
 .mail-box { margin: 8px var(--gut, 16px) }
-.mail { border: var(--line); border-radius: 10px; padding: 10px 14px; background: var(--raised) }
+.mail { border: var(--line); border-radius: 10px; padding: 8px 16px; background: var(--raised) }
 .mail summary { cursor: pointer; font-weight: 600 }
-.mail h3 { margin: 12px 0 6px }
+.mail h3 { margin: 12px 0 8px }
 .mail p { margin: 2px 0 }
 .mail ul { list-style: none; margin: 0; padding: 0 }
 .mail .fu-row { padding: 8px 12px; background: var(--paper) }
 .mail input[data-pick] { min-width: 14em }
 .mail input[type=number] { width: 4.5em }
 .mail input[type=url] { width: min(100%, 32em) }
-.mail .t-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px }
+.mail .t-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px }
 .back-dlg .mail-box { margin: 16px 0 0 }
 /* GOAL15: scrolls inside (≤ half the screen), gives way to the table */
 #view > .mail-box { flex: 0 1 auto; min-height: 3.2em; max-height: 50dvh; overflow-y: auto; overscroll-behavior: contain; border-radius: 10px }

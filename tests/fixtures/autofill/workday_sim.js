@@ -25,15 +25,34 @@
 
   // ---- popups -------------------------------------------------------------------------------------------------
   function closePopup() { document.querySelectorAll("[data-automation-id=activeListContainer]").forEach((p) => p.remove()); }
-  function popup(anchor, options, onPick, prompt) {
-    closePopup();
+  // GOAL30 §0b (NVIDIA): ?stale=1 -> the last dropdown's list stays on screen for a moment while the next one opens
+  // (its options arrive late), the race that read Veteran Status as a list of races
+  const STALE = new URLSearchParams(location.search).get("stale") === "1";
+  // GOAL31 (NVIDIA and 4 other tenants, 2026-10-20: "none of its choices means Male" with Male in the list): ?late=<ms>
+  // -> a dropdown's first open shows "Loading" that long before its choices; ?deaf=1 -> its first click opens nothing
+  const LATE = Number(new URLSearchParams(location.search).get("late")) || 0;
+  const DEAF = new URLSearchParams(location.search).get("deaf") === "1";
+  function popup(anchor, options, onPick, prompt, loading = false) {
+    if (STALE && !prompt && !loading) {
+      const old = [...document.querySelectorAll("[data-automation-id=activeListContainer]")];
+      setTimeout(() => old.forEach((p) => p.remove()), 700);
+      setTimeout(() => popupNow(anchor, options, onPick, prompt, loading, false), 300);
+      return;
+    }
+    popupNow(anchor, options, onPick, prompt, loading, true);
+  }
+  function popupNow(anchor, options, onPick, prompt, loading, close) {
+    if (close) closePopup();
     const r = anchor.getBoundingClientRect();
     const list = h("div", { "data-automation-id": "activeListContainer", role: "listbox" });
     list.style.left = `${r.left + scrollX}px`;
     list.style.top = `${r.bottom + scrollY + 2}px`;
     for (const o of options) {
-      const opt = h("div", { role: "option", "aria-selected": "false", "data-automation-id": prompt ? "promptOption" : "menuItem",
-        "data-automation-label": o, tabindex: "-1" }, h("div", {}, o));
+      if (loading) { list.append(h("div", { "data-automation-id": "promptSearchingIndicator" }, o)); continue; }
+      // a prompt's result row: promptLeafNode > promptOption (its label also in data-automation-label)
+      const opt = prompt ? h("div", { "data-automation-id": "promptLeafNode", role: "option", "aria-selected": "false", tabindex: "-1" },
+        h("div", { "data-automation-id": "promptOption", "data-automation-label": o }, o))
+        : h("div", { role: "option", "aria-selected": "false", "data-automation-id": "menuItem", "data-automation-label": o, tabindex: "-1" }, h("div", {}, o));
       opt.addEventListener("click", (e) => { e.stopPropagation(); onPick(o); closePopup(); });
       list.append(opt);
     }
@@ -56,26 +75,60 @@
       const id = nid();
       const b = h("button", { type: "button", id, "aria-haspopup": "listbox", value: "", "aria-label": `${d.dataset.label} Select One${d.dataset.required != null ? " Required" : ""}`,
         "data-automation-id": d.dataset.auto || null }, d.dataset.value || "Select One");
-      b.addEventListener("click", () => popup(b, opts(d), (o) => { b.textContent = o; b.value = o; b.setAttribute("aria-label", `${d.dataset.label} ${o}`); }));
+      const pick = (o) => { b.textContent = o; b.value = o; b.setAttribute("aria-label", `${d.dataset.label} ${o}`); };
+      let clicks = 0;
+      b.addEventListener("click", () => {
+        clicks += 1;
+        if (DEAF && clicks === 1) return;                 // GOAL31: the page is still waking up: the first click opens nothing
+        if (LATE && clicks === (DEAF ? 2 : 1)) {          // GOAL31: the first open loads its choices from the network
+          popupNow(b, ["Loading"], () => {}, false, true, true);
+          setTimeout(() => { if (document.querySelector("[data-automation-id=promptSearchingIndicator]")) popupNow(b, opts(d), pick, false, false, true); }, LATE);
+          return;
+        }
+        popup(b, opts(d), pick);
+      });
       return field(d.dataset.field, label(d.dataset.label, id, d.dataset.required != null), h("div", {}, b));
     },
     prompt(d) {
+      // GOAL27 1.3.1: Workday's real markup. The picks are a role=listbox of selectedItem rows, each holding its own
+      // promptOption (so the picks look like a list of options), and a search answers after a moment ("Searching…"
+      // first): code that takes the last visible listbox reads the picks, not the results
       const id = nid();
-      const chosen = h("ul", { role: "listbox", "data-automation-id": "selectedItemList" });
-      const input = h("input", { type: "text", id, "data-automation-id": "searchBox", placeholder: "Search", "aria-required": d.dataset.required != null ? "true" : null });
+      const listId = `${id}-selected`;
+      const chosen = h("div", { role: "listbox", id: listId, "data-automation-id": "selectedItemList", "aria-label": "items selected" });
+      const input = h("input", { type: "text", id, "data-automation-id": "searchBox", placeholder: "Search", "aria-controls": listId,
+        "aria-required": d.dataset.required != null ? "true" : null });
+      // GOAL29 §4 (IRC's Workday, 2026-10-19): data-clearms = the box is cleared that long AFTER a pick, wiping whatever
+      // was typed by then; data-freetext = Enter saves the typed text as a pick when no entry fits; data-wipeafter = N:
+      // the box is wiped once, at the Nth typed character (a late clear landing mid-typing); data-mangle = "typed>saved": that
+      // free text is saved wrong. A pick's × removes it.
+      const clearMs = Number(d.dataset.clearms || 0);
+      const mangle = Object.fromEntries((d.dataset.mangle || "").split("|").filter(Boolean).map((m) => m.split(">")));
+      let wipeAt = Number(d.dataset.wipeafter || 0);
       const add = (o) => {
         if (d.dataset.single != null) chosen.replaceChildren();
-        chosen.append(h("li", { "data-automation-id": "selectedItem", title: o }, o, h("button", { type: "button", "aria-label": `Delete ${o}`, "data-automation-id": "DELETE_charm" }, "×")));
-        input.value = "";
+        const charm = h("div", { "data-automation-id": "DELETE_charm", role: "button", "aria-label": `Delete ${o}` }, "×");
+        const item = h("div", { "data-automation-id": "selectedItem", role: "option", "aria-selected": "true", title: o, tabindex: "-1" },
+          h("div", { "data-automation-id": "promptOption", "data-automation-label": o }, o), charm);
+        charm.addEventListener("click", (e) => { e.stopPropagation(); item.remove(); });
+        chosen.append(item);
+        if (clearMs) setTimeout(() => { input.value = ""; }, clearMs);
+        else input.value = "";
       };
       for (const v of (d.dataset.value || "").split("|").filter(Boolean)) add(v);
+      input.addEventListener("input", (e) => { if (wipeAt && e.inputType === "insertText" && --wipeAt === 0) input.value = ""; });
+      let pending = 0;
       input.addEventListener("keydown", (e) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
-        const want = input.value.trim().toLowerCase();
+        const typed = input.value.trim();
+        const want = typed.toLowerCase();
         const words = want.split(/\s+/).filter(Boolean);
         const hits = opts(d).filter((o) => words.every((w) => o.toLowerCase().includes(w)));
-        popup(input, hits.length ? hits : ["No Items."], (o) => { if (o !== "No Items.") add(o); }, true);
+        if (d.dataset.freetext != null && typed && !hits.length) { add(mangle[typed] || typed); return; }
+        const ticket = ++pending;
+        popup(input, ["Searching…"], () => {}, true, true);
+        setTimeout(() => { if (ticket === pending) popup(input, hits.length ? hits : ["No Items."], (o) => { if (o !== "No Items.") add(o); }, true); }, 450);
       });
       const box = h("div", { "data-automation-id": "multiSelectContainer" }, chosen, h("div", { "data-automation-id": "multiselectInputContainer" }, input));
       return field(d.dataset.field, label(d.dataset.label, id, d.dataset.required != null), box);
@@ -132,9 +185,10 @@
       { kind: "date", label: "From", field: "startDate", required: 1 },
       { kind: "date", label: "To", field: "endDate", required: 1 },
       { kind: "text", label: "Role Description", inputId: `workExperience-${i}--roleDescription`, multiline: 1 }] },
-    education: { title: "Education", auto: "educationSection", panel: "education", fields: () => [
+    education: { title: "Education", auto: "educationSection", panel: "education", fields: (i, modern) => [
       { kind: "prompt", label: "School or University", field: "school", single: 1, required: 1,
         options: "Lakeview State University|University of Missouri|University of Kansas|Hillcrest University|Other" },
+      ...(modern ? [{ kind: "text", label: "Location", inputId: `education-${i}--location` }] : []),   // GOAL30 §0: the school's city
       { kind: "listbox", label: "Degree", field: "degree", required: 1, options: "Associate's Degree|Bachelor's Degree|Master's Degree|Doctorate|High School Diploma" },
       { kind: "prompt", label: "Field of Study", field: "fieldOfStudy", single: 1, options: "Computer Science|Computer Engineering|Data Science|Information Technology" },
       { kind: "date", label: "From", field: "firstYearAttended", parts: "YYYY" },
@@ -154,11 +208,20 @@
     return BUILD[spec.kind](d);
   }
 
+  // GOAL30 §0 (NVIDIA's Workday, 2026-10-20): a "modern" section's panels carry no aria-label and no automation id,
+  // only aria-labelledby pointing at a plain <div> saying "Work Experience 1"
   function renumber(sec) {
     const s = SECTIONS[sec.dataset.sec];
+    const modern = sec.hasAttribute("data-modern");
     [...sec.querySelectorAll(":scope > [role=group]")].forEach((p, n) => {
+      const head = p.querySelector(modern ? ":scope > div.panel-title" : "h4");
+      head.textContent = `${s.title} ${n + 1}`;
+      if (modern) {
+        head.id = `${s.title.replace(/\s+/g, "-")}-${n + 1}-panel`;
+        p.setAttribute("aria-labelledby", head.id);
+        return;
+      }
       p.setAttribute("data-automation-id", `${s.panel}-${n + 1}`);
-      p.querySelector("h4").textContent = `${s.title} ${n + 1}`;
       p.setAttribute("aria-label", `${s.title} ${n + 1}`);
     });
   }
@@ -167,8 +230,10 @@
     const s = SECTIONS[sec.dataset.sec];
     const i = sec.querySelectorAll(":scope > [role=group]").length + 1;
     const del = h("button", { type: "button", "data-automation-id": "panel-set-delete-button", "aria-label": `Delete ${s.title} ${i}` }, "Delete");
-    const panel = h("div", { role: "group", "data-automation-id": `${s.panel}-${i}`, "aria-label": `${s.title} ${i}` }, h("h4", {}, `${s.title} ${i}`), del,
-      s.fields(i).map(fromSpec));
+    const modern = sec.hasAttribute("data-modern");
+    const panel = modern ? h("div", { role: "group" }, h("div", { class: "panel-title" }, `${s.title} ${i}`), del, s.fields(i, modern).map(fromSpec))
+      : h("div", { role: "group", "data-automation-id": `${s.panel}-${i}`, "aria-label": `${s.title} ${i}` }, h("h4", {}, `${s.title} ${i}`), del,
+        s.fields(i, modern).map(fromSpec));
     del.addEventListener("click", () => { panel.remove(); renumber(sec); });
     sec.insertBefore(panel, sec.querySelector(":scope > [data-automation-id=add-button]"));
     for (const [k, v] of Object.entries(values)) {
@@ -181,7 +246,7 @@
 
   function section(d) {
     const s = SECTIONS[d.dataset.section];
-    const sec = h("div", { "data-automation-id": s.auto, "data-sec": d.dataset.section }, h("h3", {}, s.title));
+    const sec = h("div", { "data-automation-id": s.auto, "data-sec": d.dataset.section, "data-modern": d.dataset.modern != null ? "" : null }, h("h3", {}, s.title));
     const add = h("button", { type: "button", "data-automation-id": "add-button" }, "Add");
     add.addEventListener("click", () => { add.textContent = "Add Another"; addPanel(sec); });
     sec.append(add);
@@ -194,7 +259,8 @@
     const edu = document.querySelector("[data-sec=education]");
     if (!work) return;
     work.querySelectorAll(":scope > [role=group]").forEach((p) => p.remove());
-    addPanel(work, { jobTitle: "AI Engineer", companyName: "Examplecorp USA Inc", location: "" });
+    // a modern page (NVIDIA) read the user's home city off the resume header into the first job's Location
+    addPanel(work, { jobTitle: "AI Engineer", companyName: "Examplecorp USA Inc", location: work.hasAttribute("data-modern") ? "Austin, TX" : "" });
     addPanel(work, { jobTitle: "ML Engineer", companyName: "Testworks", location: "India" });
     addPanel(work, { jobTitle: "Python PyTorch RAG", companyName: "Skills", location: "" });
     edu.querySelectorAll(":scope > [role=group]").forEach((p) => p.remove());
@@ -250,7 +316,14 @@
     questions2: "Application Questions 2 of 2", disclosures: "Voluntary Disclosures", self_identify: "Self Identify", review: "Review" };
   const PAGE_IDS = { info: "applyFlowMyInfoPage", experience: "applyFlowMyExpPage", questions1: "applyFlowPrimaryQuestionsPage",
     questions2: "applyFlowSecondaryQuestionsPage", disclosures: "applyFlowVoluntaryDisclosuresPage", self_identify: "applyFlowSelfIdentifyPage",
-    review: "applyFlowReviewPage" };
+    review: "applyFlowReviewPage", disclosures_c1: "applyFlowVoluntaryDisclosuresPage", experience_nvidia: "applyFlowMyExpPage",
+    questions_exelixis: "applyFlowPrimaryQuestionsPage", disclosures_nvidia: "applyFlowVoluntaryDisclosuresPage",
+    questions_open: "applyFlowPrimaryQuestionsPage" };
+  NAMES.disclosures_c1 = "Voluntary Disclosures";                      // a variant step, outside the flow's order
+  NAMES.experience_nvidia = "My Experience";                             // GOAL30 variants
+  NAMES.questions_exelixis = "Application Questions";
+  NAMES.disclosures_nvidia = "Voluntary Disclosures";
+  NAMES.questions_open = "Application Questions";
 
   function expand(root) {
     for (const d of [...root.querySelectorAll("[data-wd]")]) d.replaceWith(d.dataset.wd === "section" ? section(d) : BUILD[d.dataset.wd](d));
@@ -259,7 +332,7 @@
   async function show(step) {
     const flow = document.querySelector("[data-automation-id=applyFlowPage]");
     const html = await (await fetch(`/__sim/steps/${step}.html`)).text();
-    const n = FLOW.indexOf(step);
+    const n = FLOW.indexOf(step.replace(/_c1$|_nvidia$/, "").replace(/^questions_(exelixis|open)$/, "questions1"));   // a variant step shows as its own step
     const bar = h("ol", { "data-automation-id": "progressBar" }, FLOW.map((s, i) => h("li", { "data-automation-id": i === n ? "progressBarActiveStep" : i < n ? "progressBarCompletedStep" : "progressBarInactiveStep" },
       h("label", {}, `${i === n ? "current " : ""}step ${i + 1} of ${FLOW.length}`), h("label", {}, NAMES[s]))));
     const body = h("div", { "data-automation-id": PAGE_IDS[step] });

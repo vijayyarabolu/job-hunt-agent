@@ -39,6 +39,14 @@ def cached(conn, pid: str, provider: str, call: str, key: str) -> dict | None:
     return json.loads(row["result"]) if row and row["result"] else None
 
 
+def cached_prefix(conn, pid: str, provider: str, call: str, key: str) -> list[dict]:
+    """Every good answer for `key` itself or `key|<filter>` (GOAL28: Hunter by department), oldest first."""
+    rows = conn.execute("SELECT result FROM contact_lookups WHERE profile = ? AND provider = ? AND call = ? AND ok = 1 "
+                        "AND (cache_key = ? OR substr(cache_key, 1, ?) = ?) ORDER BY id",
+                        (pid, provider, call, key, len(key) + 1, key + "|")).fetchall()
+    return [json.loads(r["result"]) for r in rows if r["result"]]
+
+
 def record(conn, pid: str, app_id: int | None, provider: str, call: str, key: str, credits: float, ok: bool,
            result: dict) -> None:
     """Store one answer (a retry after a failure replaces it; credits only ever add up)."""

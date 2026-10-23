@@ -5,7 +5,7 @@ import { showPanel } from "./detail.js";
 import { copyJd, loadFeed } from "./feed.js";
 import { pickResumeFile } from "./dialogs.js";
 import { EMPLOYMENT_OPTIONS, WORKPLACE_OPTIONS, paintRow, undoLastEdit } from "./inline.js";
-import { CONTACT_FIELDS, SOURCE_TEXT, finderSection, openOutreach } from "./finder.js";
+import { CONTACT_FIELDS, KIND_TEXT, SOURCE_TEXT, finderSection, openOutreach } from "./finder.js";
 import { refreshFollowups } from "./editor.js";
 
 const CONTACT_FLAGS = [["linkedin_sent", "LinkedIn sent"], ["email_sent", "Email sent"], ["replied", "Replied"]];
@@ -136,8 +136,11 @@ export function followupLine(row, fu, n, onDone) {
     || `due ${shortDate(fu.due)}`;
   return h("div", `fu due-${fu.state}`, h("span", {}, `Follow-up ${n}: ${when}${fu.after && fu.after !== "applied" ? ` (after ${fu.after})` : ""}`),
     fu.state === "done" ? null : btn("", `Mark follow-up ${n} sent today`, async () => {
-      try { onDone(await api("/api/tracker/followup", { app: row.id, n })); toast(`Follow-up ${n} marked sent today`); }
-      catch (err) { fail(err); }
+      try {
+        onDone(await api("/api/tracker/followup", { app: row.id, n }));
+        toast(`Follow-up ${n} marked sent today`, { undo: () => api("/api/tracker/undo", { app: row.id, field: `follow_up_${n}` })
+          .then((out) => { onDone(out.row); toast(`Follow-up ${n} is due again`); }, fail) });
+      } catch (err) { fail(err); }
     }, sm("check"), "Mark sent today"));
 }
 
@@ -187,6 +190,7 @@ function contactBlock(c, i, row, rerender) {
       c.linkedin ? extLink(c.linkedin, "LinkedIn ↗", "small", "Open their LinkedIn profile ↗") : null,
       c.email ? h("a", { href: `mailto:${c.email}`, class: "small", title: `Email ${c.email}` }, "Email") : null,
       c.source ? muted(`source: ${SOURCE_TEXT[c.source] || c.source}`, "muted small") : null,
+      c.kind ? muted(`${KIND_TEXT[c.kind] || c.kind}${c.found_at ? `, found ${c.found_at}` : ""}`, "muted small") : null,
       c.id !== undefined ? btn("ghost", "Draft outreach to this person", () => openOutreach(row, c, rerender), "Draft outreach") : null,
       B({ class: "btn ghost", "aria-label": `Remove ${c.name || "this contact"} (then Save contacts)`, title: "Remove this contact (then Save contacts)",
         onclick: (e) => e.currentTarget.closest(".contact").remove() }, "Remove")));
@@ -196,7 +200,7 @@ function readContacts(box, current) {
   return [...box.querySelectorAll(".contact")].map((node) => {
     const base = current[Number(node.dataset.i)] || {};
     const get = (f) => node.querySelector(`[name="c${node.dataset.i}.${f}"]`).value.trim();
-    return { ...Object.fromEntries(CONTACT_FIELDS.map(([f]) => [f, get(f)])), source: base.source || "",
+    return { ...Object.fromEntries(CONTACT_FIELDS.map(([f]) => [f, get(f)])), source: base.source || "", kind: base.kind || "", found_at: base.found_at || "",
       ...Object.fromEntries(CONTACT_FLAGS.map(([f]) => [f, base[f] || ""])) };
   });
 }

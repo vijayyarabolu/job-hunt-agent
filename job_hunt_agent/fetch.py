@@ -14,7 +14,7 @@ from collections import defaultdict
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
 
-from . import buckets, config, db, fits, guard, liveness, net, registry, robots, runstats, store, tiers, titles
+from . import buckets, config, db, fits, guard, liveness, net, prune, registry, robots, runstats, store, tiers, titles
 from .ats import ADAPTERS, Ctx, FetchResult
 from .ats.common import SCHEMA_ERROR
 from .ats.workday import split_key
@@ -112,6 +112,16 @@ def _refresh_fits(conn, profiles: list[dict], now, budget: runstats.Budget | Non
         except (sqlite3.Error, OSError, ValueError) as err:
             logging.getLogger(__name__).error("fit refresh failed for %s: %s", profile["id"], err)
     return written
+
+
+def _ghost_scan(conn, now) -> None:
+    """GOAL29 §3: re-check the open matched jobs for ghost signals (badge + small Priority penalty). A failure never
+    fails the fetch."""
+    from . import ghost
+    try:
+        ghost.scan(conn, now)
+    except (sqlite3.Error, OSError, ValueError) as err:
+        logging.getLogger(__name__).error("ghost check failed: %s", err)
 
 
 def _notify(conn, profiles: list[dict], now) -> int:
@@ -260,6 +270,16 @@ def run(trigger: str = "cli", force: bool = False, only: str | None = None, verb
             conn.close()
 
 
+def _daily(conn, now) -> None:
+    """The daily verified backup; after a new good one, the logs nobody reads are archived and pruned (GOAL33 §3b)."""
+    if db.backup(conn) is None:
+        return
+    try:
+        prune.run(conn, now)
+    except (sqlite3.Error, OSError):                 # never fails the fetch: the next day tries again
+        logging.getLogger(__name__).exception("daily prune failed")
+
+
 def _ctx(conn, board: dict, matches, terms: list[str], now) -> Ctx:
     """Per-board context built on the main thread (the sqlite connection is not shared with workers)."""
     rows = conn.execute("SELECT uid, raw_fp, description IS NOT NULL AS jd, closed_at IS NULL AND stale = 0 AS open "
@@ -343,10 +363,11 @@ def _run_locked(conn, trigger: str, now, only: str | None, verbose: bool) -> dic
     totals["named"] = _learn_names(conn)
     alerts = _host_alerts(conn, run_id, outcomes) + runstats.save_backoff(conn, db.utcnow())
     totals["fits"] = _refresh_fits(conn, profiles, now, budget)
+    _ghost_scan(conn, now)
     totals["notified"] = _notify(conn, profiles, now)
     _sheet_dirty(conn)
     db.finish_run(conn, run_id, now, alerts)
-    db.backup(conn)
+    _daily(conn, now)
     taken = sum(b.taken for b in sched.buckets.values())
     runstats.finish(conn, run_id, budget, loop_cpu, len(tasks), taken)
     return {"run_id": run_id, "due": len(tasks), "taken": taken, "carried": sched.carried(),

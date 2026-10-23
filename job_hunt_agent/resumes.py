@@ -161,9 +161,16 @@ _AI = _words(r"ai", r"a\.i\.?", r"artificial intelligence", r"gen\s?ai", r"gener
              r"agentic", r"ai tools", r"applied ai")
 
 
-def role_title(role: str | None) -> str | None:
+def role_title(role: str | None, allowed=None) -> str | None:
     """The file-name title for a posting (or a resumegen headline): ML_Engineer, AI_Engineer, AI_ML_Engineer,
-    Data_Scientist, Data_Engineer; None when the role says none of them (the base's own title stays)."""
+    Data_Scientist, Data_Engineer; None when the role says none of them (the base's own title stays). `allowed`
+    (profile.yaml resume_titles, e.g. three) maps a title outside it to its first one, as resumegen's
+    headline does."""
+    token = _role_token(role)
+    return allowed[0] if token and allowed and token not in allowed else token
+
+
+def _role_token(role: str | None) -> str | None:
     text = (role or "").replace("\u00a0", " ")
     if not text.strip():
         return None
@@ -191,7 +198,7 @@ def for_role(profile: dict, stem: str, role: str | None) -> str:
     """`stem` (a base resume's name) with its title swapped for the role's: the person's own base with that title
     when they have one (Alex_Rivera_ML_Engineer_Resume), else their naming style with the new title
     (Jordan_Lee_AI_Engineer_Resume -> Jordan_Lee_ML_Engineer_Resume). Unknown role or person: `stem` unchanged."""
-    token = role_title(role)
+    token = role_title(role, profile.get("resume_titles"))
     ends_with = re.compile(rf"(?:^|_)(?<!AI_){token}(?:_Resume)?$", re.I)   # ML_Engineer never matches AI_ML_Engineer
     if not token or ends_with.search(stem):
         return stem

@@ -12,6 +12,7 @@ const reload = () => { loadFeed({ quiet: true }); S.g8.poll(); };
 export const showQueue = () => { S.rq = "queue"; if (S.tab === "resumes") loadFeed(); else S.switchTab("resumes"); };
 
 export function counts(d) {
+  if (d.online === false && !d.counts?.ready) return;      // GOAL30-app §0: unreachable is not "0 ready"
   const c = d.counts || {};
   for (const el of $$('[data-tab="resumes"] .n')) el.textContent = c.ready || "";
   const tab = $('#tabs [data-tab="resumes"]');
@@ -20,7 +21,7 @@ export function counts(d) {
     S.prog = d;
     for (const el of $$(".prog")) el.replaceWith(prog(el.textContent[0] === " " ? " · " : "") || "");
   }
-  const now = JSON.stringify([c, Object.values(d.jobs || {}).map((x) => x.status)]);
+  const now = JSON.stringify([c, [...Object.values(d.jobs || {}), ...Object.values(d.apps || {})].map((x) => [x.id, x.status, x.approved])]);   // GOAL33: outside jobs too
   if (S.tab === "resumes" && sig && now !== sig) loadFeed({ quiet: true });
   sig = now;
 }
@@ -29,13 +30,21 @@ export function counts(d) {
 const SEG_TIPS = { queue: "Being made or waiting its turn", ready: "Ready to apply with; the ones that need you come first",
   done: "Applied today with a tailored resume" };
 
+// GOAL30-app §0: an empty view says why and what to do; unreachable is never shown as "nothing"
+export function empty(m) {
+  if (m.online === false) return "The Resume app is not answering right now. It asks again on its own; your resumes are safe.";
+  return { queue: "Nothing in the queue. Press g on a job to make a resume for it.",
+    ready: "No resume waiting. New ones land here when they are made.",
+    done: "No applies with a tailored resume yet today." }[S.rq] || "Nothing here.";
+}
+
 export function head(m) {
   const c = m.counts || {};
   return [h("div", "lh-top", h("h1", { id: "lh-title" }, "Tailored resumes ", muted(m.online === false ? m.message : ""))),
     h("p", "small", prog("", m.goal != null ? m : S.prog)),
     h("div", { class: "seg rq-seg", role: "group", "aria-label": "Show" }, [["queue", "Queue"], ["ready", "Ready"], ["done", "Done today"]]
       .map(([v, label]) => B({ "aria-pressed": String(S.rq === v), title: SEG_TIPS[v],
-        onclick: () => { S.rq = v; S.cur = 0; loadFeed(); } }, `${label} ${c[v] || 0}`,
+        onclick: () => { S.rq = v; S.cur = 0; loadFeed(); } }, `${label} ${m.online === false ? "?" : c[v] || 0}`,
         v === "ready" && c.needs ? " " : null, v === "ready" && c.needs ? h("span", { class: "tag warn rq-needs" }, `${c.needs} need${c.needs === 1 ? "s" : ""} you`) : null))),
     m.cancelled_closed ? muted(`Cancelled ${m.cancelled_closed} queued: posting closed`, "muted small") : null];
 }

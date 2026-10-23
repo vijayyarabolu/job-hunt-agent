@@ -12,6 +12,7 @@ the real one is only read for which live pages to try and written with the resul
 A page filling clearly less than its last good run is a notice in job-hunt-agent the next morning (health.record_canary).
 """
 import json
+import os
 import re
 import secrets
 import shutil
@@ -25,7 +26,7 @@ from pathlib import Path
 from .. import config, db
 from . import bank, health
 
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME = os.environ.get("JH_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")   # JH_CHROME: another Chromium
 NODE_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")          # a scheduler's PATH may have neither
 REPO = Path(__file__).resolve().parents[2]                    # the code's own checkout (JOB_HUNT_AGENT_HOME may differ)
 RUNNER = REPO / "scripts" / "autofill" / "canary.mjs"
@@ -63,7 +64,8 @@ FAKE_ANSWERS = {"work_auth": "Yes", "sponsor_now": "No", "sponsor_future": "No",
                 "travel": "Yes", "how_heard": "LinkedIn", "prev_worked": "No", "related_employee": "No", "referred": "No",
                 "criminal": "No", "noncompete": "No", "background_check": "Yes", "drug_test": "Yes", "clearance": "No",
                 "gender": "Decline to self-identify", "hispanic": "Decline to self-identify", "race": "Decline to self-identify",
-                "veteran": "I don't wish to answer", "disability": "I do not want to answer"}
+                "veteran": "I don't wish to answer", "disability": "I do not want to answer",
+                "sms_consent": "No"}                                  # GOAL30 §0c: Ashby's texting consent radio is checked too
 
 _INPUT = re.compile(r"<input\b[^>]*>", re.I)
 _TYPE = re.compile(r"""\btype\s*=\s*["']?([a-z-]+)""", re.I)
@@ -131,10 +133,17 @@ def board_pages() -> list[dict]:
     return [{**m, "source": "fixture", "file": str(FIXTURES / m["file"]) if m.get("file") else ""} for m in _read(BOARD_MANIFEST)]
 
 
-def live_pages(conn) -> list[dict]:
+# 1.3.1 (AUTOFILL-BUGS #7): every ATS job-hunt-agent fetches, for the real-site check on this computer (`job-hunt-agent autofill realsites`)
+REAL_BOARDS = ("workday", "greenhouse", "lever", "ashby", "icims", "icims_classic", "smartrecruiters", "taleo",
+               "oracle_recruiting", "successfactors", "jobvite", "bamboohr", "workable", "jazzhr", "breezy", "paylocity",
+               "adp", "dayforce", "rippling", "eightfold", "phenom", "recruitee", "pinpoint", "hibob", "gem", "jobscore",
+               "cornerstone")
+
+
+def live_pages(conn, boards=LIVE_BOARDS) -> list[dict]:
     """The newest open job of each board with a public apply page (another posting each night)."""
     out = []
-    for ats in LIVE_BOARDS:
+    for ats in boards:
         row = conn.execute("SELECT coalesce(apply_url, url) AS u FROM jobs WHERE uid >= ? AND uid < ? AND closed_at IS NULL "
                            "AND coalesce(apply_url, url) LIKE 'https://%' ORDER BY first_seen DESC LIMIT 1",
                            (ats + ":", ats + ";")).fetchone()
@@ -161,8 +170,9 @@ def _node() -> str:
     return found
 
 
-def _drive(home: Path, pages: list[dict], chrome: str) -> list[dict]:
-    """The pages in headless Chrome against a throwaway job-hunt-agent (temp database + the fake person)."""
+def _drive(home: Path, pages: list[dict], chrome: str, fields: list | None = None) -> list[dict]:
+    """The pages in headless Chrome against a throwaway job-hunt-agent (temp database + the fake person). `fields`: filled
+    with that run's per-field log (board, label, key, status, why) before the throwaway database goes."""
     from .. import server
     _fake_person(home)
     (home / "pages.json").write_text(json.dumps(pages))
@@ -190,6 +200,12 @@ def _drive(home: Path, pages: list[dict], chrome: str) -> list[dict]:
         if srv:
             srv.shutdown()
             srv.server_close()
+        if fields is not None and (home / "canary.db").exists():
+            conn = db.connect()
+            try:
+                fields.extend(dict(r) for r in conn.execute("SELECT board, label, key, status, why FROM autofill_fields ORDER BY id"))
+            finally:
+                conn.close()
         config.DB_PATH, config.PROFILES = saved
     lines = [ln for ln in out.stdout.splitlines() if ln.startswith("{")]
     if not lines:
@@ -217,6 +233,25 @@ def run(conn, *, live: bool = True, chrome: str = CHROME) -> dict:
     drops = health.record_canary(conn, run_at, results)
     _ratchet(results)
     return {"run_at": run_at, "pages": results, "drops": drops}
+
+
+def realsites(conn, *, chrome: str = CHROME, urls=()) -> dict:
+    """1.3.1 (AUTOFILL-BUGS #7): one real public apply page per ATS (the newest open posting job-hunt-agent has, or `urls`),
+    filled once as the canary's fake person: nothing but reads leave the browser (never Submit, never an account
+    made), and the result is per field. Nothing is recorded in job-hunt-agent's database. Returns {pages, fields, markdown}."""
+    pages = live_pages(conn, REAL_BOARDS) + [{"name": f"url-{i + 1}", "board": "url", "url": u, "source": "live", "expected": None}
+                                             for i, u in enumerate(urls)]
+    fields: list[dict] = []
+    with tempfile.TemporaryDirectory(prefix="jh-realsites-") as tmp:
+        results = _drive(Path(tmp), pages, chrome, fields)
+    lines = ["| Site | Page | Filled | Review | Needs you | Failed | Problems |", "|---|---|---|---|---|---|---|"]
+    for page in results:
+        mine = [f for f in fields if f["board"] == page.get("board") or page.get("board") == "url"]
+        n = {k: sum(1 for f in mine if f["status"] == k) for k in ("filled", "review", "needs", "failed")}
+        bad = "; ".join(f"{f['label'][:40]}: {f['why']}" for f in mine if f["status"] == "failed")[:300]
+        lines.append(f"| {page.get('board')} | {str(page.get('url', ''))[:60]} | {n['filled']} | {n['review']} | {n['needs']} | "
+                     f"{n['failed']} | {page.get('error') or page.get('skip') or bad or '–'} |")
+    return {"pages": results, "fields": fields, "markdown": "\n".join(lines)}
 
 
 def wait_quiet(fetching=None, sleep=time.sleep) -> bool:

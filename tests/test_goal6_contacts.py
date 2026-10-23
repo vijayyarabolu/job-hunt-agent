@@ -1,14 +1,15 @@
 """Find contacts. Free signals first (people named in the JD, the company's team page), LinkedIn people-search
-links and an "Open in Apollo" link (no scraping, no API), Apollo organization enrich + top people only on a click
-(per-person key, daily credit cap, cached so the same lookup never spends twice), Hunter off until a key exists, an
-email-pattern guess labelled "guessed, unverified", never a phone number, and Add contact -> the sheet's cells."""
+links and an "Open in Apollo" link (no scraping, no API), Apollo's documented People API Search only on a click and
+only for the kinds still missing (recruiter / manager / peer; per-person key, daily credit cap, cached so the same
+lookup never spends twice; a plan that lacks it is said once a day), Hunter off until a key exists, an email-pattern
+guess labelled "guessed – unverified", never a phone number, and Add contact -> the sheet's cells."""
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
 
 from job_hunt_agent import fetch, server, trackapi
-from job_hunt_agent.finder import apollo, http, ledger, rank, service, signals
+from job_hunt_agent.finder import apollo, http, kinds, ledger, rank, service, signals
 from job_hunt_agent.google import state as gstate
 from tests.test_tracker_ui import TrackerCase, TODAY
 
@@ -23,18 +24,27 @@ PEOPLE = {"people": [
      "linkedin_url": "https://www.linkedin.com/in/samlee", "city": "Austin", "state": "Texas",
      "phone_numbers": [{"raw_number": "+1 555 0101"}], "email": "email_not_unlocked@domain.com"},
     {"id": "p2", "first_name": "Ana", "last_name": "Ruiz", "title": "Chief Executive Officer",
-     "sanitized_phone": "+15550102", "email_status": "verified"}]}
+     "sanitized_phone": "+15550102", "email_status": "verified"},
+    {"id": "p3", "first_name": "Kim", "last_name_obfuscated": "Pa***k", "title": "Machine Learning Engineer",
+     "has_email": True}]}
 
 
-def fake_apollo(calls: list, org=ORG, people=PEOPLE):
+LOCKED = ("The api/v1/mixed_people/api_search API is not included in your Free plan and is not accessible. All paid "
+          "plans include full API access.")                       # Apollo's answer to Alex's key, 2026-10-18
+
+
+def fake_apollo(calls: list, people=PEOPLE, locked=False):
+    """Apollo's People API Search: the people whose kind the asked-for titles name (GOAL28 §5)."""
     def call(provider, method, url, headers, params=None, body=None):
         calls.append(url)
         assert headers["x-api-key"] == KEY
-        if url.endswith("/organizations/enrich"):
-            return org
-        if url.endswith("/mixed_people/organization_top_people"):
-            return people
-        raise AssertionError(url)
+        assert method == "POST" and url.endswith("/mixed_people/api_search"), url
+        assert params["q_organization_domains_list[]"] == ["acme.ai"]
+        if locked:
+            raise http.ProviderError("apollo", 403, LOCKED)
+        asked = {kinds.kind_of(t) or ("manager" if "head of" in t else None) for t in params["person_titles[]"]}
+        found = [p for p in people["people"] if kinds.kind_of(p.get("title")) in asked]
+        return {"total_entries": len(found), "people": found}
     return call
 
 
@@ -129,54 +139,80 @@ class ApolloLookupTest(TrackerCase):
             panel = service.panel(self.conn, "alex", self.row["id"])
         self.assertEqual(panel["domain"], {"value": "acme.ai", "source": "link in the JD"})
         self.assertTrue(any(s["name"] == "Jane Doe" for s in panel["suggestions"]))
-        self.assertEqual(panel["providers"]["apollo"]["estimate"]["credits"], 2)
+        estimate = panel["providers"]["apollo"]["estimate"]
+        self.assertEqual((estimate["credits"], estimate["kinds"]), (0, ["manager", "peer"]))  # the recruiter is in the JD
+        self.assertIn("0 credits (documented)", estimate["detail"])
         self.assertEqual(panel["providers"]["apollo"]["left_today"], ledger.DAILY_CAP)
         self.assertFalse(panel["providers"]["hunter"]["configured"])
         self.assertEqual(len(panel["links"]["linkedin"]), 4)
         jane = next(s for s in panel["suggestions"] if s["name"] == "Jane Doe")
-        self.assertEqual(jane["email_status"], "named in the JD")
+        self.assertEqual((jane["email_status"], jane["kind"]), ("named in the JD", "recruiter"))
 
-    def test_an_empty_top_people_answer_is_explained_now_and_on_every_reopen(self):
-        out = self.lookup([], people={"people": [], "organization": {"top_people_total": 0}})
-        self.assertIn("lists no top people", out["note"])
+    def test_never_an_empty_panel_every_kind_has_people_or_a_search_and_a_message(self):
         with mock.patch.object(http, "call", side_effect=AssertionError("no paid call")):
-            again = service.panel(self.conn, "alex", self.row["id"])
-        self.assertIn("lists no top people", again["providers"]["apollo"]["estimate"]["detail"])
-        self.assertEqual(again["providers"]["apollo"]["estimate"]["credits"], 0)
+            panel = service.panel(self.conn, "alex", self.row["id"])
+        cards = {c["kind"]: c for c in panel["kinds"]}
+        self.assertEqual(list(cards), ["recruiter", "manager", "peer"])
+        self.assertEqual(cards["recruiter"]["people"][0]["name"], "Jane Doe")
+        self.assertTrue(cards["recruiter"]["draft"]["note"].startswith("Hi Jane, I applied for ML Engineer at Acme."))
+        for kind in ("manager", "peer"):
+            self.assertEqual(cards[kind]["people"], [])
+            self.assertTrue(all(l["url"].startswith(signals.LINKEDIN_SEARCH) and "Acme" in l["label"]
+                                for l in cards[kind]["links"]))
+            self.assertTrue(cards[kind]["draft"]["note"].startswith("Hi [first name], I applied for ML Engineer at Acme."))
+            self.assertIn(kinds.ASKS[kind], cards[kind]["draft"]["note"])
+            self.assertLessEqual(len(cards[kind]["draft"]["note"]), 300)
+            self.assertLess(len(cards[kind]["draft"]["email"].split()), 120)
+        self.assertIn("machine learning manager", cards["manager"]["links"][0]["label"])
+        self.assertEqual(panel["missing"], ["manager", "peer"])
 
-    def test_lookup_ranks_people_never_keeps_phones_and_is_cached(self):
+    def test_lookup_asks_only_for_missing_kinds_spends_nothing_keeps_no_phones_and_is_cached(self):
         calls = []
         out = self.lookup(calls)
-        self.assertEqual(len(calls), 2)
-        self.assertEqual(out["spent"], 2)
-        names = [s["name"] for s in out["panel"]["suggestions"]]
-        self.assertIn("Sam Lee", names)
+        self.assertEqual((len(calls), out["spent"]), (2, 0))                     # manager + peer; 0 credits each
+        cards = {c["kind"]: c for c in out["panel"]["kinds"]}
+        self.assertEqual(cards["manager"]["people"][0]["name"], "Sam Lee")
+        self.assertEqual(cards["peer"]["people"][0]["name"], "Kim Pa***k")       # Apollo hides the last name
+        self.assertTrue(cards["manager"]["draft"]["note"].startswith("Hi Sam,"))
         sam = next(s for s in out["panel"]["suggestions"] if s["name"] == "Sam Lee")
         self.assertEqual((sam["source"], sam["linkedin"]), ("apollo", "https://www.linkedin.com/in/samlee"))
         self.assertEqual(sam["email_guess"], "sam.lee@acme.ai")
         self.assertEqual(sam["email_guess_status"], signals.GUESS_LABEL)
+        self.assertNotIn("email_guess", next(s for s in out["panel"]["suggestions"] if s["name"] == "Kim Pa***k"))
+        self.assertFalse(any(s["name"] == "Ana Ruiz" for s in out["panel"]["suggestions"]))   # not a kind asked for
         stored = json.dumps([dict(r) for r in self.conn.execute("SELECT * FROM contact_lookups")])
         self.assertNotIn("555", stored)                                            # no phone numbers, ever
         self.assertNotIn(KEY, stored)                                              # the key is never stored
         self.assertNotIn("555", json.dumps(out))
         again = []
         out2 = self.lookup(again)
-        self.assertEqual((again, out2["spent"]), ([], 0))                          # same lookup never spends twice
-        self.assertEqual(out2["panel"]["providers"]["apollo"]["used_today"], 2)
+        self.assertEqual((again, out2["spent"]), ([], 0))                          # every kind found: no call
+        self.assertIn("already found", out2["note"])
 
-    def test_a_large_company_skips_top_people(self):
-        calls = []
-        big = {"organization": {**ORG["organization"], "estimated_num_employees": 9000}}
-        out = self.lookup(calls, org=big)
-        self.assertEqual((len(calls), out["spent"]), (1, 1))
-        self.assertIn("9000", out["note"])
+    def test_an_empty_answer_is_explained_now_and_on_every_reopen(self):
+        out = self.lookup([], people={"people": []})
+        self.assertIn("lists nobody", out["note"])
+        with mock.patch.object(http, "call", side_effect=AssertionError("no paid call")):
+            again = service.panel(self.conn, "alex", self.row["id"])
+        self.assertIn("already looked up", again["providers"]["apollo"]["estimate"]["detail"])
+        self.assertEqual(again["providers"]["apollo"]["estimate"]["credits"], 0)
 
-    def test_the_daily_cap_stops_before_any_call(self):
+    def test_a_plan_without_the_search_is_said_once_a_day_and_never_retried(self):
         calls = []
-        with mock.patch.object(ledger, "DAILY_CAP", 1):
-            with self.assertRaisesRegex(ValueError, "daily"):
-                self.lookup(calls)
-        self.assertEqual(calls, [])
+        out = self.lookup(calls, locked=True)
+        self.assertEqual((len(calls), out["spent"]), (1, 0))
+        self.assertIn("not on your plan", out["note"])
+        estimate = out["panel"]["providers"]["apollo"]["estimate"]
+        self.assertTrue(estimate["locked"])
+        again = []
+        self.assertIn("not included in your Free plan", self.lookup(again, locked=True)["note"])
+        self.assertEqual(again, [])
+        self.assertEqual(ledger.usage(self.conn, "alex")["used_today"], 0)
+
+    def test_no_employee_cap_and_no_undocumented_call(self):
+        self.assertFalse(hasattr(service, "MAX_EMPLOYEES"))
+        self.assertFalse(hasattr(apollo, "top_people"))
+        self.assertNotIn("organization_top_people", Path(apollo.__file__).read_text().split('"""', 2)[2])
 
     def test_no_key_no_call(self):
         with mock.patch.object(service.keys, "key", return_value=None), \
@@ -207,6 +243,14 @@ class AddContactTest(TrackerCase):
         self.assertEqual(out["contacts"][0]["source"], "jd")
         out = service.add(self.conn, "alex", row["id"], {"name": "Sam Lee", "role": "Head of ML", "source": "apollo"})
         self.assertEqual(out["target_name"], "Jane Doe, Sam Lee")
+        # GOAL28 §5: who was contacted, by kind (read from the title when not given), source and the day found
+        today = datetime.now().astimezone().date().isoformat()
+        self.assertEqual([(c["kind"], c["source"], c["found_at"]) for c in out["contacts"]],
+                         [("recruiter", "jd", today), ("manager", "apollo", today)])
+        out = service.add(self.conn, "alex", row["id"], {"name": "Kim Park", "role": "Engineer", "kind": "peer"})
+        self.assertEqual(out["contacts"][-1]["kind"], "peer")
+        with self.assertRaisesRegex(ValueError, "kind"):
+            service.add(self.conn, "alex", row["id"], {"name": "X Y", "kind": "friend"})
         with self.assertRaisesRegex(ValueError, "source"):
             service.add(self.conn, "alex", row["id"], {"name": "X Y", "source": "scraped"})
 
@@ -262,17 +306,3 @@ class ReviewFixesTest(TrackerCase):
         self.assertEqual(seen, [True])
 
 
-class TopPeopleLayoutTest(TrackerCase):
-    """organization_top_people is undocumented: people are found under any list key, and the layout is kept."""
-    def test_people_under_another_key_one_level_down(self):
-        got = {"result": {"people_list": [{"first_name": "Ana", "last_name": "Ruiz", "title": "CTO",
-                                           "phone_numbers": [{"raw_number": "+1 555"}]}]}, "pagination": {"page": 1}}
-        with mock.patch.object(apollo.http, "call", return_value=got):
-            people, layout = apollo.top_people(KEY, "org1")
-        self.assertEqual([(p["name"], p["title"]) for p in people], [("Ana Ruiz", "CTO")])
-        self.assertNotIn("phone_numbers", people[0])
-        self.assertEqual(layout, {"result": {"people_list": "list[1]"}, "pagination": {"page": 1}})
-
-    def test_an_empty_answer_keeps_its_layout(self):
-        with mock.patch.object(apollo.http, "call", return_value={"breadcrumbs": [], "people": []}):
-            self.assertEqual(apollo.top_people(KEY, "org1"), ([], {"breadcrumbs": "list[0]", "people": "list[0]"}))

@@ -8,6 +8,7 @@ Same role: title token Jaccard >= .6 AND SequenceMatcher >= .80 on the normalize
 import difflib
 import functools
 import re
+import threading
 from dataclasses import dataclass
 from datetime import date
 
@@ -96,7 +97,7 @@ class AppliedIndex:
     as same_company() pair by pair (the feed scores ~10k jobs per request): exact and core keys by dict,
     the typo-level check only against names whose length can pass the ratio bar."""
 
-    def __init__(self, refs: tuple[AppliedRef, ...]):
+    def __init__(self, refs: tuple[AppliedRef, ...], before: "AppliedIndex | None" = None):
         self.refs = refs
         self.by_uid = {r.job_uid: r for r in refs if r.job_uid}
         self._by_key: dict[str, list[AppliedRef]] = {}
@@ -112,8 +113,41 @@ class AppliedIndex:
             self._by_core.setdefault(_core(k), set()).add(k)
             self._by_len.setdefault(len(flat), []).append((k, flat))
         self._companies: dict[str, list[AppliedRef]] = {}
+        # GOAL33 §4: one Mark applied made a new index and the next feed matched ~3k companies again (1.3 s); the
+        # previous index's answers carry over, and only the company names added since are checked
+        self._key_sets: dict[str, set[str]] = {}
+        self._before = before._key_sets if before is not None else {}
+        self._added = set(self._by_key) - set(before._by_key) if before is not None else set()
+        # applied name -> its matcher (b's tables built once), one set per thread: set_seq1 then ratio() is not atomic
+        # and the request threads and the warm-up share this index
+        self._local = threading.local()
+
+    def _close(self, flat: str, other: str) -> bool:
+        """_close(flat, other) with `other`'s matcher kept: the same comparison, 113k of them on a cold feed."""
+        matchers = self._local.__dict__.setdefault("matchers", {})
+        sm = matchers.get(other)
+        if sm is None:
+            sm = matchers[other] = difflib.SequenceMatcher(None, "", other)
+        sm.set_seq1(flat)
+        return sm.real_quick_ratio() >= COMPANY_RATIO and sm.quick_ratio() >= COMPANY_RATIO and sm.ratio() >= COMPANY_RATIO
+
+    def _one(self, key: str, other: str) -> bool:
+        flat, them = key.replace(" ", ""), other.replace(" ", "")
+        if flat == them or _core(key) == _core(other):
+            return True
+        n, m = len(flat), len(them)
+        return n + m > 0 and 2 * min(n, m) / (n + m) >= COMPANY_RATIO and self._close(flat, them)
 
     def _keys(self, key: str) -> set[str]:
+        if key in self._key_sets:
+            return self._key_sets[key]
+        old = self._before.get(key)
+        hits = ({k for k in old if k in self._by_key} | {k for k in self._added if self._one(key, k)}
+                if old is not None else self._scan(key))
+        self._key_sets[key] = hits
+        return hits
+
+    def _scan(self, key: str) -> set[str]:
         flat = key.replace(" ", "")
         hits = self._by_flat.get(flat, set()) | self._by_core.get(_core(key), set())
         n = len(flat)
@@ -121,7 +155,7 @@ class AppliedIndex:
             if 2 * min(n, length) / (n + length) < COMPANY_RATIO:
                 continue
             for k, other in self._by_len.get(length, ()):
-                if k not in hits and _close(flat, other):
+                if k not in hits and self._close(flat, other):
                     hits = hits | {k}
         return hits
 
@@ -156,7 +190,7 @@ def load(conn, profile_id: str) -> AppliedIndex:
     known = _LOADED.get(profile_id)
     if known is not None and known.refs == refs:
         return known
-    _LOADED[profile_id] = index = AppliedIndex(refs)
+    _LOADED[profile_id] = index = AppliedIndex(refs, known)
     return index
 
 

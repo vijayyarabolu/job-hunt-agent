@@ -133,10 +133,14 @@ try {
   await w.until("document.querySelectorAll('#list .row[data-i]').length === 3", 8000);
   const friendly = await rows();
   check("Sponsor-friendly lists Sponsors, Cap-exempt and Sponsored before (no Unknown)", friendly.length === 3 && friendly.every((r) => /sb-(sponsors|cap_exempt|maybe)/.test(r.sb || "")), friendly);
-  await load(`recommended:${PID}`);
-  check("the switch is remembered", (await w.until("document.querySelector('.sb-seg [data-spons=friendly][aria-pressed=true]')", 5000)) && (await rows()).length === 3, await seg());
-  await w.js("document.querySelector('.sb-seg [data-spons=\"\"]').click()");
-  await w.until("document.querySelectorAll('#list .row[data-i]').length >= 300", 8000);
+  await w.js("document.querySelector('#tabs [data-tab=saved]').click()");
+  await sleep(600);
+  await w.js("document.querySelector('#tabs [data-tab=recommended]').click()");
+  check("the switch is remembered", (await w.until("document.querySelector('.sb-seg [data-spons=friendly][aria-pressed=true]')", 5000)) &&
+    (await w.until("document.querySelectorAll('#list .row[data-i]').length === 3", 5000)), await seg());
+  await load(`recommended:${PID}`);                      // GOAL33: a reload shows the page's defaults
+  check("a reload shows All again", (await w.until("document.querySelector('.sb-seg [data-spons=\"\"][aria-pressed=true]')", 5000)) &&
+    (await w.until("document.querySelectorAll('#list .row[data-i]').length >= 300", 8000)), await seg());
 
   // ---- the job panel: badge in the header, the evidence block ----
   const at = await w.js("const r = [...document.querySelectorAll('#list .row[data-i]')].find((x) => x.querySelector('.co')?.textContent === 'Acme Robotics'); r.scrollIntoView({block: 'center'}); const b = r.querySelector('.row-main').getBoundingClientRect(); return [b.left + 30, b.top + 10]");

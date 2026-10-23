@@ -5,7 +5,7 @@ const REOPEN_MS = 15000;
 let es = null;
 let last = null;
 let reopenTimer = 0;
-let handlers = { onRun: () => {}, onEdit: () => {} };
+let handlers = { onRun: () => {}, onEdit: () => {}, onRg: () => {} };
 
 function seen(data, isHello) {
   const prev = last;
@@ -13,6 +13,7 @@ function seen(data, isHello) {
   if (isHello && !prev) return;
   if (!prev || data.run !== prev.run) handlers.onRun();
   if (!prev || data.edit !== prev.edit) handlers.onEdit();
+  if (prev && data.rg !== prev.rg) handlers.onRg();     // GOAL33 §1: resumegen moved: ask for the resumes now
 }
 
 function parse(e) {

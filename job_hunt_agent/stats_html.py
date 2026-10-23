@@ -17,11 +17,11 @@ def _e(value) -> str:
 
 def _pct(rate) -> str:
     """Halves round up, as the old JS view did (Python's round() goes to even)."""
-    return "—" if rate is None else f"{math.floor(rate * 1000 + 0.5) / 10:g}%"
+    return "none yet" if rate is None else f"{math.floor(rate * 1000 + 0.5) / 10:g}%"
 
 
 def _days(value) -> str:
-    return "—" if value is None else f"{value:g} d"
+    return "none yet" if value is None else f"{value:g} d"
 
 
 def _week(iso: str) -> str:

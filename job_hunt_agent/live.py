@@ -8,6 +8,7 @@ number of streams is capped so they can never take every server thread.
 """
 import json
 import logging
+import sqlite3
 import threading
 
 from . import db
@@ -26,6 +27,7 @@ class Hub:
         self.state: dict = {"run": None, "edits": {}}
         self.streams = 0
         self.stopped = False
+        self.rg: dict = {}                   # GOAL33 §1: person -> resumegen events seen (rgwatch); None = everyone
 
     @staticmethod
     def read(conn) -> dict:
@@ -51,9 +53,18 @@ class Hub:
             return now != self.state
 
     def event(self, pid: str) -> dict:
-        """What one person's page needs to know: the last finished fetch run and their last tracker edit."""
+        """What one person's page needs to know: the last finished fetch run, their last tracker edit and how many of
+        their resumegen events have come in (the page asks for its resumes when that moves)."""
         with self._cond:
-            return {"run": self.state["run"], "edit": self.state["edits"].get(pid), "v": self.version}
+            return {"run": self.state["run"], "edit": self.state["edits"].get(pid), "rg": self.rg.get(pid, 0) + self.rg.get(None, 0),
+                    "v": self.version}
+
+    def bump_rg(self, pid: str | None) -> None:
+        """A resumegen event for this person (None: for everyone) wakes the streams."""
+        with self._cond:
+            self.rg[pid or None] = self.rg.get(pid or None, 0) + 1
+            self.version += 1
+            self._cond.notify_all()
 
     def wait(self, seen: int, timeout: float) -> int:
         """Block until the version moves past `seen`, the hub stops, or the timeout; the version now."""
@@ -97,7 +108,9 @@ def watch(stop: threading.Event, hub: Hub | None = None, on_change=None) -> None
                 on_change()                                 # the kept feed is fresh before the tabs ask for it
             hub.publish(now)
             started = True
-        except Exception:                                   # a locked or busy DB just waits for the next tick
+        except sqlite3.OperationalError as err:             # a locked or busy DB just waits for the next tick
+            log.warning("live watcher: poll skipped: %s", err)
+        except Exception:
             log.exception("live watcher: poll failed")
         if stop.wait(POLL_S):
             break

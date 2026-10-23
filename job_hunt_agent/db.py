@@ -1,8 +1,11 @@
 """SQLite connection, schema, boards and run bookkeeping. One file: data/job_hunt_agent.db (WAL)."""
 import json
+import os
+import re
 import sqlite3
 import sys
 import tarfile
+import time
 import zlib
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -11,7 +14,7 @@ from pathlib import Path
 
 from . import config
 
-SCHEMA_VERSION = 31
+SCHEMA_VERSION = 37
 # Repost chain (decision 002): priors on the same repost_key that ended (closed, or went stale) within 90 days
 # before this job was first seen, or that were still open with the same specific req_id (has a digit; not
 # 'MULTI'). Shared by the v4 backfill and store._write_item.
@@ -157,10 +160,71 @@ MIGRATIONS[26] = ["ALTER TABLE resume_uploads ADD COLUMN removed_at TEXT",
 # GOAL24 (version 30): the h1b_* tables (schema.sql), public H-1B / PERM filings per employer and company
 # GOAL25 (version 31): learned answers, company overrides, snippets, fill errors, canary, apply queue
 # (new tables only, schema.sql)
+# GOAL28 (version 33): fits.genai (the JD's GenAI terms, the match's "GenAI work" part and a profile's JD gate); contacts
+# kind (recruiter / manager / peer) and found_at (when the finder found them)
+MIGRATIONS[33] = ["ALTER TABLE fits ADD COLUMN genai TEXT",
+                  "ALTER TABLE contacts ADD COLUMN kind TEXT",
+                  "ALTER TABLE contacts ADD COLUMN found_at TEXT"]
+# GOAL29 (version 34): ghost and ghost_log (the ghost job check), offer_llm and offer_checks (the Offer check);
+# schema.sql, new tables only
+# GOAL30-app (version 35): six indexes in schema.sql: jobs_co_fam (a few companies' hiring momentum), jobs_seen (the
+# health drift check), fits_at + apps_at (every job list's freshness check), jobs_open_fit (the pending-fit count),
+# gsync_missing (the header's Sheet status); 6.6 s and +225 MB on the 1.2 M-job DB
+# From version 33 an ADD COLUMN whose column is already there is skipped (a re-run upgrade, e.g. a DB set back to an
+# older user_version); earlier migrations keep failing on it, which is how a raced upgrade is noticed (_upgrade)
+# GOAL33 (version 36): outside_fits (schema.sql): the match of a tracker row's pasted JD, kept
+# GOAL33 (version 37): app_events_app (schema.sql), the index application_events lost in the rebuilds of 9 and 24
+IDEMPOTENT_FROM = 33
+_ADD_COLUMN = re.compile(r"^ALTER TABLE (\w+) ADD COLUMN (\w+)", re.I)
 BUSY_TIMEOUT_MS = 10_000
-BACKUPS_KEPT = 14
+# GOAL33 §3b: connect sets busy_timeout before anything else and switches the journal to WAL only when the file is
+# not WAL yet (it stays WAL: setting it on every connect asked for a lock and raised "database is locked" at start-up
+# while the fetcher wrote). The WAL file is cut back to WAL_LIMIT_BYTES after a checkpoint (it sat at 234 MB).
+WAL_LIMIT_BYTES = 64 * 1024 * 1024
+CONNECT_TRIES = (0.2, 0.5, 1.0, 2.0)          # seconds between tries when even busy_timeout was not enough
+BACKUPS_KEPT = 7                              # GOAL33 §3b: 7 verified dailies (14 x 2.7 GB was heading for 38 GB)
 PROFILE_FILES = ("profile.yaml", "baseline.json", "known_skills.txt")
 PRIVATE_DIR, PRIVATE_FILE = 0o700, 0o600
+# GOAL31 §1: the DB broke while a virtual machine with ~/Documents shared into it held it open. SQLite's locks (and a
+# WAL's shared memory) do not cross such a share, so a writer on each side can both believe it owns the file. Inside a
+# VM job-hunt-agent refuses a DB on these mounts; ALLOW_SHARED=1 opens a copy there on purpose.
+SHARED_MOUNTS = ("virtiofs", "9p", "fuse", "fuse.sshfs", "nfs", "nfs4", "cifs", "smbfs", "smb3", "vboxsf", "afpfs",
+                 "webdav", "davfs", "fakeowner", "prl_fs", "vmhgfs")
+ALLOW_SHARED = "JOB_HUNT_AGENT_ALLOW_SHARED_DB"
+
+
+class SharedDatabase(RuntimeError):
+    """The DB lives on a shared or network mount (seen from inside a VM)."""
+
+
+def _mounts() -> str:
+    try:
+        return Path("/proc/mounts").read_text()
+    except OSError:
+        return ""
+
+
+def mount_type(path: Path | str, mounts: str) -> str | None:
+    """The file system type of the mount that holds `path` (its longest mount point), from /proc/mounts text."""
+    target, best, kind = str(path), -1, None
+    for line in mounts.splitlines():
+        parts = line.split()
+        if len(parts) < 3:
+            continue
+        point = parts[1].replace("\\040", " ").rstrip("/") or "/"
+        inside = point == "/" or target == point or target.startswith(point + "/")
+        if inside and len(point) > best:
+            best, kind = len(point), parts[2]
+    return kind
+
+
+def ensure_local(path: Path) -> None:
+    if not sys.platform.startswith("linux") or os.environ.get(ALLOW_SHARED) == "1":
+        return
+    kind = mount_type(path.resolve(), _mounts())
+    if kind and (kind in SHARED_MOUNTS or kind.startswith("fuse.")):
+        raise SharedDatabase(f"{path} is on a shared mount ({kind}): SQLite's locks do not cross it, so open the "
+                             f"job-hunt-agent DB only on this computer itself (a copy can be opened with {ALLOW_SHARED}=1)")
 
 
 def utcnow() -> datetime:
@@ -171,18 +235,46 @@ def iso(moment: datetime) -> str:
     return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _locked(err: sqlite3.OperationalError) -> bool:
+    return "locked" in str(err) or "busy" in str(err)
+
+
+def _open(path: Path) -> sqlite3.Connection:
+    conn = sqlite3.connect(path, timeout=BUSY_TIMEOUT_MS / 1000, isolation_level=None, check_same_thread=False)
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
+        if conn.execute("PRAGMA journal_mode").fetchone()[0].lower() != "wal":    # a new file (or a restored copy)
+            conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")                # safe with WAL; a commit no longer waits for fsync
+        conn.execute(f"PRAGMA journal_size_limit={WAL_LIMIT_BYTES}")
+        conn.execute("PRAGMA foreign_keys=ON")
+        version = conn.execute("PRAGMA user_version").fetchone()[0]
+        if version < SCHEMA_VERSION and _upgrade(conn, version) and 0 < version < 12:
+            _adopt_goal3(conn)                                  # GOAL3: contacts + vendors out of the old cells
+        return conn
+    except BaseException:
+        conn.close()
+        raise
+
+
 def connect(path: Path | str | None = None) -> sqlite3.Connection:
     path = Path(path or config.DB_PATH)
+    ensure_local(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=BUSY_TIMEOUT_MS / 1000, isolation_level=None, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
-    conn.execute("PRAGMA foreign_keys=ON")
-    version = conn.execute("PRAGMA user_version").fetchone()[0]
-    if version < SCHEMA_VERSION and _upgrade(conn, version) and 0 < version < 12:
-        _adopt_goal3(conn)                                      # contacts + vendors out of the old cells
-    return conn
+    for wait in (*CONNECT_TRIES, None):
+        try:
+            return _open(path)
+        except sqlite3.OperationalError as err:
+            if wait is None or not _locked(err):
+                raise
+            time.sleep(wait)                                    # GOAL33 §3b: a long write elsewhere; try again
+
+
+def checkpoint(conn: sqlite3.Connection) -> tuple:
+    """GOAL33 §3b: copy the WAL back into the DB without waiting for readers (PASSIVE); the server runs it every few
+    minutes so the WAL stays small. (busy, WAL pages, pages copied)."""
+    return tuple(conn.execute("PRAGMA wal_checkpoint(PASSIVE)").fetchone())
 
 
 def _adopt_goal3(conn: sqlite3.Connection) -> None:
@@ -196,10 +288,16 @@ def _adopt_goal3(conn: sqlite3.Connection) -> None:
             print(f"job-hunt-agent: upgrade step {step.__module__}.{step.__name__} failed: {err}", file=sys.stderr)
 
 
+def _column_there(conn: sqlite3.Connection, step: str) -> bool:
+    m = _ADD_COLUMN.match(step.strip())
+    return bool(m) and any(r[1] == m.group(2) for r in conn.execute(f"PRAGMA table_info({m.group(1)})"))
+
+
 def _upgrade(conn: sqlite3.Connection, version: int) -> bool:
     """Migrations + schema.sql + user_version in ONE transaction, so a failed upgrade leaves the old DB intact.
     False when another process (fetch vs server at login) upgraded the DB while this one waited for the lock."""
-    steps = [s for v in range(version + 1, SCHEMA_VERSION + 1) for s in MIGRATIONS.get(v, [])] if version else []
+    steps = [s for v in range(version + 1, SCHEMA_VERSION + 1) for s in MIGRATIONS.get(v, [])
+             if v < IDEMPOTENT_FROM or not _column_there(conn, s)] if version else []
     schema = resources.files("job_hunt_agent").joinpath("schema.sql").read_text()
     try:
         conn.executescript("BEGIN IMMEDIATE;\n" + "".join(f"{s};\n" for s in steps) + schema
@@ -266,11 +364,6 @@ def prior_statuses(conn: sqlite3.Connection, board_id: str, limit: int = 2) -> l
     return [r["status"] for r in rows]
 
 
-def uids_with_jd(conn: sqlite3.Connection, board_id: str) -> set[str]:
-    rows = conn.execute("SELECT uid FROM jobs WHERE board=? AND description IS NOT NULL", (board_id,))
-    return {r["uid"] for r in rows}
-
-
 def start_run(conn: sqlite3.Connection, trigger: str, now: datetime) -> int:
     with conn:
         cur = conn.execute("INSERT INTO runs(trigger, started_at) VALUES (?,?)", (trigger, iso(now)))
@@ -298,22 +391,63 @@ def backup(conn: sqlite3.Connection, folder: Path | None = None) -> Path | None:
     folder.mkdir(parents=True, exist_ok=True)
     target = folder / f"job_hunt_agent-{utcnow():%Y%m%d}.db"
     profiles = folder / f"profiles-{utcnow():%Y%m%d}.tar.gz"
-    made = None
+    made, bad = None, False
     if not target.exists():                                     # the database first: it matters most
-        dest = sqlite3.connect(target)
-        with dest:
-            conn.backup(dest)
-        dest.close()
-        made = target
+        made = _verified_backup(conn, target)
+        bad = made is None
     try:
         if not profiles.exists():                               # its own daily check (M9 verify rounds 3-4)
             _backup_profiles(profiles)
         for pattern in ("job_hunt_agent-*.db", "profiles-*.tar.gz"):
+            if bad and pattern.endswith(".db"):                 # a broken DB never rotates a good backup out
+                continue
             for old in sorted(folder.glob(pattern))[:-BACKUPS_KEPT]:
                 old.unlink()
     finally:
         secure(conn, folder)                                    # every run, even when the tar failed (M9 verify)
     return made
+
+
+def _check(path: Path) -> str:
+    """'ok', or the first problems `PRAGMA integrity_check` names (GOAL31 §1: the nightly check of the DB)."""
+    check = sqlite3.connect(f"file:{path}?immutable=1", uri=True)  # a finished copy: no -wal / -shm left behind
+    try:
+        return "; ".join(r[0] for r in check.execute("PRAGMA integrity_check(5)"))
+    except sqlite3.DatabaseError as err:
+        return str(err)
+    finally:
+        check.close()
+
+
+def _verified_backup(conn: sqlite3.Connection, target: Path) -> Path | None:
+    """The day's copy, written beside its final name and counted only once integrity_check says ok. A bad copy is
+    kept as <name>.bad (so a run later today tries again) and the user is told on this computer and in the page."""
+    partial = target.with_name(target.name + ".part")
+    dest = sqlite3.connect(partial)
+    try:
+        with dest:
+            conn.backup(dest)
+    finally:
+        dest.close()
+    verdict = _check(partial)
+    if verdict == "ok":
+        partial.replace(target)
+        return target
+    partial.replace(target.with_name(target.name + ".bad"))
+    _db_alarm(conn, f"The job-hunt-agent database failed its check ({verdict[:300]}). Stop job-hunt-agent and repair it from "
+                    f"the newest good backup in {target.parent}.")
+    return None
+
+
+def _db_alarm(conn: sqlite3.Connection, text: str) -> None:
+    from . import notify
+    print(f"job-hunt-agent: {text}", file=sys.stderr)
+    notify.send("job-hunt-agent database", text)                       # works even when the DB cannot take the notice
+    try:
+        with tx(conn):
+            conn.execute("INSERT INTO app_notices(kind, text, at) VALUES ('db', ?, ?)", (text, iso(utcnow())))
+    except sqlite3.Error as err:
+        print(f"job-hunt-agent: could not store the notice: {err}", file=sys.stderr)
 
 
 def _backup_profiles(target: Path) -> None:

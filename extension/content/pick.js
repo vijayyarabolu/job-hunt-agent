@@ -25,6 +25,13 @@ var JH = globalThis.JH || (globalThis.JH = {});
     ["male", /^(male|man|he him)\b/],
     ["female", /^(female|woman|she her)\b/],
     ["not_veteran", /\b(not a (protected )?veteran|i am not a (protected )?veteran|non veteran|no military service|not a veteran)\b/],
+    // GOAL30 §0b: race / ethnicity families ("Asian / South Asian" is the form's "Asian (Not Hispanic or Latino)")
+    ["two_or_more", /\b(two or more|multi ?racial|more than one race|mixed race)\b/],
+    ["race_asian", /^(?!.*\b(two or more|caucasian)\b).*\b(asian|south asian|east asian|indian american)\b/],
+    ["race_white", /^(?!.*\btwo or more\b).*\b(white|caucasian)\b/],
+    ["race_black", /^(?!.*\btwo or more\b).*\b(black|african american)\b/],
+    ["race_native", /^(?!.*\btwo or more\b).*\b(american indian|alaska(n)? native|native american)\b/],
+    ["race_pacific", /^(?!.*\btwo or more\b).*\b(native hawaiian|pacific islander)\b/],
     ["no_disability", /\b(no,? i (do not|don t) have a disability|i do not have a disability|no disability)\b/],
     ["mobile", /^(mobile|cell|cellular|cell phone|mobile phone)\b/],
   ];
@@ -41,6 +48,7 @@ var JH = globalThis.JH || (globalThis.JH = {});
     const n = norm(text);
     if (/^(yes|y|true|i agree|agree|i accept|accept|i consent|consent|i acknowledge|acknowledge)\b/.test(n)) return "yes";
     if (/^(no|n|false)\b/.test(n)) return "no";
+    if (/^not (?!applicable|specified|listed|declared|disclosed|sure|selected)\w/.test(n)) return "no";   // "Not a protected veteran"
     if (statements && /^i\b/.test(n)) return NEG.test(n) ? "no" : "yes";
     return null;
   }
@@ -120,11 +128,22 @@ var JH = globalThis.JH || (globalThis.JH = {});
       if (exact) return found(exact);
     }
     const answer = wanted[wanted.length - 1];
-    const pol = polarity(answer, false);
+    // 1.3.1: "I don't wish to answer" means the form's own decline choice ("Decline to self-identify")
+    if (group(answer) === "decline") {
+      const declines = opts.filter((o) => group(o.t) === "decline");
+      if (declines.length) return found(declines.sort((a, b) => a.n.length - b.n.length)[0]);
+    }
+    // a statement ("I am not a protected veteran") answers a plain Yes / No question by its meaning
+    const plain = opts.filter((o) => /^(yes|no)$/.test(o.n));
+    const pol = polarity(answer, false) || (plain.length === 2 && group(answer) !== "decline" ? polarity(answer, true) : null);
     if (pol) {
       // "I don't wish to answer" is never a "no"; several "Yes, I am …" choices are his to pick (Needs you, once)
       const same = opts.filter((o) => polarity(o.t) === pol && group(o.t) !== "decline");
       if (same.length === 1) return found(same[0]);
+      // GOAL30 §0b: several "no" statements ("I identify as a veteran, just not a protected veteran" / "I am not a
+      // veteran"): a plain No is the one that denies the whole thing, never one that says "I identify as"
+      const flat = same.filter((o) => !/\bidentify as (a|an|one)\b/.test(o.n));
+      if (same.length > 1 && pol === "no" && flat.length === 1) return found(flat[0]);
       if (same.length > 1) return found(same.find((o) => o.n === pol) || null);
       if (opts.some((o) => polarity(o.t))) return null;
     }

@@ -210,7 +210,7 @@ class MoveExistingFiles(OwnAccountCase):
 
     def test_the_account_page_says_stopped_resuming(self):
         google_move._note(self.conn, "jane", "running", google_move.RESUMING)
-        self.assertIn("stopped by a restart, resuming", google_page.render("jane"))
+        self.assertIn("Stopped by a restart, resuming", google_page.render("jane"))
 
     def test_a_hand_run_holding_the_lock_is_never_doubled(self):
         self._stopped_mid_jd_doc()

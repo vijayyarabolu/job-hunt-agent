@@ -4,7 +4,9 @@ Each Key says how a form's question is recognised: by the field's own attributes
 Workday automation ids, input names) first, then by its label text (`patterns`, tried in catalogue order, so the
 specific ones come before the general ones). `legal` keys (work authorization, sponsorship, government, criminal,
 consents, EEO, signature) are answered only from what the person saved: never a default, never a guess.
-`blank_ok` keys may stay empty without asking (middle name, address line 2, extension, ...).
+`personal` keys (GOAL30: currently employed, health care provider, salary, start date) are facts about the user that
+Claude may never write for the user either, though they are saved everywhere like any answer. `blank_ok` keys may stay
+empty without asking (middle name, address line 2, extension, ...).
 """
 import re
 from dataclasses import dataclass
@@ -24,10 +26,16 @@ class Key:
     hints: tuple[str, ...] = ()
     legal: bool = False
     blank_ok: bool = False
+    personal: bool = False
+
+    @property
+    def no_guess(self) -> bool:
+        """Claude may map a question to this key, never answer it."""
+        return self.legal or self.personal
 
 
-def _k(key, label, category, patterns=(), hints=(), legal=False, blank_ok=False):
-    return Key(key, label, category, tuple(patterns), tuple(hints), legal, blank_ok)
+def _k(key, label, category, patterns=(), hints=(), legal=False, blank_ok=False, personal=False):
+    return Key(key, label, category, tuple(patterns), tuple(hints), legal, blank_ok, personal)
 
 
 # Order matters: the first key whose hint or pattern fits wins.
@@ -44,7 +52,7 @@ CATALOGUE = (
        blank_ok=True),
     _k("preferred_name", "Preferred name", "contact", [r"preferred (first )?name", r"nick ?name"],
        ["preferredname", "preferred-name"], blank_ok=True),
-    _k("middle_name", "Middle name", "contact", [r"middle (name|initial)"], ["middlename", "additional-name"],
+    _k("middle_name", "Middle name", "contact", [r"^(legal )?middle (name|initial)"], ["middlename", "additional-name"],
        blank_ok=True),
     _k("first_name", "First name", "contact", [r"\bfirst name\b", r"\bgiven name\b", r"\bforename\b"],
        ["given-name", "firstname", "first_name", "legalname--firstname", "legalnamesection_firstname"]),
@@ -53,7 +61,7 @@ CATALOGUE = (
     _k("full_name", "Full name", "contact", [r"^(your )?(full |legal |complete )*name$", r"^name (first and last|in full)",
        r"^full legal name"], ["_systemfield_name", "fullname", "full_name", "candidate-name"]),
     _k("email", "Email", "contact", [r"\be ?mail\b"], ["email", "_systemfield_email"]),
-    _k("phone", "Phone", "contact", [r"\b(phone|mobile|cell|telephone)\b"],
+    _k("phone", "Phone", "contact", [r"\b(phone|mobile|cell|telephone)\b", r"\bbest number\b", r"\bcontact number\b"],
        ["tel", "tel-national", "phone", "phone-number", "phonenumber", "phonenumber--phonenumber",
         "_systemfield_phone"]),
     _k("address2", "Address line 2", "contact", [r"address (line )?2", r"\bapt\b", r"\bsuite\b", r"apartment"],
@@ -64,9 +72,12 @@ CATALOGUE = (
     _k("zip", "ZIP / postal code", "contact", [r"\bzip\b", r"postal", r"post code", r"zip ?code"],
        ["postal-code", "postalcode", "address--postalcode", "addresssection_postalcode", "zip"]),
     _k("country", "Country", "contact", [r"^country( of residence)?$", r"country (region|of residence)",
-       r"which country", r"what country"], ["country", "country-name", "countrydropdown", "address--country"]),
+       r"which country", r"what country", r"\bcountry (where|in which) you (currently )?(reside|live)\b"], ["country", "country-name", "countrydropdown", "address--country"]),
     _k("location", "Location (City, State)", "contact", [r"^(current )?location( city)?$",
-       r"where are you (currently )?(located|based)", r"city (and|,) state", r"current (city|location)"],
+       r"where are you (currently )?(located|based)", r"city (and|,) state", r"current (city|location)",
+       r"^(your |current )?location (city|city state|city state country|city state zip)$", r"^city state( country)?$",
+       r"\b(what|which) city (and|or) state\b", r"\bwhere do you (currently )?(live|reside)\b",
+       r"\b(city|town) (and|,)? ?(state|country) (do you|you) (live|reside)", r"\bcity of residence\b.*\bstate\b"],
        ["_systemfield_location", "location"]),
     _k("state", "State", "contact", [r"^state$", r"\bstate( or |/| )province\b", r"^province$", r"^state of residence",
        r"which state", r"administrative area", r"^state ?select$", r"^(state|province|region)( (or|/) (province|region))?$",
@@ -84,13 +95,15 @@ CATALOGUE = (
     _k("other_url", "Other link", "links", [r"other (web ?site|url|link)", r"additional (link|url)"], blank_ok=True),
 
     _k("sponsor_future", "Will you need visa sponsorship (now or in the future)?", "legal",
-       [r"sponsor\w*.*\bfuture\b", r"\bfuture\b.*sponsor", r"(now|currently) or .*sponsor"], legal=True),
+       [r"sponsor\w*.*\bfuture\b", r"\bfuture\b.*sponsor", r"(now|currently) or .*sponsor",
+        r"(visa|immigration) (assistance|support|sponsorship)\b.*\b(future|later)\b"], legal=True),
     _k("sponsor_now", "Do you need visa sponsorship now?", "legal", [r"sponsor", r"\bh ?1 ?b\b"], legal=True),
     # a setting, not a form question (no patterns: no field is ever classified as it)
     _k("sponsor_auto", "At companies marked Sponsors or Cap-exempt, answer the future-sponsorship question: Yes",
        "legal", blank_ok=True),
     _k("work_auth", "Are you legally authorized to work in the US?", "legal",
        [r"(legally )?(authori[sz]ed|eligible|permitted|entitled) to work", r"work authori[sz]ation",
+        r"\bauthori[sz]ation to work\b",
         r"right to work", r"employment eligibility", r"legal right to work"], legal=True),
     _k("visa_status", "Current visa / immigration status", "legal",
        [r"visa (status|type)", r"immigration status", r"current (work )?(visa|permit)", r"work permit"], legal=True),
@@ -108,36 +121,59 @@ CATALOGUE = (
        legal=True),
     _k("drug_test", "Consent to a drug test", "legal", [r"drug (test|screen)", r"substance"], legal=True),
     _k("age18", "Are you 18 or older?", "legal", [r"\b18\b.*(year|age|old)", r"(age|old) of 18", r"legal age",
-       r"at least 18"], legal=True),
+       r"at least 18", r"\bage 18\b", r"\b18 (or|and) (over|older)\b"], legal=True),
     _k("prev_worked", "Have you worked for this company before?", "work",
        [r"(previously|ever|formerly|before) (been )?(work|employ)", r"(former|previous|current or former) (employee|worker)",
         r"worked (for|at|with) .* (before|previously)", r"(are|were) you .* (an )?employee of",
-        r"worked (for|at|with) company (in the past|before)\b"],
+        r"worked (for|at|with) company (in the past|before)\b", r"\b(former|previous|past) (\w+ ){1,3}employee\b",
+        r"\bcurrently (work|employed) (at|for|with|by) company\b"],
        ["candidateispreviousworker", "previousworker"]),
     _k("related_employee", "Related to anyone who works there?", "work",
-       [r"\brelat(ed|ive)\b", r"family member", r"know (anyone|someone) (who )?(works|employed)"]),
+       [r"\brelat(ed|ive)\b", r"family member", r"know (anyone|someone) (who )?(works|employed)",
+        r"\bpersonal relationship with\b.*\bemployee\b"]),
     _k("referred", "Were you referred by an employee?", "work", [r"\breferr?(ed|al)\b(?!.*source)"]),
     _k("how_heard", "How did you hear about us?", "work",
        [r"how did you (hear|find|learn|come)", r"where did you (hear|find|see|learn)",
         r"^(referral |job |candidate )?source$", r"how .* (hear|find out) about"],
        ["source", "sourceprompt", "source--source"]),
     _k("salary", "Salary expectation", "work", [r"salary", r"compensation", r"pay (expectation|requirement|range)",
-       r"desired (pay|rate|wage)", r"expected (base )?(pay|salary|rate)"]),
+       r"desired (pay|rate|wage)", r"expected (base )?(pay|salary|rate)", r"\bexpect(ed)? to earn\b"],
+       personal=True),
+    # GOAL30 §1.5: start date, notice and availability are one fact (the "N weeks from today" setting below)
     _k("start_date", "Earliest start date", "work", [r"start date", r"(available|able) to start",
        r"earliest (date|start)", r"when (can|could|would) you (start|begin|join)", r"availability date",
-       r"date available"]),
-    _k("notice", "Notice period", "work", [r"notice period", r"weeks? notice"]),
+       r"date available", r"\bearliest availability\b", r"\bearliest (you|that you) (would|could|can)\b.*"
+       r"\b(start|available|begin|join)", r"\bwhen (are you|would you be) available to (start|begin|join|work)\b",
+       r"\bavailab(le|ility) to (start|begin|join)\b", r"\bwhen can you (start|begin|join)\b",
+       r"\bwhen are you available for (full ?time |part ?time )?(work|employment)\b"], personal=True),
+    _k("notice", "Notice period", "work", [r"notice period", r"weeks? notice",
+       r"\bhow much notice\b", r"\bnotice (do you need|required|to give)\b"], personal=True),
+    _k("start_weeks", "Start date: this many weeks from today (fills any start date or availability question)",
+       "work", blank_ok=True),
+    _k("employed", "Are you currently employed?", "work",
+       [r"\b(are you|currently|presently) (currently |presently |now )?(employed|working)\b(?! (by|at|for|with)\b)",   # "employed by X": X's staff
+        r"\bcurrent(ly)? employment status\b", r"\bemployment status\b", r"\bdo you (currently |presently )?have a job\b",
+        r"\bemployed (right now|currently|at the moment)\b"], personal=True),
+    _k("hcp", "Are you a health care provider (HCP)?", "work",
+       [r"\bhealth ?care (provider|professional|practitioner)s?\b", r"\bhcp\b"], personal=True),
     _k("relocate", "Willing to relocate?", "work", [r"relocat"]),
     _k("onsite", "Willing to work onsite / hybrid?", "work",
-       [r"on ?site", r"in (the |our )?office", r"\bhybrid\b", r"commut", r"days (a|per) week", r"in person"]),
+       [r"on ?site", r"in (the |our )?office", r"\bhybrid\b", r"commut", r"days (a|per) week", r"in person",
+        r"\bdays? (from|in|at) (one of )?(our|the) (office|offices|hubs?|office hubs?)\b"]),
     _k("travel", "Willing to travel?", "work", [r"\btravel\b"]),
-    _k("years_exp", "Years of experience", "work", [r"years of (\w+ )?(\w+ )?experience", r"how many years"]),
+    # the user's total years only (GOAL27): "years of Python experience" / "... with AWS" is its own question
+    _k("years_exp", "Years of experience", "work",
+       [r"^(?!.*\b(with|in|using) (?!the industry|industry)\w)(?!.*years of (?!(professional|relevant|work|industry|full time) )"
+        r"\w+ experience).*(\b(total |overall )?years of (professional |relevant |work |industry |full time )?experience\b|"
+        r"how many years (have you worked|of experience))"]),
     _k("current_company", "Current / most recent employer", "work",
-       [r"current (company|employer)", r"(most recent|present|latest) (company|employer)"], ["org", "organization"]),
+       [r"current (company|employer)", r"(most recent|present|latest) (company|employer)",
+        r"current or (previous|most recent|last) (company|employer)"], ["org", "organization"]),
     _k("current_title", "Current / most recent job title", "work",
-       [r"current (job )?(title|position|role)", r"(most recent|present) (job )?title"]),
+       [r"current (job )?(title|position|role)", r"(most recent|present) (job )?title",
+        r"current or (previous|most recent|last) (job )?(title|position)"]),
     _k("cover_letter", "Cover letter", "work", [r"cover letter"], ["cover_letter"], blank_ok=True),
-    _k("sms_consent", "Text message (SMS) consent", "legal", [r"text messag", r"\bsms\b"], legal=True, blank_ok=True),
+    _k("sms_consent", "Text message (SMS) consent", "legal", [r"text messag", r"\bsms\b", r"\bwhats ?app\b"], legal=True, blank_ok=True),
     _k("terms", "Agree to terms / privacy notice / certify the application", "legal",
        [r"\bi (have read|agree|acknowledge|certify|consent|understand|attest|accept)", r"terms (and|&) conditions",
         r"privacy (policy|notice|statement)", r"\bterms of (use|service)\b", r"\battest", r"true and (correct|complete)"],
@@ -171,6 +207,8 @@ BY_KEY = {k.key: k for k in CATALOGUE}
 _COMPILED = tuple((k, tuple(re.compile(p) for p in k.patterns)) for k in CATALOGUE)
 # derived from other answers when a form asks them: never stored, never their own row on the Answers page
 DERIVED = frozenset({"email_confirm", "signature_date", "account_password"})
+# settings on the Answers page, never a form's question
+SETTINGS = frozenset({"sponsor_auto", "start_weeks"})
 _LABEL_NOISE = re.compile(r"\((required|optional|mm/yyyy|mm/dd/yyyy)\)|\brequired\b|\*|please select( one)?|select one"
                           r"|\(select all that apply\)|select all that apply")
 _SPACES = re.compile(r"[^a-z0-9]+")
@@ -214,9 +252,38 @@ OTHER_PERSON = re.compile(r"\b(referr\w*|refer(red)? (you|by)|recruiter|emergenc
 LEGAL_WORDS = re.compile(r"\b(authori[sz]\w*|eligib\w*|sponsor\w*|visa|citizen\w*|right to work|work permit)\b")
 
 
-def classify(label: str | None, hints=()) -> Key | None:
-    """The bank key a form field asks for: its attributes first, then its label; None when it is none of them."""
+def hint_ok(key: Key, label: str | None) -> bool:
+    """GOAL27: the extension's classifier names the key; job-hunt-agent keeps the two old guards on it (someone else's
+    details are never the user's contact answers, a legal question is answered only by a legal key) and never takes a
+    setting or a derived-only key from a page."""
     text = norm(label)
+    if key.key in SETTINGS or key.key == "account_password":
+        return False
+    if OTHER_PERSON.search(text) and key.category == "contact":
+        return False
+    return key.legal or not LEGAL_WORDS.search(text)
+
+
+# GOAL30 §0c: a plain field ("Email", "City") named inside a long sentence is not that field ("Are you comfortable
+# completing a take-home? You'll receive an email from CodeSignal ..."); keys that are themselves questions still are
+# (classify.js has the same rule)
+LONG_LABEL_WORDS = 12
+QUESTION_KEYS = re.compile(r"^(employed|hcp|sponsor_|work_auth|visa_status|citizenship|clearance|gov_official|criminal|"
+                           r"noncompete|background_check|drug_test|age18|prev_worked|related_employee|referred|how_heard|"
+                           r"salary|start_date|notice|relocate|onsite|travel|years_exp|sms_consent|terms|hispanic|race|"
+                           r"gender|orientation|transgender|veteran|disability|pronouns)")
+WHERE_LIVE = re.compile(r"\b(what|which) city\b|\bwhere do you (currently )?(live|reside)\b")    # asked as a sentence
+
+# a follow-up of the question before it ("If yes, what type of sponsorship?"): its own question, never a bank key
+FOLLOW_UP = re.compile(r"^(if (yes|no|so|other|not|applicable|you (selected|answered|checked))|please (explain|specify|elaborate))\b")
+
+
+def classify(label: str | None, hints=()) -> Key | None:
+    """The bank key a form field asks for: its attributes first, then its label; None when it is none of them (or a
+    follow-up question)."""
+    text = norm(label)
+    if FOLLOW_UP.search(text):
+        return None
     other = bool(OTHER_PERSON.search(text))
     legal_words = bool(LEGAL_WORDS.search(text))
 
@@ -229,7 +296,10 @@ def classify(label: str | None, hints=()) -> Key | None:
                 return key
     if not text:
         return None
+    long = len(text.split()) > LONG_LABEL_WORDS
     for key, patterns in _COMPILED:
+        if long and not QUESTION_KEYS.match(key.key) and not (key.key == "location" and WHERE_LIVE.search(text)):
+            continue
         if any(p.search(text) for p in patterns) and allowed(key):
             return key
     return None
