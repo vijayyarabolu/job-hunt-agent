@@ -6,7 +6,7 @@ Segments: all sent applications, waiting (applied, no answer yet), interviewing 
 rejected (rejected / cold). A search matches company or role. A job of the feed gets its feed card; a job added by
 link or pasted in the Resume app (no feed uid) gets a small card that opens its tracker row.
 """
-from datetime import datetime
+from datetime import date, datetime
 
 from . import api, daygroups, outside_card
 
@@ -36,6 +36,15 @@ def _matches(row: dict, card: dict | None, q: str) -> bool:
     return all(word in text for word in q.lower().split())
 
 
+def _local(ts: str | None) -> datetime | None:
+    """An ISO time (UTC, 'Z' or an offset) on this computer's clock, the one applied_on days are written in."""
+    try:
+        moment = datetime.fromisoformat(str(ts).replace("Z", "+00:00")) if ts else None
+    except ValueError:
+        return None
+    return moment.astimezone() if moment and moment.tzinfo else None
+
+
 def _when(row: dict, today) -> tuple[str, str]:
     """(day header, time) of a row: applied_on is the day; the time comes from the 'applied' event when it is the
     same day (rows imported from the Sheet have a day only)."""
@@ -43,7 +52,7 @@ def _when(row: dict, today) -> tuple[str, str]:
         day = datetime.fromisoformat(row["applied_on"]).date() if row.get("applied_on") else None
     except ValueError:
         day = None
-    at = daygroups.local(row.get("applied_at"))
+    at = _local(row.get("applied_at"))
     clock = daygroups.clock(at) if at and day and at.date() == day else ""
     if day is None:
         return "No date", clock
@@ -61,7 +70,7 @@ def board(conn, pid: str, seg: str, q: str | None, now: datetime) -> dict:
     counts = {name: sum(1 for r in rows if r["status"] in statuses) for name, statuses in SEGMENTS.items()}
     rows = [r for r in rows if r["status"] in SEGMENTS[seg]]
     feed = api.cards_for(conn, pid, list(dict.fromkeys(r["job_uid"] for r in rows if r["job_uid"])), now)
-    today = now.astimezone(daygroups.CHICAGO).date()
+    today = date.fromisoformat(api.today(now))          # the clock applied_on was written with (Mark applied)
     who = outside_card.person(pid) if any(not r["job_uid"] for r in rows) else None
     cards, seen = [], set()
     for row in rows:

@@ -12,7 +12,7 @@ import threading
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import config
+from . import atomic, config
 
 log = logging.getLogger(__name__)
 KEEP_DAYS = 7
@@ -30,13 +30,10 @@ def rotate(path: Path, today: date) -> Path | None:
     target = _archive_of(path, today)
     if target.exists() or not path.exists() or path.stat().st_size == 0:
         return None
-    target.parent.mkdir(parents=True, exist_ok=True)
-    part = target.with_name(target.name + ".part")
-    with path.open("rb") as src, part.open("wb") as out:
+    with atomic.replacing(target) as part, path.open("rb") as src, part.open("wb") as out:
         for line in src:
             if not NOISE.search(line):
                 out.write(line)
-    part.replace(target)
     with path.open("r+b") as live:                       # in place: launchd keeps writing to the same file
         live.truncate(0)
     return target

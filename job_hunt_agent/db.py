@@ -5,6 +5,7 @@ import re
 import sqlite3
 import sys
 import tarfile
+import tempfile
 import time
 import zlib
 from contextlib import contextmanager
@@ -12,7 +13,7 @@ from datetime import datetime, timezone
 from importlib import resources
 from pathlib import Path
 
-from . import config
+from . import atomic, config
 
 SCHEMA_VERSION = 37
 # Repost chain (decision 002): priors on the same repost_key that ended (closed, or went stale) within 90 days
@@ -422,18 +423,23 @@ def _check(path: Path) -> str:
 def _verified_backup(conn: sqlite3.Connection, target: Path) -> Path | None:
     """The day's copy, written beside its final name and counted only once integrity_check says ok. A bad copy is
     kept as <name>.bad (so a run later today tries again) and the user is told on this computer and in the page."""
-    partial = target.with_name(target.name + ".part")
-    dest = sqlite3.connect(partial)
+    fd, name = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}.", suffix=".tmp")   # one per run
+    os.close(fd)
+    partial = Path(name)
     try:
-        with dest:
-            conn.backup(dest)
+        dest = sqlite3.connect(partial)
+        try:
+            with dest:
+                conn.backup(dest)
+        finally:
+            dest.close()
+        verdict = _check(partial)
+        if verdict == "ok":
+            os.replace(partial, target)
+            return target
+        os.replace(partial, target.with_name(target.name + ".bad"))
     finally:
-        dest.close()
-    verdict = _check(partial)
-    if verdict == "ok":
-        partial.replace(target)
-        return target
-    partial.replace(target.with_name(target.name + ".bad"))
+        partial.unlink(missing_ok=True)
     _db_alarm(conn, f"The job-hunt-agent database failed its check ({verdict[:300]}). Stop job-hunt-agent and repair it from "
                     f"the newest good backup in {target.parent}.")
     return None
@@ -452,15 +458,10 @@ def _db_alarm(conn: sqlite3.Connection, text: str) -> None:
 
 def _backup_profiles(target: Path) -> None:
     """Written to a temporary name and renamed, so a failed tar never counts as today's backup."""
-    partial = target.with_name(target.name + ".part")
-    try:
-        with tarfile.open(partial, "w:gz") as tar:
-            for path in sorted(config.PROFILES.glob("*/*")):
-                if path.name in PROFILE_FILES:
-                    tar.add(path, arcname=str(path.relative_to(config.PROFILES)))
-        partial.replace(target)
-    finally:
-        partial.unlink(missing_ok=True)
+    with atomic.replacing(target) as partial, tarfile.open(partial, "w:gz") as tar:
+        for path in sorted(config.PROFILES.glob("*/*")):
+            if path.name in PROFILE_FILES:
+                tar.add(path, arcname=str(path.relative_to(config.PROFILES)))
 
 
 def secure(conn: sqlite3.Connection, backups: Path) -> None:

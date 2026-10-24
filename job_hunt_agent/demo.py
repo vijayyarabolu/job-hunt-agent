@@ -132,10 +132,11 @@ def seed(home: Path, now: datetime | None = None) -> dict:
         conn = db.connect()
         row = conn.execute("SELECT company, title, description FROM jobs WHERE uid = ?", (uid,)).fetchone()
         conn.close()
-        job_id = tailor._queue({"profile": "alex", "company": row["company"], "role": row["title"],
-                                "jd_text": db.unpack(row["description"]), "source_job_id": uid})
-        job = tailor._load(job_id)
-        tailor._save(tailor._finish(job, tailor.demo_tailor(tailor.base_resume("alex"), job)))
+        with tailor._LOCK:                       # the worker _queue starts waits, then finds the job already done
+            job_id = tailor._queue({"profile": "alex", "company": row["company"], "role": row["title"],
+                                    "jd_text": db.unpack(row["description"]), "source_job_id": uid})
+            job = tailor._load(job_id)
+            tailor._save(tailor._finish(job, tailor.demo_tailor(tailor.base_resume("alex"), job)))
     return {"jobs": len(uids), "applications": len(plan) + 1, "home": str(home)}
 
 

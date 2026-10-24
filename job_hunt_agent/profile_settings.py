@@ -8,11 +8,9 @@ the job's facts (`apply_in_hand`, on by default), and the answers most applicati
 profile.yaml, personal data, never in git; empty ones fall back to what profile.yaml already says)."""
 import json
 import logging
-import os
 import re
-import tempfile
 
-from . import config, past_employers
+from . import atomic, config, past_employers
 
 log = logging.getLogger(__name__)
 
@@ -186,13 +184,4 @@ def _save(pid: str, key: str, value: int | str) -> dict:
 
 def _write(path, text: str, mode: int) -> None:
     """Replace the file atomically with `mode`."""
-    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.stem}.", suffix=path.suffix)
-    try:
-        with os.fdopen(fd, "w") as out:
-            out.write(text)
-        os.chmod(tmp, mode)
-        os.replace(tmp, path)
-    except BaseException:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-        raise
+    atomic.write_text(path, text, mode)

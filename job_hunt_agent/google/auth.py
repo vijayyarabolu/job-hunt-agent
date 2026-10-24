@@ -14,7 +14,6 @@ import contextvars
 import hashlib
 import json
 import logging
-import os
 import re
 import secrets
 import time
@@ -26,7 +25,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .. import config
+from .. import atomic, config
 from . import REAL, SCOPES, GoogleError, NeedsConsent, NotConfigured, base
 
 REAL_AUTH, REAL_TOKEN = REAL["auth"], REAL["token"]
@@ -154,13 +153,7 @@ def _now_iso() -> str:
 def save(token: dict, account: str | None = None, path: Path | None = None) -> None:
     """path: another sign-in's own token file (a person's Gmail token), else the account's."""
     path = path or token_path(account)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, PRIVATE)
-    with os.fdopen(fd, "w") as fh:
-        json.dump(token, fh)
-    os.chmod(tmp, PRIVATE)
-    tmp.replace(path)
+    atomic.write_text(path, json.dumps(token), PRIVATE)
 
 
 def load(account: str | None = None, path: Path | None = None) -> dict | None:

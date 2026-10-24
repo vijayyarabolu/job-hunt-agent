@@ -18,7 +18,7 @@ import zlib
 from pathlib import Path
 from typing import Callable, Iterator, NamedTuple
 
-from . import config
+from . import atomic, config
 from .net import HttpError, get_range, remote_size
 
 BASE = "https://data.commoncrawl.org/"
@@ -175,10 +175,7 @@ def read_block(crawl: str, block: Block) -> list[str]:
     raw = get_range(f"{BASE}cc-index/collections/{crawl}/indexes/{block.shard}", block.offset,
                     block.offset + block.length - 1)
     lines = gzip.decompress(raw).decode("utf-8", "replace").splitlines()     # raises on an incomplete block
-    path.parent.mkdir(parents=True, exist_ok=True)
-    partial = path.with_suffix(".part")
-    partial.write_bytes(raw)
-    partial.replace(path)
+    atomic.write_bytes(path, raw)
     return lines
 
 

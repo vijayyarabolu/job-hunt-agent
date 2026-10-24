@@ -28,7 +28,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import claude_api, config, lexicon
+from . import atomic, claude_api, config, lexicon
 from .resume import ats, baseline
 
 log = logging.getLogger(__name__)
@@ -82,11 +82,8 @@ def _load(job_id: int) -> dict:
 
 
 def _save(job: dict) -> None:
-    folder().mkdir(parents=True, exist_ok=True)
     job["updated_at"] = _now()
-    tmp = _path(job["id"]).with_suffix(".tmp")
-    tmp.write_text(json.dumps(job, ensure_ascii=False))
-    tmp.replace(_path(job["id"]))
+    atomic.write_text(_path(job["id"]), json.dumps(job, ensure_ascii=False))
 
 
 def _now() -> str:

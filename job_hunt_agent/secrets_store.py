@@ -11,7 +11,7 @@ import threading
 
 import yaml
 
-from . import config
+from . import atomic, config
 
 KEYS = ("anthropic_api_key", "apollo_api_key", "hunter_api_key", "telegram_token", "telegram_chat",
         "resume_tailor_token")
@@ -34,13 +34,7 @@ def load() -> dict:
 
 
 def _write_yaml(target, data: dict) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    tmp = target.with_suffix(".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, PRIVATE)
-    with os.fdopen(fd, "w") as fh:
-        yaml.safe_dump(data, fh, sort_keys=True, allow_unicode=True)
-    os.chmod(tmp, PRIVATE)
-    tmp.replace(target)
+    atomic.write_text(target, yaml.safe_dump(data, sort_keys=True, allow_unicode=True), PRIVATE)
 
 
 def get(name: str) -> str | None:

@@ -23,7 +23,7 @@ import time
 import zlib
 from pathlib import Path
 
-from .. import config, db
+from .. import atomic, config, db
 from . import bank, health
 
 CHROME = os.environ.get("JH_CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")   # JH_CHROME: another Chromium
@@ -93,10 +93,7 @@ def _read(path: Path) -> list[dict]:
 
 
 def _write(path: Path, rows: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    partial = path.with_name(path.name + ".part")
-    partial.write_text(json.dumps(rows, indent=1))
-    partial.replace(path)
+    atomic.write_text(path, json.dumps(rows, indent=1))
 
 
 def regression_dir() -> Path:
