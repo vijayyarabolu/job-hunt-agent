@@ -68,8 +68,21 @@ try {
     const s = find(root);
     return s ? t.clickNode(s.backendNodeId) : false;
   }
+  // the ✉ Cover letter tool by its title: since GOAL36 the panel also lists the page's "Cover letter" file row
+  const COVER_TIP = "Claude writes one from your tailored resume and this job's description";
+  async function clickTitle(title) {
+    const { root } = await t.send("DOM.getDocument", { depth: -1, pierce: true });
+    const find = (n) => {
+      const a = n.attributes || [];
+      for (let i = 0; i < a.length; i += 2) if (a[i] === "title" && a[i + 1] === title && n.nodeName === "BUTTON") return n;
+      for (const k of [...(n.children || []), ...(n.shadowRoots || [])]) { const f = find(k); if (f) return f; }
+      return null;
+    };
+    const node = find(root);
+    return Boolean(node) && t.clickNode(node.backendNodeId);
+  }
   async function coverReady() {
-    await t.panelClick("Cover letter");
+    for (let i = 0; i < 25 && !(await clickTitle(COVER_TIP)); i++) await sleep(200);
     return panelHas("Download PDF", 15000);
   }
 

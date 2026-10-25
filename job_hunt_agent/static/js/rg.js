@@ -432,6 +432,6 @@ export function init8() {
   poll().then(() => {
     paintHead();
     if (S.detail?.uid) refreshDetail(S.detail.uid);
-    if (S.tab === "saved" || S.tab === "resumes") loadFeed({ quiet: true });
+    if (S.tab === "saved" || S.tab === "resumes") loadFeed({ quiet: true, redraw: true });
   });
 }

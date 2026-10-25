@@ -30,8 +30,11 @@ TERMS: dict[str, re.Pattern] = {name: re.compile(rx, re.I) for name, rx in {
     "tool calling": r"\btool[\s-]+(?:calling|calls)\b|\bfunction[\s-]+calling\b",
 }.items()}
 DEFAULT_MIN_TERMS = 2
-GENERIC_TITLE = re.compile(r"(?i)\b(?:software engineer|applied scientist|research engineer|"
-                           r"member of (?:the )?technical staff)\b")
+# GOAL35 §2: the other plain software titles an LLM-heavy JD hides behind (Backend Engineer, Founding Engineer, ...)
+GENERIC_TITLE = re.compile(r"(?i)\b(?:software (?:engineer|developer)|applied scientist|research engineer|"
+                           r"member of (?:the )?technical staff|back[\s-]?end (?:engineer|developer)|"
+                           r"full[\s-]?stack (?:engineer|developer)|forward[\s-]deployed (?:software )?engineer|"
+                           r"founding engineer|product engineer|platform engineer)\b")
 # a title naming AI / ML / data work is never "generic", whatever else it says ("Software Engineer, Machine Learning")
 _SPECIFIC = re.compile(r"(?i)(?<![a-z0-9])(?:ai|a\.i\.|artificial[\s-]+intelligence|ml|mlops|machine[\s-]+learning|deep[\s-]+learning|llms?|"
                        r"gen\s?ai|generative|nlp|natural language|computer vision|perception|data|analytics|agentic|"

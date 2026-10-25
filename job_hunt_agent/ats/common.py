@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from typing import Callable
 
-from .. import signals
+from .. import signals, workterms
 
 MAX_DESCRIPTION_CHARS = 60_000
 
@@ -38,6 +38,7 @@ class Ctx:
     today: date = field(default_factory=date.today)
     needs_detail: Callable[[str], bool] = lambda uid: True   # False when the DB already has this uid's JD
     unchanged: Callable[[str, int], bool] = lambda uid, fp: False   # open row with the same raw fingerprint
+    known_elsewhere: Callable[[str, str], bool] = lambda company, title: False   # GOAL35: open on another board
 
 
 @dataclass
@@ -120,5 +121,6 @@ def make_job(*, ats: str, key: str, ext_id: str, company: str, title: str, locat
         "min_years": signals.min_years(body), "is_talent_pool": signals.is_talent_pool(title, body),
         "employment_type": signals.employment_type(employment, title, body),
         "staffing": signals.staffing_signals(body), "sponsorship": signals.sponsorship(body),
+        "work_terms": workterms.label(body),
         "posted_at": posted_at, "precision": precision, "description": body, "capped": capped,
     }

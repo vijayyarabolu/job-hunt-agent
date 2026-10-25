@@ -355,8 +355,8 @@ try {
   await press("#btabs [data-tab=more]", "");
   await until("!document.querySelector('#pop').hidden");
   await key("Escape");
-  await press("#subtabs .chip", "Archived");     // a section's views are chips under the top bar (Jobs: Recommended · Saved · Archived)
-  check("phone: picking a view in the section strip switches", (await popHidden()) && await until("location.hash === '#archived'"));
+  await press("#subtabs .chip", "Archived");     // GOAL21: a section's views are chips under the top bar (Jobs: Recommended · Saved · Archived)
+  check("phone: picking a view in the section strip switches", (await popHidden()) && await until("location.hash.split('?')[0] === '#archived'"));
   await press("#btabs [data-tab=recommended]", "");
   await switched();
   const r = await rect("#fchips .chip", "Role");

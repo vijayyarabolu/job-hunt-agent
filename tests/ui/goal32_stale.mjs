@@ -13,7 +13,7 @@ const chrome = {
   runtime: {
     get id() { return alive ? "ext-id" : undefined; },
     lastError: undefined,
-    getManifest: () => ({ version: "1.6.4" }),
+    getManifest: () => ({ version: "1.7.0" }),
     sendMessage: (msg, cb) => (alive ? cb({ ok: true, data: msg.type }) : invalid()),
   },
   storage: { local: {

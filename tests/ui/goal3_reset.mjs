@@ -1,6 +1,6 @@
-// resumegen GOAL3 §7 + GOAL33 §3d (tests/test_goal3_reset_ui.py): a reload stays on the page the user was on (and the job
-// open there) but with that page's defaults: no filters, Newest, the list at the top. A new open starts on
-// Recommended. Only the person (and theme) is kept across opens.
+// resumegen GOAL3 §7, GOAL33 §3d, GOAL35 §1 (tests/test_goal3_reset_ui.py): a reload stays on the page the user was on with
+// its filters, sort and the job open there (GOAL35 replaced GOAL33's "reset to defaults"); the state is in the address,
+// never in storage. A new open of "/" starts on Recommended with the defaults; a copied link opens its page.
 // usage: node goal3_reset.mjs <base url> <token> <chrome path> <profile dir>
 import { sleep, start } from "./cdp.mjs";
 
@@ -39,14 +39,14 @@ try {
     && changed.cur !== "job-0", JSON.stringify(changed));
   const openTitle = await js("return document.querySelector('#list .row[aria-selected=true] .row-title')?.textContent");
 
-  // a reload on Recommended with a job open: the same page and job, the filters and sort back to the defaults
+  // a reload on Recommended with a job open: the same page, job, filters and sort
   await send("Page.reload");
   await sleep(300);
   await until(rows, 10000);
   await sleep(800);
   const after = JSON.parse(await view());
-  check("a reload stays on the page with its default filters and sort", after.tab === "recommended" && after.hash.startsWith("#recommended")
-    && !after.chips.length && after.posted === "Any" && after.sort === "" && after.y === 0, JSON.stringify(after));
+  check("a reload stays on the page with its filters and sort", after.tab === "recommended" && after.hash.startsWith("#recommended")
+    && after.chips.length >= 1 && after.posted === "3d" && after.sort === "match" && after.y === 0, JSON.stringify(after));
   check("a reload comes back to the job that was open", !!openTitle && await until(`document.querySelector('#detail h1, #detail h2')?.textContent.includes(${JSON.stringify(openTitle || "?")})`, 4000),
     `${openTitle} vs ${await js("return document.querySelector('#detail h1, #detail h2')?.textContent")}`);
   check("a reload keeps the person", after.who === "Olive Other", after.who);
@@ -55,26 +55,29 @@ try {
 
   // another page: a reload stays there
   await js("document.querySelector('#tabs [data-tab=saved]').click()");
-  check("and the tab", await until("location.hash === '#saved'", 4000) && (await tab()) === "saved", await view());
+  check("and the tab", await until("location.hash.startsWith('#saved')", 4000) && (await tab()) === "saved", await view());
   await send("Page.reload");
   await sleep(300);
   await until("document.querySelector('#tabs [aria-selected=true]')", 10000);
   await sleep(800);
-  check("a reload on Saved stays on Saved", (await tab()) === "saved" && (await js("return location.hash")) === "#saved", await view());
+  check("a reload on Saved stays on Saved", (await tab()) === "saved" && (await js("return location.hash")).startsWith("#saved"), await view());
 
-  // a new open with an old address (#saved): Recommended
-  await js("document.querySelector('#tabs [data-tab=saved]').click()");
-  await until("location.hash === '#saved'", 4000);
+  // a copied link (#saved): Saved; a new open of "/": Recommended with the defaults
   await send("Page.navigate", { url: `${BASE}/?n=2#saved` });
   await sleep(300);
+  await until("document.querySelector('#tabs [aria-selected=true]')", 10000);
+  check("a copied link opens its page", (await tab()) === "saved", await view());
+  await send("Page.navigate", { url: `${BASE}/?n=3` });
+  await sleep(300);
   await until(rows, 10000);
-  check("a new open starts on Recommended", JSON.parse(await view()).tab === "recommended", await view());
+  const fresh = JSON.parse(await view());
+  check("a new open starts on Recommended", fresh.tab === "recommended" && !fresh.chips.length && fresh.posted === "Any" && fresh.sort === "", await view());
 
   // while the page is open, filters stay when moving between tabs
   await js("[...document.querySelectorAll('#fchips .seg button')].find((b) => b.textContent === '3d').click()");
   await until(rows, 8000);
   await js("document.querySelector('#tabs [data-tab=saved]').click()");
-  await until("location.hash === '#saved'", 4000);
+  await until("location.hash.startsWith('#saved')", 4000);
   await js("document.querySelector('#tabs [data-tab=recommended]').click()");
   await until(rows, 8000);
   check("while the page is open the filters stay", JSON.parse(await view()).posted === "3d", await view());

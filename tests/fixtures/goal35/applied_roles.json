@@ -1,0 +1,165 @@
+{
+ "about": "GOAL35 \u00a75.1: 10 sample applications (made-up companies): each must be found by every search shape. JD text is an excerpt around the skill only.",
+ "roles": [
+  {
+   "company": "Harbor Health",
+   "title": "Data Scientist - Pharmacy Benefits",
+   "location": "New York, NY; Chicago, IL",
+   "applied_on": "2026-10-14",
+   "status": "applied",
+   "jd_excerpt": "opportunities for non-technical partners. - ML Model & Generative AI: Practical experience building ML solutions or LLM-based solutions (e.g., prompt design, RAG architectures, model evaluation frameworks). - Production Monitoring: Experience establishing model performance guardrails, such as drift detection, productio",
+   "searches": {
+    "company": "Harbor Health",
+    "title part": "Pharmacy Benefits",
+    "typo": "harbro health",
+    "city": "New York",
+    "JD skill": "RAG",
+    "applied date": "2026-10-14"
+   }
+  },
+  {
+   "company": "Quillo",
+   "title": "Data Scientist",
+   "location": "San Mateo, CA",
+   "applied_on": "2026-10-23",
+   "status": "applied",
+   "jd_excerpt": "- You have 3+ years of ELT/ETL, data exploration, transformation and building production models. - You have 3+ years working with cloud databases, such as Snowflake, Redshift or similar - Practical experience with statistical testing (p/t/z tests, power analysis), time series, regression/classification, clustering, and N",
+   "searches": {
+    "company": "Quillo",
+    "title part": "Data Scientist",
+    "typo": "qiullo",
+    "city": "San Mateo",
+    "JD skill": "Snowflake",
+    "applied date": "2026-10-23"
+   }
+  },
+  {
+   "company": "CrateFlow Systems",
+   "title": "Senior AI & Automation Engineer",
+   "location": "US Remote",
+   "applied_on": "2026-10-12",
+   "status": "applied",
+   "jd_excerpt": "- Ability to turn ambiguous business problems into simple, scalable solutions - Curiosity, ownership and a strong bias toward action - Experience with Azure, Databricks, Salesforce, SAP, GitHub or modern AI development frameworks is valuable, but the ability to learn, connect systems and ship matters more than any specific tec",
+   "searches": {
+    "company": "CrateFlow Systems",
+    "title part": "Automation Engineer",
+    "typo": "carteflow systems",
+    "city": "US Remote",
+    "JD skill": "Databricks",
+    "applied date": "2026-10-12"
+   }
+  },
+  {
+   "company": "Clear Ledger",
+   "title": "Data Scientist Engineer, Digital Experience",
+   "location": "Santa Clara, California",
+   "applied_on": "2026-10-13",
+   "status": "applied",
+   "jd_excerpt": "esearch, or patents. - Advanced proficiency in Python and SQL. - Hands-on experience with ML and statistics libraries such as Scikit-Learn, TensorFlow/Keras, PyTorch, Pandas, and Statsmodels. #LI-ONSITE Salary ranges are determined based on role, level and location. For positions open to candidates in multiple geographica",
+   "searches": {
+    "company": "Clear Ledger",
+    "title part": "Digital Experience",
+    "typo": "claer ledger",
+    "city": "Santa Clara",
+    "JD skill": "PyTorch",
+    "applied date": "2026-10-13"
+   }
+  },
+  {
+   "company": "Summit Bank",
+   "title": "Data Engineer 4",
+   "location": "Wilmington, DE",
+   "applied_on": "2026-10-13",
+   "status": "applied",
+   "jd_excerpt": "languages such as Python and Spark, along with open-source relational and NoSQL databases, and cloud-based data warehousing platforms including Databricks and Snowflake - Share your passion for staying on top of trends in data, experimenting with and learning new technologies, participating in internal and external technology",
+   "searches": {
+    "company": "Summit Bank",
+    "title part": "Data Engineer",
+    "typo": "summti bank",
+    "city": "Wilmington",
+    "JD skill": "Snowflake",
+    "applied date": "2026-10-13"
+   }
+  },
+  {
+   "company": "Larkspur",
+   "title": "Engineer 1: Agentic AI - Inventory Solutions (Hybrid - Seattle, WA)",
+   "location": "Seattle, WA",
+   "applied_on": "2026-10-20",
+   "status": "applied",
+   "jd_excerpt": "ith one another. - Basic understanding of software testing practices and version control (e.g. Git). - Willingness to learn modern agentic frameworks such as LangGraph, CrewAI, Semantic Kernel, or the Claude Agent SDK. - Strong verbal and written communication skills, and a collaborative, feedback-seeking mindset. Nice to H",
+   "searches": {
+    "company": "Larkspur",
+    "title part": "Hybrid Seattle",
+    "typo": "lrakspur",
+    "city": "Seattle",
+    "JD skill": "LangGraph",
+    "applied date": "2026-10-20"
+   }
+  },
+  {
+   "company": "Polyframe",
+   "title": "Senior Backend Engineer, Vector AI",
+   "location": "Mountain View, CA, USA; Bellevue, WA, USA",
+   "applied_on": "2026-10-09",
+   "status": "applied",
+   "jd_excerpt": "oduction using monitoring and observability tools like Prometheus and Grafana. - Manage and optimize cloud infrastructure on GCP, orchestrating workloads with Kubernetes across a high-scale production environment - Promote and implement best practices for backend service development, testing, deployment, and monitoring (DevOps",
+   "searches": {
+    "company": "Polyframe",
+    "title part": "Engineer Vector",
+    "typo": "pyloframe",
+    "city": "Mountain View",
+    "JD skill": "Kubernetes",
+    "applied date": "2026-10-09"
+   }
+  },
+  {
+   "company": "Global Relief Alliance",
+   "title": "AI Platform Engineer",
+   "location": "New York, NY",
+   "applied_on": "2026-10-19",
+   "status": "applied",
+   "jd_excerpt": "other tool-calling integration frameworks, vector databases, retrieval-augmented generation (RAG) patterns, and embedding workflows - Experience working with Databricks or comparable data/ML platforms is a strong plus Integration & Development - Proficiency in Python and/or JavaScript for scripting, automation, and lightweig",
+   "searches": {
+    "company": "Global Relief Alliance",
+    "title part": "Platform Engineer",
+    "typo": "gloabl relief alliance",
+    "city": "New York",
+    "JD skill": "Databricks",
+    "applied date": "2026-10-19"
+   }
+  },
+  {
+   "company": "Red Mesa Aerospace",
+   "title": "Data Engineer III",
+   "location": "Greater Seattle Area; Space Coast, FL; Huntsville, AL",
+   "applied_on": "2026-10-13",
+   "status": "rejected",
+   "jd_excerpt": "ly downstream of ET source systems (ERP, procurement, inventory, logistics, and supplier systems), our team owns the core bronze-to-gold data modeling layer in Databricks that every downstream supply chain report, dashboard, and application is built on. This role focuses on the full lifecycle of upstream data modeling \u2014 ingestin",
+   "searches": {
+    "company": "Red Mesa Aerospace",
+    "title part": "Engineer III",
+    "typo": "red mesa aerosapce",
+    "city": "Greater Seattle Area",
+    "JD skill": "Databricks",
+    "applied date": "2026-10-13"
+   }
+  },
+  {
+   "company": "Brightside",
+   "title": "Analytics Engineer",
+   "location": "Adelphi, MD",
+   "applied_on": "2026-10-14",
+   "status": "rejected",
+   "jd_excerpt": "tics Engineer Analytics Exempt Regular 3.2 Location: Adelphi, MD The Analytics Engineer builds and maintains the analytics-ready layers of the University's Databricks Lakehouse, transforming curated data into business-ready models and contributing to the semantic layer that defines institutional metrics. Working within estab",
+   "searches": {
+    "company": "Brightside",
+    "title part": "Analytics Engineer",
+    "typo": "birghtside",
+    "city": "Adelphi",
+    "JD skill": "Databricks",
+    "applied date": "2026-10-14"
+   }
+  }
+ ]
+}

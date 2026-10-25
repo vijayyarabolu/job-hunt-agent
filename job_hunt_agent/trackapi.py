@@ -6,13 +6,16 @@ import json
 import sqlite3
 from datetime import date, datetime, timedelta
 
-from . import config, contacts, db, dupes, history, jd_doc, signals, titles, tracker, tracker_layout
+from . import config, contacts, db, dupes, history, jd_doc, signals, titles, tracker, trackfind, tracker_layout
 from .google import state as gstate
 from .mail import WEB as MAIL_LINK
 
 COLD_NOTES = {"cold": "Cold rule: no reply in time", "cold undo": "Cold undone"}
 
 UI_STATUSES = ("saved", "applied", "screen", "interview", "offer", "rejected", "ghosted")
+# GOAL35 §5.2: a search's results grouped by status (the chip order), newest first within each
+SEARCH_GROUP_SQL = ("CASE replace(a.status, 'tailored', 'saved') " +
+                    " ".join(f"WHEN '{s}' THEN {i}" for i, s in enumerate(UI_STATUSES)) + " ELSE 99 END")
 GROUPS = {"active": ("applied", "screen", "interview", "offer"), "interviewing": ("screen", "interview", "offer"),
           "archived": ("rejected", "ghosted"), "saved": ("saved", "tailored")}     # tab filters
 EXTRA_FIELDS = ("notes", "job_url", "apply_url", "location", "workplace", "salary", "employment_type", "address",
@@ -131,12 +134,37 @@ def view(app: dict, people: list[dict], today: date, layout=None) -> dict:
     return out
 
 
-def _search(q: str | None) -> tuple[str, list]:
+def _search(conn, pid: str, q: str | None, wide: bool = False) -> tuple[str, list, dict | None, str]:
+    """GOAL35 §5: (where, params, what the search found, the order inside a status by how well each row matched)
+    for the shared search over every row of the person. 2026-10-24 ("I typed Amazon and it's showing something
+    else"): a search for a company shows the rows that name it (company, title, city, notes ...) alone, best first in
+    each status; the rows whose JD only mentions it ("Amazon Bedrock") are counted in `jd_only`, listed with `wide`."""
     if not q or not q.strip():
-        return "", []
-    like = f"%{q.strip().lower()}%"
-    cols = ("a.company", "a.role_title", "a.target_name", "a.email_address", "a.notes", "a.location", "a.team_name")
-    return " AND (" + " OR ".join(f"lower(coalesce({c}, '')) LIKE ?" for c in cols) + ")", [like] * len(cols)
+        return "", [], None, ""
+    found = trackfind.find(conn, pid, q)
+    named = found.strong()
+    keep = found.positions if wide else named
+    ids = [found.index.records[i].id for i in keep]
+    where = {str(found.index.records[i].id): found.where(i) for i in keep}
+    status_of = dict(conn.execute(f"SELECT id, replace(status, 'tailored', 'saved') FROM applications WHERE id IN "
+                                  f"({','.join('?' * len(ids)) or 'NULL'})", ids).fetchall())
+    counts: dict[str, int] = {}
+    for app_id in ids:
+        counts[status_of[app_id]] = counts.get(status_of[app_id], 0) + 1
+    return (f" AND a.id IN ({','.join('?' * len(ids)) or 'NULL'})", list(ids),
+            {"q": q.strip(), "terms": list(found.terms), "counts": counts, "total": len(ids), "where": where,
+             "jd_only": len(found.positions) - len(named), "wide": bool(wide)}, _tier_order(found, keep))
+
+
+def _tier_order(found, keep: list) -> str:
+    """ORDER BY part: the rows by how well they matched (textsearch tiers), best first; '' when all match alike."""
+    tiers: dict[int, list[int]] = {}
+    for i in keep:
+        tiers.setdefault(found.tier(i), []).append(int(found.index.records[i].id))      # int(): safe to inline
+    if len(tiers) < 2:
+        return ""
+    whens = " ".join(f"WHEN a.id IN ({','.join(map(str, ids))}) THEN {t}" for t, ids in sorted(tiers.items()))
+    return f"CASE {whens} END, "
 
 
 def _tab_filter(layout, sheet: int | None) -> tuple[str, list]:
@@ -181,39 +209,40 @@ def compact(row: dict) -> dict:
 
 
 def rows(conn, pid: str, status: str | None = None, q: str | None = None, limit: int = PAGE, offset: int = 0,
-         today: date | None = None, sheet: int | None = None, clip: bool = False) -> dict:
+         today: date | None = None, sheet: int | None = None, clip: bool = False, wide: bool = False) -> dict:
     """A page of the profile's tracker, newest application first, with per-status counts for the filter chips, the
-    person's sheet layout and, for a mapped profile, one tab's rows (`sheet` = tab index). `clip`: long
-    text cut for a list view (compact)."""
+    person's sheet layout (GOAL4 §2) and, for a mapped profile, one tab's rows (`sheet` = tab index). `clip`: long
+    text cut for a list view (compact). `wide`: a search also lists the rows only their JD matched (_search)."""
     today = today or date.today()
     layout = _layout(pid)
     if status and status not in (*UI_STATUSES, *GROUPS):
         raise ValueError(f"status must be one of {UI_STATUSES} or {tuple(GROUPS)}")
     limit, offset = max(1, min(int(limit), MAX_PAGE)), max(0, int(offset))
-    where, params = _search(q)
+    where, params, found, by_tier = _search(conn, pid, q, wide)
     tab_where, tab_params = _tab_filter(layout, sheet)
     where, params = where + tab_where, [*params, *tab_params]
     if status in GROUPS:
         where, params = where + f" AND a.status IN ({','.join('?' * len(GROUPS[status]))})", [*params, *GROUPS[status]]
     elif status:
         where, params = where + " AND a.status = ?", [*params, status]
-    order = " ORDER BY coalesce(a.applied_on, substr(a.updated_at, 1, 10), '') DESC, a.id DESC"
+    newest = "coalesce(a.applied_on, substr(a.updated_at, 1, 10), '') DESC, a.id DESC"
+    order = f" ORDER BY {SEARCH_GROUP_SQL}, {by_tier}{newest}" if found else f" ORDER BY {newest}"   # GOAL35: by status
     total = conn.execute(f"SELECT count(*) FROM applications a WHERE a.profile = ?{where}", [pid, *params]).fetchone()[0]
-    found = [dict(r) for r in conn.execute(_ROW_SQL + where + order + " LIMIT ? OFFSET ?",
-                                           [pid, *params, limit, offset])]
-    people = contacts.for_apps(conn, [r["id"] for r in found])
+    page = [dict(r) for r in conn.execute(_ROW_SQL + where + order + " LIMIT ? OFFSET ?",
+                                          [pid, *params, limit, offset])]
+    people = contacts.for_apps(conn, [r["id"] for r in page])
     counts = {r["status"]: r["n"] for r in conn.execute(
         "SELECT replace(status, 'tailored', 'saved') AS status, count(*) AS n FROM applications WHERE profile = ? "
         "GROUP BY 1", (pid,))}
     from .gridapi import conflicts                              # late: gridapi imports this module
-    flags = conflicts(conn, pid, [r["id"] for r in found])
+    flags = conflicts(conn, pid, [r["id"] for r in page])
     twins = _twins(conn, pid)
     from .h1b.feed import app_views                             # late: h1b imports config users
-    spons = app_views(conn, pid, found)                         # the company's sponsorship badge
+    spons = app_views(conn, pid, page)                          # GOAL24 §3: the company's sponsorship badge
     views = [{**view(r, people[r["id"]], today, layout), "conflicts": flags.get(r["id"]), "dup_of": twins.get(r["id"]),
-              "sponsor": spons.get(r["id"])} for r in found]
+              "sponsor": spons.get(r["id"])} for r in page]
     return {"rows": [compact(v) for v in views] if clip else views, "total": total, "offset": offset,
-            "counts": counts, "statuses": UI_STATUSES,
+            "counts": counts, "statuses": UI_STATUSES, "found": found,
             "layout": tracker_layout.describe(layout) if layout else None}
 
 

@@ -29,7 +29,9 @@ GOAL_KEY = "daily_goal"         # "Applied today 7 · goal 15"
 DEFAULT_GOAL = 15
 MAX_GOAL = 100
 IN_HAND_KEY = "apply_in_hand"   # GOAL13 §2b
-ANSWER_LABELS = {"work_auth": "Work authorization", "start": "Earliest start", "salary": "My salary ask",   # GOAL13 §2g (was "Salary")
+NEW_DAYS_KEY = "new_within_days"   # GOAL36 §1: "new" means posted within 1 (default), 3 or 7 days
+NEW_DAYS = (1, 3, 7)
+ANSWER_LABELS = {"work_auth": "Work authorization", "start": "Earliest start", "salary": "My salary ask",   # GOAL13 §2g (GOAL21: was "Salary")
                  "relocate": "Relocate", "linkedin": "LinkedIn", "github": "GitHub", "years": "Years of experience"}
 ANSWER_KEYS = tuple(ANSWER_LABELS)
 MAX_ANSWER = 300
@@ -56,7 +58,16 @@ def apply_get(pid: str) -> dict:
     """the daily goal, the Apply-in-hand toggle and the answers (GET /api/settings adds them)."""
     profile = config.profile(pid)
     return {GOAL_KEY: int(profile.get(GOAL_KEY, DEFAULT_GOAL) or 0), IN_HAND_KEY: bool(profile.get(IN_HAND_KEY, 1)),
-            "answers": answers(pid, profile), "answer_labels": list(ANSWER_LABELS.items())}
+            NEW_DAYS_KEY: new_days(profile), "answers": answers(pid, profile), "answer_labels": list(ANSWER_LABELS.items())}
+
+
+def new_days(profile: dict) -> int:
+    """GOAL36 §1: the person's "new job" window in days; a hand edit outside 1 / 3 / 7 falls back to 1."""
+    try:
+        days = int(profile.get(NEW_DAYS_KEY, NEW_DAYS[0]))
+    except (TypeError, ValueError):
+        return NEW_DAYS[0]
+    return days if days in NEW_DAYS else NEW_DAYS[0]
 
 
 def _answers_path(pid: str):
@@ -106,10 +117,14 @@ def set_apply(pid: str, args: dict) -> dict:
     if "in_hand" in args and not isinstance(args["in_hand"], bool):
         raise ValueError("in_hand must be true or false")
     given = _clean_answers(args["answers"]) if "answers" in args else None
+    if "new_days" in args and (isinstance(args["new_days"], bool) or args["new_days"] not in NEW_DAYS):
+        raise ValueError("new_days must be 1, 3 or 7")
     if goal is not None:
         _save(pid, GOAL_KEY, goal)
     if "in_hand" in args:
         _save(pid, IN_HAND_KEY, int(args["in_hand"]))
+    if "new_days" in args:
+        _save(pid, NEW_DAYS_KEY, args["new_days"])
     if given is not None:
         _write(_answers_path(pid), json.dumps({**_saved_answers(pid), **given}, indent=1, ensure_ascii=False) + "\n", 0o600)
     return apply_get(pid)

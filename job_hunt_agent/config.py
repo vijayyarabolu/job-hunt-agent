@@ -142,6 +142,8 @@ def profile(pid: str) -> dict:
         except re.error as err:
             raise ConfigError(f"profile {pid}: bad dealbreaker regex {pattern!r}: {err}") from err
     _check_gate(pid, data.get("jd_gate"))
+    if data.get("work_terms", "w2") not in ("w2", "any"):     # GOAL35 §4.3 (workterms.RULE_W2 / RULE_ANY)
+        raise ConfigError(f"profile {pid}: work_terms must be w2 or any, not {data['work_terms']!r}")
     return {"id": pid, "search_terms": [], "dealbreakers": [], **data}
 
 

@@ -37,8 +37,9 @@ try {
   // Resumes → Ready: an outside job (a JD pasted in resumegen) has no match score and never gets one
   await js("[...document.querySelectorAll('[data-tab=resumes]')].find((b) => b.offsetParent)?.click(); return true");
   await until("[...document.querySelectorAll('#list .row')].some((r) => r.textContent.includes('Globex'))", 8000);
-  const side = await js("return [...document.querySelectorAll('#list .row')].find((r) => r.textContent.includes('Globex'))?.querySelector('.row-side')?.textContent");
-  check("Resumes: an outside job says 'outside job', not 'scoring'", /outside job/.test(side || "") && !/scoring/.test(side || ""), S(side));
+  // GOAL36 §5.1: it has its own job record now, so its card is an inside card (match, priority) with the "outside job" tag
+  const side = await js("const r = [...document.querySelectorAll('#list .row')].find((x) => x.textContent.includes('Globex')); return r && [r.querySelector('.outside-tag')?.textContent, r.querySelector('.row-side')?.textContent].join(' | ')");
+  check("Resumes: an outside job says 'outside job', not 'scoring'", /^outside job/.test(side || "") && !/scoring/.test(side || ""), S(side));
   // Answers on hand (user 23:27): the side panel's chips can be edited in place, saved, then copied
   await load("recommended:tester");
   await js("[...document.querySelectorAll('#list .row')].find((r) => r.querySelector('.row-title')?.textContent === 'AI Engineer')?.click(); return true");

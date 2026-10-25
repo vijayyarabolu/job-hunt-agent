@@ -1,5 +1,6 @@
-"""resumegen GOAL3 §7: every reload or new open of job-hunt-agent comes back to the default view (Recommended, no filters,
-Newest, the cursor on the first row, the list at the top); only the person and the theme are kept
+"""resumegen GOAL3 §7 as changed by GOAL35 §1: a new open of "/" comes back to the default view (Recommended, no
+filters, Newest, the cursor on the first row, the list at the top); a reload or a copied link keeps the page, its
+filters, sort and job (all in the address, nothing stored)
 (tests/ui/goal3_reset.mjs, headless Chrome, a throwaway DB, the real server)."""
 import json
 import shutil
@@ -64,10 +65,10 @@ class Goal3ResetTest(unittest.TestCase):
     def test_every_browser_check_passed(self):
         self.assert_group([c["name"] for c in self.checks])
 
-    def test_reload_keeps_the_page_and_resets_filters_and_sort(self):     # GOAL33 §3d (was: the tab reset too)
+    def test_reload_keeps_the_page_filters_and_sort(self):     # GOAL35 §1 (GOAL33 §3d reset the filters on reload)
         self.assert_group(["first open: the default view", "the view was changed: filters, sort, selection", "and the tab",
-                           "a reload stays on the page with its default filters and sort", "a reload comes back to the job that was open",
-                           "a reload on Saved stays on Saved", "a reload keeps the person",
+                           "a reload stays on the page with its filters and sort", "a reload comes back to the job that was open",
+                           "a reload on Saved stays on Saved", "a reload keeps the person", "a copied link opens its page",
                            "nothing about the view is stored", "a new open starts on Recommended",
                            "while the page is open the filters stay", "no page errors"])
 

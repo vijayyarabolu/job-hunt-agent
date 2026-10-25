@@ -401,8 +401,9 @@ _UNNAMED_CLIENT = re.compile(r"(?i)\b(?:our|my|a) (?:direct |esteemed |fortune[-
                              r"\bimplementation partner\b|\bprime vendor\b|\bclient (?:is|located) (?:in|seeking)\b")
 _MULTIPLE_OPENINGS = re.compile(r"(?i)\b(?:multiple|several|various|numerous) (?:openings|positions|roles|requirements|"
                                 r"opportunities|vacancies)\b|\bmass hiring\b|\bbulk hiring\b")
-_VENDOR = re.compile(r"(?i)\bc2c\b|\bcorp[- ]to[- ]corp\b|\bh-?1b transfer\b|\bw-?2 only\b|\b(?:usc|gc)\s*/\s*(?:gc|usc)\b|"
-                     r"\bbill rate\b|\bpay rate\s*:|\$\s?\d{2,3}\s*/\s*h(?:ou)?r\b|\bper hour on w-?2\b|"
+# GOAL36 §3: "W2 only" / "per hour on W2" are no longer harvesting signals (a W2 contract is what the user wants)
+_VENDOR = re.compile(r"(?i)\bc2c\b|\bcorp[- ]to[- ]corp\b|\bh-?1b transfer\b|\b(?:usc|gc)\s*/\s*(?:gc|usc)\b|"
+                     r"\bbill rate\b|\bpay rate\s*:|\$\s?\d{2,3}\s*/\s*h(?:ou)?r\b|"
                      r"\bimmediate (?:joiners?|start) (?:only|required)\b|\bsubmit (?:your|updated) (?:resume|cv) to\b")
 
 

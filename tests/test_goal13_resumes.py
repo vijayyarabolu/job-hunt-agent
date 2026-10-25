@@ -7,7 +7,7 @@ import os
 from datetime import date, timedelta
 from unittest import mock
 
-from job_hunt_agent import api, applyback, config, db, history, outside, profile_settings, resume_upload, rgjobs, rqueue, server, trackapi
+from job_hunt_agent import api, applyback, config, db, history, outside, outside_jobs, profile_settings, resume_upload, rgjobs, rqueue, server, trackapi
 from tests.test_goal8_flow import JD, NOW, PID, FakeResumegen, Goal8Case, seed_job
 
 TODAY = rqueue.today(NOW)
@@ -72,8 +72,10 @@ class QueueTest(ResumesTabCase):
         rgjobs.statuses(self.conn, PID)                                    # adopts it
         row = outside.saved_rows(self.conn, PID)[0]["id"]
         card = self.board("queue")["jobs"][0]
-        self.assertEqual((card["uid"], card["outside"], card["company"], card["apply_url"], card["rq"]["rg"]),
-                         (f"app:{row}", row, "Recruiter Co", "https://ex.com/p", rg_id))
+        # GOAL36 §5.1: its card is its job record's, an inside card with the "outside job" tag
+        self.assertEqual((card["uid"], card["outside_job"], card["company"], card["apply_url"], card["rq"]["rg"]),
+                         (outside_jobs.uid_of(PID, row), True, "Recruiter Co", "https://ex.com/p", rg_id))
+        self.assertIn(outside_jobs.uid_of(PID, row), rgjobs.statuses(self.conn, PID)["jobs"])    # its resume chip
 
 
 class ReadyTest(ResumesTabCase):

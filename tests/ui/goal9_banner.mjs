@@ -58,7 +58,8 @@ try {
   holdHealth();
   await pickProfile("Olive");
   check("a switch shows the other person's notice at once", await until("document.querySelector('#status').title.includes('Data drift')", 400), await banner());
-  check("the address no longer names the previous person", await js("return location.hash === '#recommended'"), await js("return location.hash"));
+  // GOAL35 §1: the address carries the page's state, the person included: now the other one, never the previous
+  check("the address no longer names the previous person", await js("const p = new URLSearchParams(location.hash.split('?')[1] || ''); return location.hash.startsWith('#recommended') && p.get('p') === 'other'"), await js("return location.hash"));
   await sleep(HELD_MS + 300);
   await send("Page.reload");
   await until("document.querySelectorAll('#list .row[data-i]').length >= 1", 10000);

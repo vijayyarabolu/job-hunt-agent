@@ -15,7 +15,7 @@ Feed jobs carry their usual feed card (so the job list, keys and detail pane wor
 import logging
 from datetime import datetime
 
-from . import api, daygroups, outside, outside_card, removal, rgclient, rgjobs
+from . import api, daygroups, outside, outside_card, outside_jobs, removal, rgclient, rgjobs
 from .db import tx
 from .google import state as gstate
 
@@ -31,13 +31,17 @@ today = api.today
 
 
 def _entries(conn, pid: str, jobs: list[dict]) -> dict[str, dict]:
-    """key -> the newest resumegen job that was not cancelled; key = feed uid, or 'app:<row id>' for an outside job."""
+    """key -> the newest resumegen job that was not cancelled; key = feed uid, the outside job's own record
+    (GOAL36 §5.1: 'outside:<pid>:<row id>'), or 'app:<row id>' for an outside row without one."""
     links = outside.links(conn, pid)
+    records = {r["id"]: r["job_uid"] for r in conn.execute(
+        "SELECT id, job_uid FROM applications WHERE profile = ? AND job_uid LIKE 'outside:%'", (pid,))}
     out: dict[str, dict] = {}
     for job in sorted(jobs, key=lambda j: j["id"]):
         if job.get("status") == "cancelled":
             continue
-        key = job.get("source_job_id") or (f"app:{links[job['id']]}" if job["id"] in links else None)
+        row = links.get(job["id"])
+        key = job.get("source_job_id") or (records.get(row) or f"app:{row}" if row is not None else None)
         if key:
             out[key] = job
     return out
@@ -164,6 +168,7 @@ def board(conn, pid: str, view: str, now: datetime) -> dict:
                 "counts": {}, **progress(conn, pid, now)}
     gone = {j["id"] for j in sweep(conn, pid, jobs)}
     jobs = [j for j in jobs if j["id"] not in gone]
+    outside_jobs.backfill(conn, pid, now)                   # GOAL36 §5.1: outside rows get their job record
     views = classify(conn, pid, jobs, now)
     feed = api.cards_for(conn, pid, [k for k, *_ in views[view] if not k.startswith("app:")], now)
     pos = positions(jobs)

@@ -8,7 +8,7 @@ async function sendResumeFile(appId, file, replace) {
   return api(`/api/tracker/resume?${q({ app: appId, name: file.name, replace: replace || "" })}`, null, file);
 }
 
-// × Remove: a duplicate or a job not wanted, gone from every list for good; Undo for 8 s
+// GOAL19 §3: × Remove (REMOVE_TIP)
 export const REMOVE_TIP = "Remove: a duplicate or a job you never want to see. It leaves every list, Archived too; Undo for 8 s (Shift+X)";
 export const REMOVE_UNDO_MS = 8000;
 export const xBtn = (what, run) => B({ class: "x-rm", title: REMOVE_TIP, "aria-label": `Remove ${what}`,

@@ -32,6 +32,11 @@ export function applyProfileFilters() {
   S.filters = kept[S.profile] || {};
   renderFilters();
 }
+// GOAL35 §1: a person's filters as the address names them (boot, back / forward)
+export function restoreFilters(pid, filters) {
+  kept[pid] = Object.fromEntries(Object.entries(filters || {}).filter(([, v]) => v));
+  if (pid === S.profile) applyProfileFilters();
+}
 export const filterParams = () => ({ ...S.filters, ...(S.tab === "recommended" && sponsView() ? { spons: sponsView() } : {}) });
 
 export function dropDupes() {

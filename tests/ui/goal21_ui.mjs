@@ -36,12 +36,12 @@ try {
   check("side menu: exactly one active item", S(side.on) === S(["recommended"]), S(side.on));
   check("side menu: every item has a name and a hover label", await js("return [...document.querySelectorAll('#tabs [data-tab]')].every((b) => b.querySelector('.lbl').textContent.trim() && b.title)"));
   await js("document.querySelector('#tabs [data-tab=tracker]').click(); return true");
-  check("side menu: a click opens the view and marks it", await until("location.hash === '#tracker' && document.querySelector('#tabs [data-tab=tracker]').getAttribute('aria-selected') === 'true' && document.querySelectorAll('#tabs [aria-selected=true]').length === 1", 6000));
+  check("side menu: a click opens the view and marks it", await until("location.hash.split('?')[0] === '#tracker' && document.querySelector('#tabs [data-tab=tracker]').getAttribute('aria-selected') === 'true' && document.querySelectorAll('#tabs [aria-selected=true]').length === 1", 6000));
   // W14: the app's Status is the column after the frozen Company / Role (it was ~20th); the Sheet keeps its order
   const heads = "return [...document.querySelectorAll('.g thead th[data-j] .g-hl')].map((x) => x.firstChild.textContent)";
   check("Tracker: Status comes right after the frozen columns", await until(`(${heads.slice(7)})[2] === 'Status'`, 8000), S(await js(heads)));
   await key("1");
-  await until("location.hash === '#recommended'", 4000);
+  await until("location.hash.split('?')[0] === '#recommended'", 4000);
 
   // ---- the person switch: always on screen, one click ----
   const who = await js("return [...document.querySelectorAll('#who [data-person]')].map((b) => [b.dataset.person, b.getAttribute('aria-pressed'), b.textContent.trim()])");
@@ -79,7 +79,7 @@ try {
   await js("document.querySelector('#settings-btn').click(); return true");
   check("Settings: the gear opens the page", await until(SET_OPEN, 6000));
   const secs = await js("return [...document.querySelectorAll('.set-nav [data-sec]')].map((b) => b.textContent)");
-  check("Settings: the seven sections", S(secs) === S(["Profile & answers", "Job filters", "Daily goal", "Accounts", "Resume generator", "Autofill extension", "About & help"]), S(secs));   // GOAL23 §6
+  check("Settings: the eight sections", S(secs) === S(["Profile & answers", "Job filters", "Daily goal", "Job sources", "Accounts", "Resume generator", "Autofill extension", "About & help"]), S(secs));   // GOAL23 §6, GOAL35 §4.2 Job sources
   const bodies = {};
   for (const sec of ["answers", "filters", "goal", "accounts", "resumegen", "about"]) {
     await js(`document.querySelector('.set-nav [data-sec=${sec}]').click(); return true`);
@@ -93,7 +93,7 @@ try {
   check("Settings: the resume generator section links to resumegen", rgLink === true);
   check("Settings: the view title and no active menu item", await js("return document.querySelector('#view-title').textContent === 'Settings' && !document.querySelector('#tabs [aria-selected=true]')"));
   await js("document.querySelector('.set-back').click(); return true");
-  check("Settings: Back returns to the list", await until("document.body.dataset.view === 'jobs' && location.hash === '#recommended'", 4000), await js("return location.hash"));
+  check("Settings: Back returns to the list", await until("document.body.dataset.view === 'jobs' && location.hash.split('?')[0] === '#recommended'", 4000), await js("return location.hash"));
   await js("document.querySelector('#list').focus(); return true");
   await key(",");
   check("Settings: the , key opens it", await until(SET_OPEN, 4000));
@@ -112,11 +112,11 @@ try {
   check("phone: the person switch is on screen", await js("return [...document.querySelectorAll('#who [data-person]')].filter((b) => b.offsetParent).length === 2"));
   check("phone: the list has no sideways scroll", await noSideways());
   await js("document.querySelector('#btabs [data-tab=tracker]').click(); return true");
-  check("phone: Applications opens the Tracker with its four views", await until("location.hash === '#tracker' && [...document.querySelectorAll('#subtabs [data-sub]')].map((b) => b.textContent).join() === 'Tracker,Applied,Interviewing,Follow-ups'", 6000),
+  check("phone: Applications opens the Tracker with its four views", await until("location.hash.split('?')[0] === '#tracker' && [...document.querySelectorAll('#subtabs [data-sub]')].map((b) => b.textContent).join() === 'Tracker,Applied,Interviewing,Follow-ups'", 6000),
     S(await visible("#subtabs [data-sub]")));
   check("phone: the top bar names the view", await until("document.querySelector('#view-title').textContent === 'Tracker'", 2000), await js("return document.querySelector('#view-title').textContent"));
   await js("document.querySelector('#subtabs [data-sub=followups]').click(); return true");
-  check("phone: a chip switches inside the section", await until("location.hash === '#followups' && document.querySelector('#btabs [data-tab=tracker]').getAttribute('aria-current') === 'page'", 6000));
+  check("phone: a chip switches inside the section", await until("location.hash.split('?')[0] === '#followups' && document.querySelector('#btabs [data-tab=tracker]').getAttribute('aria-current') === 'page'", 6000));
   check("phone: the Tracker views have no sideways scroll", await noSideways());
   check("phone: a row of chips that scrolls sideways fades at the side with more (W15)",
     await until("document.querySelector('#subtabs').classList.contains('fade-r') || document.querySelector('#subtabs').scrollWidth <= document.querySelector('#subtabs').clientWidth", 4000),

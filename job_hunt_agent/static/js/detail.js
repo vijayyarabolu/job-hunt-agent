@@ -2,7 +2,7 @@
 import { $, B, btn, FIND_TIP, JOB_TABS, S, WORTH_TIP, api, calm, closePop, exactAge, postedText, extLink, fail, fullJd, get, h, icon, iconBtn, locSpan, menu, muted, openExt,
   openPop, opt, phone, sm, toast, still } from "./core.js";
 import { bigRing, quadGlyph, tailoredLine } from "./ring.js";
-import { apply, copyJd, like, markApplied, notInterested, removeJob, restore, save } from "./feed.js";
+import { apply, copyJd, like, markApplied, notInterested, outsideTag, removeJob, restore, save } from "./feed.js";
 import { openAddJob, openRowEditor } from "./editor.js";
 import { REMOVE_TIP, resumeBtns } from "./dialogs.js";
 import { sponsorBadge, sponsorBlock } from "./sponsor.js";
@@ -16,14 +16,8 @@ let token = 0;
 const findJob = (uid) => S.items.find((j) => j.uid === uid) || cache.get(uid)?.card;
 const item = (text, title, onclick) => Object.assign(opt(text, onclick), { title });
 
-// GOAL33 §3d: the job open in this tab, so a reload comes back to it (sessionStorage: this tab only, gone on close)
-const OPEN_KEY = "jh.open";
-const keepOpen = (v) => { try { if (v) sessionStorage.setItem(OPEN_KEY, JSON.stringify(v)); else sessionStorage.removeItem(OPEN_KEY); } catch { /* private mode */ } };
-export function openOnReload() { try { return JSON.parse(sessionStorage.getItem(OPEN_KEY) || "null"); } catch { return null; } }
-
 export async function openJob(uid, { sheet = false, quiet = false } = {}) {
   const sameJob = S.detail?.uid === uid;
-  keepOpen({ tab: S.tab, uid });
   S.detail = { uid, resume: sameJob ? S.detail.resume : null };
   const job = findJob(uid);
   if (job) render(job, cache.get(uid), !quiet && !sameJob);
@@ -47,7 +41,6 @@ export function refreshDetail(uid) {
 
 export function closeDetail() {
   S.detail = null;
-  keepOpen(null);
   panelClose = null;
   pane().replaceChildren();
   closeSheet();
@@ -278,7 +271,7 @@ function jdBlock(job, d) {
 function render(job, d, animate) {
   if (!job) return;
   pane().replaceChildren(h("div", `d-in${animate && !calm.matches ? " enter" : ""}`, grab(),
-    h("header", "d-head", h("p", "d-co", h("b", {}, job.company), sponsorBadge(d?.card?.sponsor || job.sponsor), job.location ? locSpan(job.location) : null,
+    h("header", "d-head", h("p", "d-co", h("b", {}, job.company), sponsorBadge(d?.card?.sponsor || job.sponsor), job.location ? locSpan(job.location) : null, outsideTag(job),
       job.ghost ? h("span", "tag warn", icon("ghost", "ic sm"), job.ghost) : null),
       h("h2", "d-title", job.title), h("p", "d-meta", metaBits(job)), S.g8?.ask(job)),
     actions(job, d), matchBlock(job, d), fitGaps(job), peopleBlock(job), atsBox(job.uid),

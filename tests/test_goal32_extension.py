@@ -48,9 +48,9 @@ class StaleContextTest(unittest.TestCase):
                          "chrome.runtime.getManifest("):
                 self.assertNotIn(call, text, f"{path.name}: {call} (use JH.store / JH.save / JH.send / JH.version)")
 
-    def test_the_version_is_1_6_4(self):
-        self.assertEqual(json.loads((EXT / "manifest.json").read_text())["version"], "1.6.4")
-        self.assertEqual(self.out["version"], "1.6.4")
+    def test_the_version_is_1_6_5(self):
+        self.assertEqual(json.loads((EXT / "manifest.json").read_text())["version"], "1.7.0")   # GOAL36 §5: the scan, Link to a job, Generate reasons
+        self.assertEqual(self.out["version"], "1.7.0")   # GOAL36 §5: the scan, Link to a job, Generate reasons
 
 
 if __name__ == "__main__":

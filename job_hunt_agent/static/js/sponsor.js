@@ -1,4 +1,4 @@
-// the H-1B badge (icon + word, never colour alone, for colour-blind users) and the Recommended switch.
+// GOAL24: the H-1B badge (icon + word, never colour alone) and the Recommended switch.
 import { B, S, h, icon } from "./core.js";
 
 const ICON = { sponsors: "check", cap_exempt: "star", maybe: "qmark", no: "x" };
@@ -43,9 +43,10 @@ export function sponsorBlock(sp, company) {
     sponsorBadge(sp), f ? null : h("p", "small", sp.why), h("ul", "sb-ev small", (f ? evidenceLines(sp) : extra(sp)).map((l) => h("li", {}, l))));
 }
 
-// GOAL33 §3d: a filter like the others: kept while the page is open, back to All on a reload
+// kept in the address (urlstate.js)
 const views = {};
 export const sponsView = () => views[S.profile] || "";
+export const restoreSpons = (v) => { views[S.profile] = v || ""; };
 export function setSponsView(v, after) { views[S.profile] = v; after(); }
 
 export function sponsSwitch(counts, active, onChange) {

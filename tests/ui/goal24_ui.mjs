@@ -138,8 +138,14 @@ try {
   await w.js("document.querySelector('#tabs [data-tab=recommended]').click()");
   check("the switch is remembered", (await w.until("document.querySelector('.sb-seg [data-spons=friendly][aria-pressed=true]')", 5000)) &&
     (await w.until("document.querySelectorAll('#list .row[data-i]').length === 3", 5000)), await seg());
-  await load(`recommended:${PID}`);                      // GOAL33: a reload shows the page's defaults
-  check("a reload shows All again", (await w.until("document.querySelector('.sb-seg [data-spons=\"\"][aria-pressed=true]')", 5000)) &&
+  // GOAL37 §2: the switch is in the address (spons=friendly), so a reload keeps it; a link without it shows All
+  const kept = await w.js("return location.hash");
+  check("the address names the switch", /[?&]spons=friendly(&|$)/.test(kept), kept);
+  await w.send("Page.reload", { ignoreCache: false });
+  check("a reload keeps Sponsor-friendly", (await w.until("document.querySelector('.sb-seg [data-spons=friendly][aria-pressed=true]')", 10000)) &&
+    (await w.until("document.querySelectorAll('#list .row[data-i]').length === 3", 10000)) && /spons=friendly/.test(await w.js("return location.hash")), await seg());
+  await load(`recommended:${PID}`);
+  check("a link without the switch shows All", (await w.until("document.querySelector('.sb-seg [data-spons=\"\"][aria-pressed=true]')", 5000)) &&
     (await w.until("document.querySelectorAll('#list .row[data-i]').length >= 300", 8000)), await seg());
 
   // ---- the job panel: badge in the header, the evidence block ----

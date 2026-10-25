@@ -5,6 +5,8 @@ import { T, moveTo, preApply } from "./tracker.js";
 import { G, build, columns, curRow, focusGrid, go, openRow, paintSel, prefs, refresh, savePrefs, selRows, setGrouped, text } from "./grid.js";
 import { parseDate } from "./gridedit.js";
 import { deleteRows, insertRow } from "./gridops.js";
+import { match, words } from "./find.js";
+import { syncUrl } from "./urlstate.js";
 
 const BLANK = "(Blanks)";
 const DAY_MS = 86400000;
@@ -39,8 +41,25 @@ function sorted(rows) {
   return [...rows].sort((a, b) => { const x = key(a), y = key(b); return (x === "") - (y === "") || (x < y ? -1 : x > y ? 1 : 0) * G.sort.dir; });
 }
 
+// GOAL37 §2: the column sort and filters live in the address (T.gsort / T.gf), so a reload or a copied link keeps them
+const asText = () => ({ gsort: G.sort ? `${G.sort.dir < 0 ? "-" : ""}${G.sort.key}` : "", gf: Object.keys(G.filters).length ? JSON.stringify(G.filters) : "" });
+const okFilter = (f) => f && (Array.isArray(f.values) ? f.values.every((v) => typeof v === "string") : typeof f.op === "string" && typeof f.text === "string");
+function filtersOf(raw) {
+  try {
+    const got = JSON.parse(raw || "{}");
+    return got && typeof got === "object" ? Object.fromEntries(Object.entries(got).filter(([, f]) => okFilter(f))) : {};
+  } catch { return {}; }      // a hand-edited address: no filters
+}
+function fromAddress() {
+  const now = asText();
+  if ((T.gsort || "") === now.gsort && (T.gf || "") === now.gf) return;
+  G.sort = T.gsort ? { key: T.gsort.replace(/^-/, ""), dir: T.gsort.startsWith("-") ? -1 : 1 } : null;
+  G.filters = filtersOf(T.gf);
+}
+
 // T.rows -> G.view: filtered, sorted, numbered; grouped by the day applied when that view is on
 export function applyView() {
+  fromAddress();
   const rows = sorted(T.rows.filter((r) => Object.entries(G.filters).every(([k, f]) => passes(r, k, f)))).map((r, i) => ({ ...r, n: i + 1 }));
   if (!G.grouped) { G.view = rows; return; }
   const today = new Date(`${new Date().toLocaleDateString("en-CA")}T12:00:00`);
@@ -50,7 +69,7 @@ export function applyView() {
   G.view = order.flatMap((k) => [{ head: `${k} (${groups.get(k).length})` }, ...groups.get(k).map((r, i) => ({ ...r, n: i + 1 }))]);
 }
 
-const redraw = (keep = true) => { closePop({ refocus: false }); refresh(keep); focusGrid(); };
+const redraw = (keep = true) => { closePop({ refocus: false }); Object.assign(T, asText()); syncUrl(); refresh(keep); focusGrid(); };
 
 export function headMenu(c, anchor) {
   const sortBy = (dir) => { G.sort = { key: c.key, dir }; redraw(); };
@@ -118,7 +137,8 @@ export function stateLine() {
 
 function hitsFor(q) {
   const list = [];
-  if (q) G.view.forEach((r, i) => { if (!r.head) G.cols.forEach((c, j) => { if (text(r, c).toLowerCase().includes(q)) list.push([i, j]); }); });
+  const ws = words(q);                       // GOAL35 §5.3: the shared rules (case, punctuation, word order, typos)
+  if (ws.length) G.view.forEach((r, i) => { if (!r.head) G.cols.forEach((c, j) => { if (match(ws, text(r, c))) list.push([i, j]); }); });
   return list;
 }
 
@@ -126,7 +146,7 @@ function findBar() {
   const input = h("input", { type: "search", id: "g-find-q", placeholder: "Find in the tracker", "aria-label": "Find in the tracker" });
   input.value = G.hits.q;
   const n = h("span", { class: "muted", id: "g-find-n", role: "status" });
-  input.oninput = () => { G.hits = { q: input.value, list: hitsFor(input.value.trim().toLowerCase()), at: 0 }; show(); };
+  input.oninput = () => { G.hits = { q: input.value, list: hitsFor(input.value), at: 0 }; show(); };
   input.onkeydown = (e) => {
     e.stopPropagation();
     if (e.key === "Enter") { e.preventDefault(); findKey(e.shiftKey ? "prev" : "next"); }

@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from . import applied, feedback, fresh, keywords, past_employers, signals
+from . import applied, feedback, fresh, genai, keywords, past_employers, resumematch, signals, titles, workterms
 from .resume import ats
 from .text import norm
 
@@ -50,16 +50,19 @@ class Ctx:
     sponsorship_label: bool = False                  # profile needs_sponsorship: show the informational label
     prefs: feedback.Prefs | None = None              # Like / Not interested feedback of this profile
     families: tuple = ()                             # the profile's title families, in profile.yaml order
-    dealbreakers: tuple = ()                         # profile dealbreaker regexes, re-checked on the title
-    n_resumes: int = 1                               # the fit uses the best of the profile's resumes
-    past: frozenset = frozenset()                    # company keys of the person's past employers
-    ghost: dict = field(default_factory=dict)        # uid -> (penalty points, badge text) (ghost.load)
+    dealbreakers: tuple = ()                         # profile dealbreaker regexes, re-checked on the title (GOAL3 §2)
+    n_resumes: int = 1                               # GOAL4 §1: the fit uses the best of the profile's resumes
+    past: frozenset = frozenset()                    # GOAL16 §0: company keys of the person's past employers
+    ghost: dict = field(default_factory=dict)        # GOAL29 §3: uid -> (penalty points, badge text) (ghost.load)
+    work_rule: str = workterms.RULE_W2               # GOAL35 §4.3: profile work_terms (w2 hides C2C-only etc.; any)
+    fresh_window: timedelta = fresh.FRESH_WINDOW     # GOAL36 §1: "new" = posted within 1 / 3 / 7 days (Settings)
 
 
 @dataclass(frozen=True)
 class Score:
     state: str                 # ok | filtered | non_us | too_senior (JD years > max) | pending (fit not computed yet)
-    # | past_employer (a company the person worked at; never shown)
+    #                            | low_match (GOAL36 §1: no family vouches and the resume match is under MIN_PCT)
+    #                            | past_employer (GOAL16 §0: a company the person worked at; never shown)
     worth: int
     band: str
     parts: dict
@@ -74,6 +77,8 @@ class Score:
     employment: str | None = None   # signals.EMPLOYMENT_LABELS key
     scored: bool = True         # False while the fit is pending: the UI shows "—" and sorts it after scored jobs
     ghost: str | None = None    # GOAL29 §3: "Possible ghost job: ..." (flagged, never hidden)
+    resume_pct: int | None = None   # GOAL36 §1: the JD's match % against the person's master resume
+    vouched: bool = True        # GOAL36 §1: one of the person's title families (and no JD-gate verdict) keeps it
 
 
 def _clamp(x: float) -> float:
@@ -225,13 +230,31 @@ def _ranked_chips(parts: dict, mults: dict, worth: int, extra: list[tuple[str, f
     return [name for name, _ in sorted(deltas, key=lambda d: -abs(d[1]))]
 
 
+LOW_MATCH = "low_match"
+LITTLE_GENAI, SENIOR_TITLE = "Little GenAI work in the JD", "Staff / lead title"
+RANK_LOWER = {LITTLE_GENAI: 0.6, SENIOR_TITLE: 0.7}     # GOAL36 §1: what used to hide these jobs now ranks them lower
+
+
+def _own_family(row: dict, families: tuple) -> bool:
+    tagged = (row.get("families") or ",")
+    return any(f",{f}," in tagged for f in families)
+
+
 def final(row: dict, fit: dict | None, ctx: Ctx) -> Score:
     f = _fit(fit, ctx)
     r, h = freshness(row, ctx.now)
     q, q_chips = real_req(row)
     s, s_chips = seniority(row, ctx.years, ctx.max_years)
     parts = {"F": f["F"], "R": r, "Q": q, "S": s}
+    # GOAL36 §1: the JD gate no longer hides a job; its title family just stops vouching for it (the resume decides)
+    fit_gate = genai.is_gate_verdict((fit or {}).get("dealbreaker"))
+    vouched = _own_family(row, ctx.families) and not fit_gate
+    resume_pct = resumematch.pct(fit.get("terms"), ctx.n_resumes) if fit else None
     mults = {**multipliers(row, h, f["langs"]), **feedback.factors(ctx.prefs, row, ctx.families)}
+    if fit_gate:
+        mults[LITTLE_GENAI] = RANK_LOWER[LITTLE_GENAI]
+    if not vouched and titles.senior_title(row.get("title")):
+        mults[SENIOR_TITLE] = RANK_LOWER[SENIOR_TITLE]
     raw = _worth(parts, mults)
     penalty, ghost = ctx.ghost.get(row["uid"], (0, None))
     worth = max(0, raw - penalty)                     # GOAL29 §3: a few points (<= ghost.PENALTY_CAP), never hidden
@@ -240,13 +263,18 @@ def final(row: dict, fit: dict | None, ctx: Ctx) -> Score:
                  ctx.now.date() - same_role.applied_on <= timedelta(days=applied.MUTE_DAYS))
     # the title is checked here too, so a clearance title ("AI Engineer Associate - TS/SCI with Polygraph") is
     # filtered even before its fit row exists
-    dealbreaker = (fit or {}).get("dealbreaker") or signals.dealbreaker(row.get("title"), list(ctx.dealbreakers))
+    dealbreaker = (None if fit_gate else (fit or {}).get("dealbreaker")) \
+        or workterms.verdict(row.get("work_terms"), ctx.work_rule) \
+        or signals.dealbreaker(row.get("title"), list(ctx.dealbreakers))
     years_needed = required_years(row)
     too_senior = ctx.max_years is not None and years_needed > ctx.max_years
     non_us = row.get("is_us") == 0                    # both profiles need a US job; unknown (None) stays, at x0.9
+    # GOAL36 §1: a job its title does not vouch for stays when its JD matches the master resume MIN_PCT % or more
+    low_match = not vouched and fit is not None and (fit.get("jd_state") != "ok" or resume_pct is None
+                                                      or resume_pct < resumematch.MIN_PCT)
     state = "past_employer" if past_employers.matches(row.get("company"), ctx.past) else \
         "filtered" if dealbreaker else "non_us" if non_us else "too_senior" if too_senior else \
-        "pending" if fit is None else "ok"
+        "pending" if fit is None else LOW_MATCH if low_match else "ok"
 
     extra = [(c, WEIGHTS["S"] * 100 * (1 - s)) for c in s_chips]
     extra += [(c, WEIGHTS["Q"] * 100 * pts / 15) for c, pts in q_chips]
@@ -269,6 +297,8 @@ def final(row: dict, fit: dict | None, ctx: Ctx) -> Score:
         chips.append(f"Fit {round(100 * f['pct'])}% of {f['n_terms']} {noun}{missing}")
     if f["unknown"]:
         chips.append(f["unknown"])
+    if not vouched and resume_pct is not None:
+        chips.append(f"Resume match {resume_pct}%")
     if same_role:
         chips.append(f"Applied {same_role.applied_on:%b %d}" if same_role.applied_on else "Applied before")
     elif n_company:
@@ -282,11 +312,11 @@ def final(row: dict, fit: dict | None, ctx: Ctx) -> Score:
         gate = worth >= ctx.threshold and fit_ok
     else:
         gate = worth >= DEGRADED_PUSH and r >= 0.8 and q >= 0.5
-    push = state == "ok" and gate and s >= MIN_PUSH_SENIORITY and fresh.is_fresh(row, ctx.now) and not muted
+    push = state == "ok" and gate and s >= MIN_PUSH_SENIORITY and fresh.is_fresh(row, ctx.now, ctx.fresh_window) and not muted
     band = "Apply today" if worth >= APPLY_TODAY else "Worth a look" if worth >= WORTH_A_LOOK else "Low"
     if band == "Apply today" and s < MIN_PUSH_SENIORITY:           # far above the profile's years (release review M2)
         band = "Worth a look"
     if fit is None:                                   # no number before the fit exists
         band = "Scoring"
     return Score(state, worth, band, parts, mults, tuple(chips), push, f["pct"], tuple(f["missing"]), dealbreaker,
-                 pipeline, muted, employment, fit is not None, ghost)
+                 pipeline, muted, employment, fit is not None, ghost, resume_pct, vouched)

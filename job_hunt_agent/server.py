@@ -31,9 +31,9 @@ from importlib import resources
 from urllib.parse import parse_qs, quote, urlsplit
 
 from . import (api, appliedview, applyback, applydialog, applyq, config, contacts, db, export_full, fetch, filters,
-               google_move, google_page, gridapi, history, jd_doc, jdcopy, live, logrotate, notify, ops, outreach,
+               google_move, google_page, gridapi, history, jd_doc, jdcopy, jobbanks, live, logrotate, notify, ops, outreach,
                profile_admin, profile_settings, removal, resume_swap, resume_upload, rgclient, rgjobs, rgwatch, rqueue,
-               setup_status, sheet_look, stats, stats_html, trackapi, vendor_howpage, vendors)
+               searchapi, setup_status, sheet_look, stats, stats_html, trackapi, vendor_howpage, vendors)
 from .autofill import api as autofill, health as autofill_health, package as autofill_pkg
 from .finder import service as finder
 from .google import GoogleError, accounts
@@ -459,7 +459,8 @@ def _goal8_get(conn, pid: str, path: str, args: dict, now):
     if path == "/api/pending":
         return applyback.due(conn, pid, now, boot=args.get("boot") == "1", peek=args.get("peek") == "1")
     if path == "/api/settings":
-        return {**profile_settings.get(pid), **profile_settings.apply_get(pid)}      # goal, in hand, answers
+        return {**profile_settings.get(pid), **profile_settings.apply_get(pid),      # GOAL13: goal, in hand, answers
+                "jobbanks": jobbanks.status()}                                       # GOAL35 §4.2
     return None
 
 
@@ -493,6 +494,8 @@ def _goal8_post(conn, pid: str, path: str, args: dict, now):
         return profile_settings.set_past_employers(pid, args.get("names"))
     if path == "/api/settings/apply":                          # GOAL13 §2b, §2d, §2g
         return profile_settings.set_apply(pid, args)
+    if path == "/api/settings/jobbanks":                       # GOAL35 §4.2: app-wide
+        return jobbanks.set_on(args.get("on"))
     return None
 
 
@@ -501,8 +504,8 @@ def _tracker_get(conn, pid: str, path: str, args: dict):
     if path == "/api/tracker":
         out = trackapi.rows(conn, pid, args.get("status") or None, args.get("q"), int(args.get("limit") or
                             trackapi.PAGE), int(args.get("offset") or 0), sheet=int(args.get("sheet") or 0) or None,
-                            clip=args.get("compact") == "1")
-        return {**out, "look": (sheet_look.get(conn, pid) or {}).get("tabs")}       # the Sheet's look
+                            clip=args.get("compact") == "1", wide=args.get("wide") == "1")
+        return {**out, "look": (sheet_look.get(conn, pid) or {}).get("tabs")}       # GOAL19 §1: the Sheet's look
     if path == "/api/tracker/row":
         return trackapi.get(conn, pid, int(args["app"]))
     if path == "/api/tracker/sync":                            # "saved ✓ / synced ✓"
@@ -656,7 +659,9 @@ def route(conn, method: str, path: str, args: dict, now):
                                   resume=args.get("resume") or None)
         if path == "/api/health":
             return api.health_summary(conn, now)
-        if path == "/api/apply_options":                           # the Mark applied dialog
+        if path == "/api/search":                                  # GOAL35 §5.2: the ⌘K box, every area
+            return searchapi.everything(conn, pid, args.get("q") or "", now)
+        if path == "/api/apply_options":                           # GOAL6 §1: the Mark applied dialog
             return applydialog.options(conn, pid, now, args.get("uid") or None,
                                        int(args["app"]) if args.get("app") else None)
         found = _tracker_get(conn, pid, path, args)

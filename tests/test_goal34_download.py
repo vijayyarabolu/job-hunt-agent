@@ -127,7 +127,7 @@ class FileNamesTest(unittest.TestCase):
 
 class ExtensionSourceTest(unittest.TestCase):
     def test_version_is_1_6_4(self):
-        self.assertEqual(json.loads((EXT / "manifest.json").read_text())["version"], "1.6.4")
+        self.assertEqual(json.loads((EXT / "manifest.json").read_text())["version"], "1.7.0")   # GOAL36 §5: the scan, Link to a job, Generate reasons
 
     def test_no_new_permission(self):                     # a blob link, not chrome.downloads: Chrome asks nothing new
         self.assertEqual(json.loads((EXT / "manifest.json").read_text())["permissions"], ["storage"])

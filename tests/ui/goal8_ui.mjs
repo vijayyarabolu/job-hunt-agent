@@ -150,13 +150,18 @@ try {
     jd_url: "http://127.0.0.1:9/post", status: "ready" });
   await load(`recommended:${P}`);                    // resumegen GOAL3 §7: an open starts on Recommended; click Saved
   await js("document.querySelector('#tabs [data-tab=saved]').click()");
-  await until("location.hash === '#saved' && !document.querySelector('#list[aria-busy]')", 8000);
-  check("an outside job shows under Saved", await until("[...document.querySelectorAll('.section-head h2')].some((x) => x.textContent.startsWith('Outside jobs (1)'))", 12000),
+  await until("location.hash.split('?')[0] === '#saved' && !document.querySelector('#list[aria-busy]')", 8000);
+  // GOAL36 §5.1: its own job record, so the same card as an inside job with the "outside job" tag
+  const outCard = "[...document.querySelectorAll('#list .row')].find((r) => r.textContent.includes('Recruiter Co') && r.querySelector('.outside-tag'))";
+  check("an outside job shows under Saved", await until(`!!${outCard}`, 12000),
     await js("return JSON.stringify({ tab: document.body.dataset.view, g8: !!window.S, more: document.querySelector('#list-more')?.textContent.slice(0, 200), head: document.querySelector('#list-head')?.textContent.slice(0, 100) })"));
-  check("with its resume chip", await until("document.querySelector('.out-row .rgc')?.textContent === 'Resume ready'", 6000));
-  await clickText(".out-row .btn", "Mark applied");
-  check("Mark applied works for it", await until("document.querySelector('dialog.back-dlg[open]')?.textContent.includes('Applied: Recruiter Co · AI Engineer')", 8000), await dialogText());
-  await clickText("dialog.back-dlg .btn", "Skip");
+  check("with its resume chip", await until(`${outCard}?.querySelector('.rgc')?.textContent === 'Resume ready'`, 6000),
+    await js(`return ${outCard}?.textContent`));
+  await js(`${outCard}.click(); return true`);
+  check("Mark applied works for it", await clickText("#detail .acts .btn", "Mark applied") && await until("document.querySelector('#apply-dlg[open]')?.textContent.includes('Recruiter Co · AI Engineer')", 8000),
+    await js("return document.querySelector('#apply-dlg')?.textContent.slice(0, 300)"));
+  await js("document.querySelector('#ad-without').click(); return true");
+  await until("!document.querySelector('#apply-dlg[open]')", 8000);
   const outsideRow = (await server(`/api/tracker?profile=${P}&q=Recruiter`)).rows?.[0];
   check("its row is applied", outsideRow?.status === "applied", JSON.stringify(outsideRow || {}).slice(0, 200));
 

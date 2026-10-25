@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   employment_type TEXT,                 -- full_time | contract | contract_to_hire | part_time | internship | NULL
   staffing INTEGER NOT NULL DEFAULT 0,  -- resume-harvesting signal kinds (0-3), signals.staffing_signals
   sponsorship TEXT,                     -- no | citizen | yes | NULL (informational label only, signals.sponsorship)
+  work_terms TEXT,                      -- GOAL35 §4.3: comma-joined w2 / c2c_only / citizens_only / vague ... (workterms)
   posted_at TEXT,                         -- latest observed
   first_posted_at TEXT,                   -- min(observed posted_at), never raised
   precision TEXT NOT NULL CHECK (precision IN ('exact', 'day', 'updated', 'unknown')),
@@ -873,4 +874,11 @@ CREATE TABLE IF NOT EXISTS outside_fits (    -- GOAL33: the match of a tracker r
   parts TEXT NOT NULL,                        -- match.breakdown parts as JSON
   at TEXT NOT NULL,
   PRIMARY KEY (profile, app_id)
+);
+CREATE TABLE IF NOT EXISTS title_denials (    -- GOAL36 §1: new postings the title deny list kept out, per day and reason
+  day TEXT NOT NULL,                           -- UTC date, 2026-10-24
+  reason TEXT NOT NULL,                        -- titles.denied(): sales, healthcare, management, intern, ...
+  n INTEGER NOT NULL,
+  example TEXT,                                -- the first title of the day with this reason
+  PRIMARY KEY (day, reason)
 );

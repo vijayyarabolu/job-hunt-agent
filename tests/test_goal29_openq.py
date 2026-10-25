@@ -32,7 +32,10 @@ class OpenQuestionTest(unittest.TestCase):
             (row("Describe a time you disagreed with a teammate", kind="text", max_chars=1000), True),
             (row("Do you have experience with Kubernetes? Please describe it."), True),
             (row("Why do you want to work at Acme?", kind="text", max_chars=120), False),     # a short text box
-            (row("Why do you want to work at Acme?", kind="text"), False),                    # no limit: a short box
+            # GOAL36 §5.3: a one-line box with no limit is open when it asks why / describe (custom forms)
+            (row("Why do you want to work at Acme?", kind="text"), True),
+            (row("How did you hear about this job?", kind="text"), False),                    # no limit, a short answer
+            (row("Preferred first name", kind="text"), False),
             # GOAL30 §2: an open question holding text is still one (Regenerate for this job); only the lookup skips it
             (row("Why do you want to work at Acme?", value="Mine."), True),
             (row("Why do you want to work at Acme?", status="filled", value="Saved."), True),
@@ -66,6 +69,9 @@ class OpenQuestionTest(unittest.TestCase):
         states = ["writing", "limit", "ready", "failed", "login"]
         got = node("x.map((s) => a.waitFor({ state: s }))", states)
         self.assertEqual(got, [1000, 60000, 0, 0, 0])                 # GOAL30 §5: every second while writing
+        # GOAL36 §5.3: after 2 minutes, or while it waits in the queue, every 5 s (it gives up at 20 minutes)
+        self.assertEqual(node("[a.waitFor(x, 200), a.waitFor({ ...x, queued: true }), a.MAX_POLLS]", {"state": "writing"}),
+                         [5000, 5000, 336])
 
     def test_every_state_has_an_icon_and_words(self):
         views = [{"state": "writing", "label": "Writing with Claude…"}, {"state": "ready", "label": "Ready"},
@@ -73,7 +79,7 @@ class OpenQuestionTest(unittest.TestCase):
                  {"state": "login", "label": "Not logged in to Claude"},
                  {"state": "failed", "label": "No answer", "error": "No answer that passes the checks: 210 words; write 80 to 150"}]
         got = node("x.map((v) => [a.LOOK[v.state], a.words(v)])", views)
-        self.assertEqual(got, [["⟳", "Writing with Claude…"], ["✓", "Ready"], ["⏸", "Claude usage limit, resets at 6 pm"],
+        self.assertEqual(got, [["⟳", "Writing with Claude…"], ["✓", "Ready"], ["⏸", "Claude usage limit, resets at 6 pm: it writes on its own after that"],
                                ["⚠", "Not logged in to Claude"], ["✕", "No answer: 210 words; write 80 to 150"]])
 
 

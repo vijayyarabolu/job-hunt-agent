@@ -14,8 +14,9 @@ from collections import defaultdict
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
 
-from . import buckets, config, db, fits, guard, liveness, net, prune, registry, robots, runstats, store, tiers, titles
-from .ats import ADAPTERS, Ctx, FetchResult
+from . import (buckets, config, db, employer_boards, fits, guard, liveness, net, outage, prune, registry, robots, runstats,
+               store, tiers, titles)
+from .ats import ADAPTERS, Ctx, FetchResult, careeronestop
 from .ats.common import SCHEMA_ERROR
 from .ats.workday import split_key
 from .net import RETRYABLE
@@ -25,15 +26,14 @@ LOCK_POLL_S = 5.0
 EMPTY_SUSPECT_MIN = 5                 # a board that listed this many jobs and then far fewer gets probed
 GONE_AFTER = timedelta(hours=24)      # a 404/410 board this long is probed and, if its jobs are gone, closed
 BREAKER_TRIP = 5
-COLLAPSE_MIN_BOARDS = 3
-COLLAPSE_FAIL_RATIO = 0.8
 STATIC_HOSTS = {"greenhouse": "boards-api.greenhouse.io", "lever": "api.lever.co",
                 "ashby": "api.ashbyhq.com", "smartrecruiters": "api.smartrecruiters.com",
                 "amazon": "www.amazon.jobs", "workable": "apply.workable.com", "jobvite": "jobs.jobvite.com",
                 "rippling": "ats.rippling.com", "gem": "api.gem.com",
                 "adp": "workforcenow.adp.com", "paylocity": "recruiting.paylocity.com", "dayforce": "jobs.dayforcehcm.com",
-                "ibm": "www-api.ibm.com", "jobscore": "careers.jobscore.com"}
-HOST_TEMPLATES = {"bamboohr": "{head}.bamboohr.com",        # the key starts with the tenant's own subdomain
+                "ibm": "www-api.ibm.com", "jobscore": "careers.jobscore.com",
+                "careeronestop": "api.careeronestop.org"}
+HOST_TEMPLATES = {"bamboohr": "{head}.bamboohr.com",        # GOAL16: the key starts with the tenant's own subdomain
                   "cornerstone": "{head}.csod.com", "jazzhr": "{head}.applytojob.com",
                   "recruitee": "{head}.recruitee.com", "breezy": "{head}.breezy.hr",
                   "pinpoint": "{head}.pinpointhq.com", "hibob": "{head}.careers.hibob.com"}
@@ -222,17 +222,12 @@ def _has_open(conn, board_id: str) -> bool:
         is not None
 
 
-def _host_alerts(conn, run_id: int, outcomes: dict[str, list[tuple[str, str]]]) -> list[str]:
-    """>=80% of >=3 boards on one host failed: one alert, and those failures do not count against boards."""
-    alerts = []
-    for host, rows in outcomes.items():
-        failed = [b for b, s in rows if s in ("http_error", "skipped")]
-        if len(rows) >= COLLAPSE_MIN_BOARDS and len(failed) / len(rows) >= COLLAPSE_FAIL_RATIO:
-            alerts.append(f"{host}: {len(failed)}/{len(rows)} boards failed")
-            with db.tx(conn):
-                for board_id in failed:
-                    conn.execute("UPDATE boards SET fail_streak=max(0, fail_streak-1) WHERE board=?", (board_id,))
-    drifted = sorted(b for rows in outcomes.values() for b, s in rows if s == "drift")
+def _host_alerts(conn, run_id: int, outcomes: list[outage.Outcome]) -> list[str]:
+    """>=80% of >=3 boards on one host or rate bucket failed: one alert, and those failures do not count against
+    boards (neither their fail streak nor, GOAL35 §2, their dead streak)."""
+    alerts, failed = outage.collapsed(outcomes)
+    outage.forgive(conn, failed)
+    drifted = sorted(o.board for o in outcomes if o.status == "drift")
     if drifted:                                      # an ATS changed its format: nothing closed, but say so now
         alerts.append(f"format drift (no jobs closed): {', '.join(drifted[:10])}")
     return alerts
@@ -271,13 +266,18 @@ def run(trigger: str = "cli", force: bool = False, only: str | None = None, verb
 
 
 def _daily(conn, now) -> None:
-    """The daily verified backup; after a new good one, the logs nobody reads are archived and pruned (GOAL33 §3b)."""
+    """The daily verified backup; after a new good one, the logs nobody reads are archived and pruned (GOAL33 §3b),
+    and the state job bank employers get their own boards looked up (GOAL36 §2)."""
     if db.backup(conn) is None:
         return
     try:
         prune.run(conn, now)
     except (sqlite3.Error, OSError):                 # never fails the fetch: the next day tries again
         logging.getLogger(__name__).exception("daily prune failed")
+    try:                                             # GOAL36 §2: the job bank employers' own boards, rate limited
+        employer_boards.run(conn, now)
+    except (sqlite3.Error, OSError, ValueError, config.ConfigError):
+        logging.getLogger(__name__).exception("daily employer board discovery failed")
 
 
 def _ctx(conn, board: dict, matches, terms: list[str], now) -> Ctx:
@@ -286,8 +286,16 @@ def _ctx(conn, board: dict, matches, terms: list[str], now) -> Ctx:
                         "FROM jobs WHERE board = ?", (board["board"],)).fetchall()
     with_jd = {r["uid"] for r in rows if r["jd"]}
     open_fp = {r["uid"]: r["raw_fp"] for r in rows if r["open"] and r["raw_fp"] is not None}
+    elsewhere = _open_elsewhere(conn, board) if board["ats"] == careeronestop.ATS else frozenset()
     return Ctx(matches=matches, search_terms=tuple(terms), today=now.astimezone().date(),
-               needs_detail=lambda uid: uid not in with_jd, unchanged=lambda uid, fp: open_fp.get(uid) == fp)
+               needs_detail=lambda uid: uid not in with_jd, unchanged=lambda uid, fp: open_fp.get(uid) == fp,
+               known_elsewhere=lambda company, title: careeronestop.same_key(company, title) in elsewhere)
+
+
+def _open_elsewhere(conn, board: dict) -> frozenset:
+    """GOAL35 §4.2: (company, title) of every open job on our other boards: a state job bank copy of one is left out."""
+    return frozenset(careeronestop.same_key(r[0], r[1]) for r in conn.execute(
+        "SELECT company, title FROM jobs WHERE closed_at IS NULL AND stale = 0 AND board <> ?", (board["board"],)))
 
 
 def _record(conn, task, result, latency: int, run_id: int, now, scopes: list[str]) -> tuple[str, dict]:
@@ -307,6 +315,10 @@ def _record(conn, task, result, latency: int, run_id: int, now, scopes: list[str
 
 def _bucket_of(task) -> str:
     return net.bucket_key(host_of(task.board))
+
+
+def _board_bucket(board: dict) -> str:
+    return net.bucket_key(host_of(board))
 
 
 def _cost_fn(conn, tasks: list):
@@ -329,9 +341,10 @@ def _run_locked(conn, trigger: str, now, only: str | None, verbose: bool) -> dic
     net.reset_stats()
     profiles = config.profiles()
     families, terms = search_scope(profiles, settings)
+    outage.heal(conn, _board_bucket)                 # GOAL35 §2: a past outage left these on the weekly schedule
     tasks = tiers.plan(conn, boards, now, only, urls_of=robots_urls)
     run_id = db.start_run(conn, trigger, now)
-    breaker, outcomes, totals = Breaker(), defaultdict(list), defaultdict(int)
+    breaker, outcomes, totals = Breaker(), [], defaultdict(int)
     matches = titles.compile_union(families)
     sched = buckets.Scheduler(tasks, _bucket_of, _cost_fn(conn, tasks),
                               float(settings.get("bucket_deadline_s", buckets.DEADLINE_S)))
@@ -396,7 +409,8 @@ def _handle(conn, task, outcome, run_id: int, now, families, terms, outcomes, to
     status, summary = _record(conn, task, result, latency, run_id, now, scopes)
     if result is not None:
         tiers.after_fetch(conn, task, result, status, now)
-    outcomes[host_of(board)].append((board["board"], status))
+    outcomes.append(outage.Outcome(board["board"], status, result.http_status if result is not None else None,
+                                   host_of(board), _bucket_of(task)))
     totals[status] += 1
     totals["304"] += bool(result is not None and result.not_modified)
     totals["robots_blocked"] += bool(result is not None and result.http_status == net.ROBOTS_BLOCKED)

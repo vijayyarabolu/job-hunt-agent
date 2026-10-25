@@ -4,7 +4,7 @@ import re
 import sqlite3
 from datetime import datetime, timedelta
 
-from . import fresh, titles
+from . import fresh, resumematch, titles
 from .db import CHAIN_SELECT, iso, pack, unpack
 from .db import tx as db_tx
 from .text import norm, sha1, strip_boilerplate
@@ -15,8 +15,8 @@ WORKDAY_STALE_AFTER = timedelta(days=7)
 _TITLE_NOISE = re.compile(r"\(.*?\)|\[.*?\]|\b[A-Z]{1,4}-?\d{3,}\b")
 JOB_FIELDS = ("company", "title", "families", "location", "country", "is_us", "workplace", "url", "apply_url",
               "req_id", "has_team", "salary_min", "salary_max", "salary_ccy", "min_years", "is_talent_pool",
-              "employment_type", "staffing", "sponsorship", "description", "content_hash", "repost_key", "raw_fp")
-TERM_SEARCH_ATS = {"amazon", "eightfold", "phenom", "icims",   # one query per search term on every fetch
+              "employment_type", "staffing", "sponsorship", "work_terms", "description", "content_hash", "repost_key", "raw_fp")
+TERM_SEARCH_ATS = {"amazon", "careeronestop", "eightfold", "phenom", "icims",   # one query per search term on every fetch
                    "oracle_recruiting", "taleo", "successfactors", "ibm"}
 SEARCH_ATS = {"workday"} | TERM_SEARCH_ATS    # relevance/newest-limited results: absence is never a miss, only staleness
 FAST_CHUNK = 500
@@ -28,7 +28,7 @@ _CHAIN_AT_INSERT = CHAIN_SELECT.format(rk=":rk", uid=":uid", first_seen=":now", 
 # Fields that only a detail call (or a full list payload) provides; a later detail-less sighting must not wipe them.
 DETAIL_FIELDS = ("location", "country", "is_us", "workplace", "url", "apply_url", "req_id", "has_team",
                  "salary_min", "salary_max", "salary_ccy", "min_years", "is_talent_pool", "employment_type", "staffing",
-                 "sponsorship")
+                 "sponsorship", "work_terms")
 
 
 def repost_key(company: str, title: str, location: str, uid: str = "") -> str:
@@ -64,16 +64,27 @@ def _event(conn, run_id: int, uid: str, now_s: str, kind: str, detail: dict) -> 
                  (run_id, uid, now_s, kind, json.dumps(detail) if detail else None))
 
 
+def job_families(title: str, description: str | None) -> tuple[list[str], str | None]:
+    """(families, deny reason). GOAL36 §1: a denied title (another field) gets none and no JD; else its title families
+    plus resumematch.MARK when the JD names enough of the masters' skills to be scored against them."""
+    reason = titles.denied(title) or ("teaching" if titles.academic_jd(description) else None)
+    if reason:
+        return [], reason
+    families = titles.match_job(title, description)
+    return [*families, resumematch.MARK] if resumematch.prefilter(description) else families, None
+
+
 def _job_values(item: dict, old: dict | None) -> dict:
     item = _with_stored_detail(item, old)
     description = item["description"] or (unpack(old["description"]) if old else "")
-    families = titles.match_job(item["title"], description)
+    families, denied = job_families(item["title"], description)
     return {
         **{k: item.get(k) for k in JOB_FIELDS if k in item},
         "families": "," + ",".join(families) + "," if families else ",",
         "is_us": None if item.get("is_us") is None else int(item["is_us"]),
         "has_team": int(bool(item.get("has_team"))), "is_talent_pool": int(bool(item.get("is_talent_pool"))),
         "description": pack(description) if families else None,     # keep JD text only for matched families
+        "_denied": denied,
         "content_hash": content_hash(item, description),
         "repost_key": repost_key(item["company"], item["title"], item["location"], item["uid"]),
     }
@@ -98,6 +109,9 @@ def _write_item(conn, run_id: int, board_id: str, item: dict, now: datetime, see
     row = conn.execute("SELECT * FROM jobs WHERE uid=?", (item["uid"],)).fetchone()
     old = dict(row) if row else None
     values = _job_values(item, old)
+    denied = values.pop("_denied")
+    if old is None and denied:
+        DENIALS.append((denied, item["title"]))
     if _list_only_resighting(item, old):            # no JD on either side: nothing new to hash (decision 005 B2)
         values["content_hash"] = old["content_hash"]
     patch, events = fresh.observe(old, item, now, seeding)
@@ -214,6 +228,20 @@ def write_not_modified(conn: sqlite3.Connection, board: dict, run_id: int, now: 
     return {"status": "ok", "n_jobs": seen[0], "n_new": 0, "n_closed": n_closed, "n_match": seen[1]}
 
 
+DENIALS: list[tuple[str, str]] = []      # (reason, title) of the new postings write_board is storing now
+
+
+def _log_denials(conn, now: datetime) -> None:
+    """GOAL36 §1: every new posting the deny list kept out, counted per day and reason (one example title kept)."""
+    day = iso(now)[:10]
+    counts: dict[str, list] = {}
+    for reason, title in DENIALS:
+        counts.setdefault(reason, [0, title])[0] += 1
+    DENIALS.clear()
+    conn.executemany("INSERT INTO title_denials(day, reason, n, example) VALUES (?,?,?,?) ON CONFLICT(day, reason) "
+                     "DO UPDATE SET n = n + excluded.n", [(day, r, n, ex) for r, (n, ex) in counts.items()])
+
+
 def write_board(conn: sqlite3.Connection, board: dict, result, status: str, run_id: int, now: datetime,
                 scopes: list[str], latency_ms: int, count_misses: bool = True, close_all: bool = False,
                 run_key: str | None = None) -> dict:
@@ -231,6 +259,7 @@ def write_board(conn: sqlite3.Connection, board: dict, result, status: str, run_
             seeding = _is_seed(board, item, fams, new_scopes, baselined)
             n_new += _write_item(conn, run_id, board_id, item, now, seeding)
             n_match += bool(fams)
+        _log_denials(conn, now)
         if status == "ok":
             if count_misses:
                 n_closed = _count_misses(conn, run_id, board_id, board["ats"] in SEARCH_ATS, now)

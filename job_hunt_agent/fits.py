@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable
 
-from . import config, genai, keywords, lexicon, resumes, signals
+from . import config, genai, keywords, lexicon, resumematch, resumes, signals
 from .db import iso, tx, unpack
 from .resume import ats
 from .text import sha1, strip_boilerplate
@@ -81,9 +81,11 @@ def profile_inputs(profile: dict) -> ProfileInputs:
 
 
 def family_filter(families: tuple[str, ...], alias: str = "j") -> tuple[str, list[str]]:
-    """SQL clause matching jobs whose ',a,b,' families column contains any of `families`."""
-    clause = " OR ".join(f"instr({alias}.families, ?) > 0" for _ in families) or "0"
-    return f"({clause})", [f",{f}," for f in families]
+    """SQL clause matching jobs whose ',a,b,' families column contains any of `families`, or (GOAL36 §1) the resume
+    mark: a job whose JD names the masters' skills is scored for every person, whatever its title."""
+    wanted = (*families, resumematch.MARK)
+    clause = " OR ".join(f"instr({alias}.families, ?) > 0" for _ in wanted)
+    return f"({clause})", [f",{f}," for f in wanted]
 
 
 def _stale_where(inp: ProfileInputs) -> tuple[str, list]:

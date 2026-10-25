@@ -1,0 +1,17 @@
+{
+ "Jobs": [
+  {"JvId": "ZZTEST-KS-1", "JobTitle": "Machine Learning Engineer", "Company": "ZZ_TEST Prairie Analytics", "AccquisitionDate": "10/22/2026",
+   "URL": "https://www.kansasworks.com/jobs/ZZTEST-KS-1", "Location": "Overland Park, KS",
+   "Description": "Build ML models in Python and PyTorch on AWS. Full-time W2 with benefits."},
+  {"JvId": "ZZTEST-KS-2", "JobTitle": "Machine Learning Engineer, Agents", "Company": "ZZ_TEST Vendor Staffing", "AccquisitionDate": "10/23/2026",
+   "URL": "https://www.kansasworks.com/jobs/ZZTEST-KS-2", "Location": "Wichita, KS",
+   "Description": "Our client needs an AI Engineer. C2C only. Rate DOE. Send resumes to zz.test.recruiter@gmail.com"},
+  {"JvId": "ZZTEST-MO-1", "JobTitle": "Machine Learning Engineer", "Company": "Acme", "AccquisitionDate": "10/23/2026",
+   "URL": "https://jobs.mo.gov/ZZTEST-MO-1", "Location": "Kansas City, MO",
+   "Description": "The same Acme role as on Acme's own board."},
+  {"JvId": "ZZTEST-TX-1", "JobTitle": "Machine Learning Engineer", "Company": "ZZ_TEST Lone Star Labs", "AccquisitionDate": "10/21/2026",
+   "URL": "https://www.workintexas.com/ZZTEST-TX-1", "Location": "Austin, TX",
+   "Description": "LLM and RAG work in Python. USC/GC only."}
+ ],
+ "JobCount": "4"
+}

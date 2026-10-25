@@ -90,6 +90,9 @@ li.f .acts { display: flex; gap: 4px; align-items: center; }
 .snips button { text-align: left; }
 .pick { display: flex; flex-direction: column; gap: 8px; }
 .pick li button { width: 100%; text-align: left; margin: 2px 0; }
+.pick.linking input { outline: 2px solid var(--blue); outline-offset: 1px; }
+.scan { border: 1px solid var(--line); border-left: 3px solid var(--orange-line); border-radius: 6px; padding: 8px; font-size: 12px; }
+.ans-st.stalled { font-weight: 600; }
 .btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .btns button.btn > span[aria-hidden] { margin-right: 4px; }
 .addr { border: 1px solid var(--line); background: var(--soft); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
@@ -269,13 +272,31 @@ button.pick[aria-pressed=true] { background: var(--blue); color: var(--on-blue);
     }
     if (!s.loaded) return el("div", { class: "small" }, "Finding the job…");
     if (s.error) return null;
-    const list = (s.recent || []).filter((r) => !pickQuery || `${r.company} ${r.title}`.toLowerCase().includes(pickQuery.toLowerCase()));
-    return el("div", { class: "pick" },
-      el("div", { class: "title" }, "Which job is this?"),
-      el("div", { class: "small" }, "Pick its resume (remembered for this page)."),
-      el("input", { placeholder: "Search company or title", value: pickQuery, "aria-label": "Search company or title", oninput: (e) => { pickQuery = e.target.value; render(); refocus(".pick input"); } }),
-      el("ul", {}, list.slice(0, 8).map((r) => el("li", {}, btn(`${r.company} · ${r.title}${r.approved ? " ✓" : ""}`, () => actions.pick(r))))),
-      !list.length ? el("div", { class: "small" }, s.recent && s.recent.length ? "Nothing matches." : "No resumes from the last 14 days.") : null);
+    const list = (s.recent || []).filter((r) => !pickQuery || JH.find(pickQuery, `${r.company} ${r.title}`));   // GOAL35 §5
+    // GOAL36 §5.2: an unknown page says so; the jobs whose company and title fit it come first; "Link to a job"
+    // searches every tracker row and open feed job, not only the last 14 days' resumes
+    const near = s.candidates || [];
+    const found = pickQuery && s.foundFor === pickQuery ? s.found || [] : [];
+    const item = (r) => el("li", {}, btn(`${r.company} · ${r.title}${r.approved ? " ✓" : ""}`, () => actions.pick(r)));
+    return el("div", { class: `pick${s.linking ? " linking" : ""}` },
+      s.picking ? el("div", { class: "title" }, "Which job is this?")       // the person said "Not this job?"
+        : el("div", { class: "title" }, el("span", { "aria-hidden": "true" }, "? "), "This page is not linked to a job yet"),
+      el("div", { class: "small" }, "Link it to its job (remembered for this page), so Autofill uploads the right resume and Generate has the JD."),
+      near.length ? el("div", { class: "small" }, "Looks like:") : null,
+      near.length ? el("ul", {}, near.slice(0, 5).map(item)) : null,
+      el("input", { placeholder: "Link to a job: company or title", value: pickQuery, "aria-label": "Link to a job: company or title", oninput: (e) => { pickQuery = e.target.value; render(); refocus(".pick input"); } }),
+      el("ul", {}, list.slice(0, 8).map(item)),
+      pickQuery.trim().length >= 2 ? btn(`Search all your jobs for “${pickQuery.trim()}”`, () => actions.findJobs(pickQuery.trim()), "link", "Your tracker rows and the open jobs in the feed") : null,
+      found.length ? el("ul", {}, found.slice(0, 12).map(item)) : null,
+      s.foundFor === pickQuery && pickQuery && !found.length ? el("div", { class: "small" }, "No job in job-hunt-agent matches that. Save job adds this page to your tracker.") : null,
+      !list.length && !pickQuery ? el("div", { class: "small" }, s.recent && s.recent.length ? "" : "No resumes from the last 14 days.") : null);
+  }
+  // GOAL36 §5.2: the scan found no field: why, in words, and Scan again (never an empty panel)
+  function scanPart() {
+    const sc = state.scan;
+    if (!sc || (state.rows || []).length) return null;
+    return el("div", { class: "scan", role: "status" }, el("span", { "aria-hidden": "true" }, sc.busy ? "⟳ " : "⚠ "), sc.why,
+      sc.busy ? null : el("div", { class: "btns" }, btn("Scan again", () => actions.scan(), "btn", "Looks for the form again, in every frame of the page")));
   }
   // Resume ✓ · Sponsors ✓ · Match 79%: icon + word, blue / orange / red (never colour alone)
   const SPONSOR_CHIP = { sponsors: ["ok", "✓ Sponsors"], cap_exempt: ["ok", "★ Cap-exempt"], maybe: ["", "? Sponsorship"], no: ["bad", "✕ No sponsorship"] };
@@ -410,7 +431,8 @@ button.pick[aria-pressed=true] { background: var(--blue); color: var(--on-blue);
   }
   function answerPart(r, view) {                 // GOAL29 §5: Claude's answer to this open question (answers.js)
     const h = { generate: (variant, e) => writeSoon(r, variant, e), copy: () => { navigator.clipboard.writeText(view.text).catch(() => {}); },
-      fill: () => actions.fillAnswer(r, view.text), save: () => actions.saveAnswer(r, view.text) };
+      fill: () => actions.fillAnswer(r, view.text), save: () => actions.saveAnswer(r, view.text),
+      link: actions.linkJob ? () => { actions.linkJob(); refocus(".pick input"); } : null };
     return JH.answers.block(view, h, el, btn);
   }
   function filledPart(r) {                       // GOAL30 §2: an open question that already holds text
@@ -422,7 +444,7 @@ button.pick[aria-pressed=true] { background: var(--blue); color: var(--on-blue);
   function fieldRow(r) {
     const open = editing === r.id;
     const answer = (state.answers || {})[r.label];
-    const openQ = JH.answers.isOpen(r);
+    const openQ = JH.answers.canWrite(r);               // GOAL36 §5.4: a saved answer's box too
     return el("li", { class: `f ${r.status}`, "data-id": r.id },
       el("span", { class: "g", "aria-hidden": "true" }, GLYPH[r.status] || "·"),
       el("button", { class: "q", type: "button", title: "Show it on the page", onclick: () => actions.focus(r) }, r.label || "(a question)"),
@@ -554,7 +576,7 @@ button.pick[aria-pressed=true] { background: var(--blue); color: var(--on-blue);
       }
     }
     const body = el("div", { class: "body" },
-      jobPart(), detailsPart(), notice,
+      jobPart(), detailsPart(), notice, scanPart(),
       c ? el("div", { class: "counts" }, `Filled ${c.filled} · Needs you ${c.needs} · Skipped ${c.skipped}${c.review ? ` · Review ${c.review}` : ""}`) : null,
       c && c.review ? el("div", { class: "small" }, "? Review: answered from your resume by Claude. Read them before you go on.") : null,
       c && c.notes ? el("div", { class: "small" }, c.notes) : null,

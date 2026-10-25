@@ -2,11 +2,13 @@
 // Back, Esc or the side menu leave it. Lazy: loaded on first open.
 import { $, B, S, api, copyText, extLink, get, h, loadError, muted, placeholder, q } from "./core.js";
 import { mailMount } from "./tracker.js";
+import { syncUrl } from "./urlstate.js";
 
 const SECTIONS = [["setup", "Setup", "Accounts and keys: what is connected, missing or failing, with a Test for each"],
   ["profiles", "Profiles", "Add a person, upload a resume"],
   ["answers", "Profile & answers", "The answers job forms ask (salary, start date, links), copied with one click"],
   ["filters", "Job filters", "Years of experience, minimum match, past employers"], ["goal", "Daily goal", "How many applications a day you aim for"],
+  ["sources", "Job sources", "State job banks (CareerOneStop): on or off"],
   ["accounts", "Accounts", "This profile's Google Sheet and job-application email"],
   ["autofill", "Autofill extension", "Fill job applications with your tailored resume: get it, install it"],
   ["about", "About & help", "What the numbers mean, keys, where things are"]];
@@ -73,8 +75,26 @@ function filtersPart(s) {
 
 function goalPart(s) {
   const goal = num(s.daily_goal ?? 15, "100");
+  // GOAL36 §1: what counts as a new job (alerts, the "new" count, Show the best first)
+  const days = h("select", {}, [1, 3, 7].map((d) => h("option", { value: String(d) }, d === 1 ? "1 day" : `${d} days`)));
+  days.value = String(s.new_within_days || 1);
   return [row("Applications a day you aim for", goal, "Shown as “Applied today N · goal M” on Recommended and Tailored resumes; 0 hides it.",
-    saver(goal, () => api("/api/settings/apply", { goal: goal.value || "0" }), { after: () => S.g8?.poll() }))];
+    saver(goal, () => api("/api/settings/apply", { goal: goal.value || "0" }), { after: () => S.g8?.poll() })),
+  row("New jobs are ones posted within", days, "Alerts, the new jobs count and Show the best first use this. 1 day is the default.",
+    saver(days, () => api("/api/settings/apply", { new_days: Number(days.value) })))];
+}
+
+// GOAL35 §4.2: the state job banks source, app-wide (both people); off until CareerOneStop approves a key
+function sourcesPart(s) {
+  const jb = s.jobbanks || {};
+  const on = h("input", { type: "checkbox", title: "Fetch state job bank postings through CareerOneStop on each run" });
+  on.checked = !!jb.on;
+  const keyLine = jb.has_key ? "A CareerOneStop key is set." : ["No CareerOneStop key yet: ask for one at ",
+    extLink(jb.request_url, "the NLx Research Hub"), `, then set ${(jb.key_env || []).join(" and ")} (or careeronestop in config/secrets.yaml).`];
+  return [h("label", "check set-check", on, h("span", {}, "State job banks (every state's job bank, through CareerOneStop)"),
+    saver(on, () => api("/api/settings/jobbanks", { on: on.checked }))),
+  h("p", "hint", "Only W2 roles that take OPT are kept; a job a company's own board already lists keeps the company's link. Each card says where it came from (“via KansasWorks”)."),
+  h("p", "hint", ...[keyLine].flat())];
 }
 
 function accountsPart() {
@@ -133,7 +153,8 @@ async function paint(page, s) {
   const repaint = () => paint(page, s);
   const setup = () => import("./setup.js");
   const parts = { setup: () => setup().then((m) => m.setupPart(repaint)), profiles: () => setup().then((m) => m.profilesPart(repaint)),
-    answers: () => answersPart(s), filters: () => filtersPart(s), goal: () => goalPart(s), accounts: accountsPart,
+    answers: () => answersPart(s), filters: () => filtersPart(s), goal: () => goalPart(s), sources: () => sourcesPart(s),
+    accounts: accountsPart,
     autofill: autofillPart, about: aboutPart };
   const title = SECTIONS.find(([k]) => k === shown)[1];
   const body = !s && NEEDS_PROFILE.has(shown) ? [h("p", "hint", "Add a profile first (Settings › Profiles).")] : await parts[shown]();
@@ -154,7 +175,7 @@ export async function showSettings({ section, close: done }) {
   if (S.tab !== "settings" || pid !== S.profile) return;
   const back = B({ class: "btn ghost set-back", title: "Back (Esc)", onclick: () => close() }, "← Back");
   const nav = h("nav", { class: "set-nav", "aria-label": "Settings sections" }, SECTIONS.map(([k, label, about]) =>
-    B({ "data-sec": k, title: about, onclick: () => { shown = k; paint(page, s); page.querySelector(".set-body h2")?.focus?.(); } }, label)));
+    B({ "data-sec": k, title: about, onclick: () => { shown = k; S.section = k; syncUrl(); paint(page, s); page.querySelector(".set-body h2")?.focus?.(); } }, label)));
   const page = h("div", { class: "set-page", onkeydown: (e) => {
     if (e.key !== "Escape") return;
     e.stopPropagation();

@@ -237,6 +237,35 @@ def cmd_ghost_scan(args) -> int:
     return 0
 
 
+def cmd_work_terms(args) -> int:
+    """GOAL35 §4.3: read W2 / C2C-only / citizens-only / no-OPT / vague-repost terms into every open job."""
+    from . import db, resignal
+    conn = db.connect(args.db) if args.db else db.connect()
+    print(json.dumps(resignal.work_terms_labels(conn, dry=args.dry)))
+    return 0
+
+
+def cmd_employer_boards(args) -> int:
+    """GOAL36 §2: the state job bank employers' own boards, per state (the last daily run, or --run one now)."""
+    from . import db, employer_boards
+    if args.run:
+        conn = db.connect(args.db) if args.db else db.connect()
+        report = employer_boards.run(conn, db.utcnow(), limit=args.limit)
+    else:
+        report = employer_boards.last_report()
+    print(json.dumps({k: v for k, v in report.items() if k != "tried"}) if args.json else employer_boards.text(report))
+    return 0
+
+
+def cmd_jobbanks_report(args) -> int:
+    """GOAL35 §4.3: the state job banks per state: found / on our boards / dropped and why / kept / new."""
+    from . import db, jobbanks_report
+    conn = db.connect(args.db) if args.db else db.connect()
+    report = jobbanks_report.counts(conn, db.utcnow())
+    print(json.dumps(report) if args.json else jobbanks_report.text(report))
+    return 0
+
+
 def cmd_resignal(args) -> int:
     """Re-derive families / years / employment / staffing / sponsorship for stored jobs, then rebuild fits."""
     from . import config, db, fits, resignal
@@ -476,6 +505,21 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--port", type=int)
     demo.add_argument("--open", action="store_true", help="open the browser")
     demo.set_defaults(func=cmd_demo)
+    wt = sub.add_parser("work-terms", help="GOAL35: W2 / C2C only / citizens only / no OPT / vague repost into open jobs")
+    wt.add_argument("--dry", action="store_true", help="only count what would change")
+    wt.add_argument("--db", default=None, help="a database file to use instead of the live one (a backup copy)")
+    wt.set_defaults(func=cmd_work_terms)
+    jb = sub.add_parser("jobbanks-report", help="GOAL35: state job banks per state (found, kept, dropped and why, new)")
+    jb.add_argument("--json", action="store_true")
+    jb.add_argument("--db", default=None, help="a database file to use instead of the live one (a backup copy)")
+    jb.set_defaults(func=cmd_jobbanks_report)
+    eb = sub.add_parser("employer-boards", help="GOAL36: job bank employers' own boards per state (new companies, "
+                                                "boards found)")
+    eb.add_argument("--run", action="store_true", help="look up now (rate limited), not just the last daily run")
+    eb.add_argument("--limit", type=int, default=60, help="at most this many employers (with --run)")
+    eb.add_argument("--json", action="store_true")
+    eb.add_argument("--db", default=None, help="a database file to use instead of the live one (a backup copy)")
+    eb.set_defaults(func=cmd_employer_boards)
     serve = sub.add_parser("serve", help="web UI on http://localhost:8765 (--lan: whole network, token required)")
     serve.add_argument("--lan", action="store_true")
     serve.add_argument("--port", type=int)

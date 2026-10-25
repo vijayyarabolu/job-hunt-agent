@@ -110,7 +110,7 @@ export function toast(msg, { undo, error, extra, ms } = {}) {
 }
 export const fail = (err) => toast(err.message || String(err), { error: true });
 
-// GOAL31 §3: a page waiting shows its shape; one that failed says why, with Retry; a failed refresh keeps the data
+// GOAL31 §3: a waiting page shows its shape; a failed one says why, with Retry
 const PLACEHOLDER_WIDTHS = ["w70", "w40", "w90", "w50", "w80", "w40"];
 export const placeholder = (lines = PLACEHOLDER_WIDTHS.length) => h("div", { class: "pad ph", "aria-busy": "true", "aria-label": "Loading" },
   ...Array.from({ length: lines }, (_, i) => h("span", `sk-line ${PLACEHOLDER_WIDTHS[i % PLACEHOLDER_WIDTHS.length]}`)));
@@ -237,8 +237,7 @@ export function exactAge(ts, exact = true) {
     : d < 7 ? `${d} d ${hr % 24} h ago` : `${d} d ago`;
   return exact ? text : `~${text}`;
 }
-// GOAL32 §2: a Workday job says only "posted today", so the time is when it was found: "Posted today, found 9:03 AM",
-// not "19 min" (a catch-up fetch is not a brand-new posting); with no posted date at all, "Found 2 h ago, posted date unknown"
+// GOAL32 §2: "Posted today, found 9:03 AM" when the board gives only a day; "Found 2 h ago, posted date unknown"
 const localDay = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const dayWord = (day) => (day === localDay(Date.now()) ? "today" : day === localDay(Date.now() - 86400000) ? "yesterday" : shortDate(day));
 export function postedText(ts, exact, found, day) {

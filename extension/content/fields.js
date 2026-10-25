@@ -198,6 +198,7 @@ var JH = globalThis.JH || (globalThis.JH = {});
       if (known.options && !(f.options && f.options.length)) f.options = known.options;
       if (known.key && !f.cls.key) f.cls = { ...f.cls, key: known.key, server: true };
       if (known.origin) f.origin = known.origin;
+      if (known.saved) f.saved = true;                  // GOAL36 §5.4: filled from the user's saved answer
       if (known.flag) f.flag = known.flag;
     }
     return f;

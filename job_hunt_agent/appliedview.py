@@ -3,12 +3,13 @@ grouped by the day the user applied (newest day first), so an email from a compa
 JD, the resume the user sent and the tracker row. The Tracker tab keeps the table.
 
 Segments: all sent applications, waiting (applied, no answer yet), interviewing (screen / interview / offer) and
-rejected (rejected / cold). A search matches company or role. A job of the feed gets its feed card; a job added by
+rejected (rejected / cold). A search uses the Tracker's (GOAL35 §5: company and its aliases, role, city, JD, dates,
+typos; trackfind). A job of the feed gets its feed card; a job added by
 link or pasted in the Resume app (no feed uid) gets a small card that opens its tracker row.
 """
 from datetime import date, datetime
 
-from . import api, daygroups, outside_card
+from . import api, daygroups, outside_card, outside_jobs, trackfind
 
 SEGMENTS = {
     "all": ("applied", "screen", "interview", "offer", "rejected", "ghosted"),
@@ -26,14 +27,6 @@ def _rows(conn, pid: str) -> list[dict]:
         f"FROM applications a WHERE a.profile = ? AND a.status IN ({','.join('?' * len(statuses))}) "
         "ORDER BY coalesce(a.applied_on, '') DESC, a.id DESC", (pid, *statuses))
     return [dict(r) for r in rows]
-
-
-def _matches(row: dict, card: dict | None, q: str) -> bool:
-    if not q:
-        return True
-    text = " ".join(str(x or "") for x in (row["company"], row["role_title"],
-                                           (card or {}).get("company"), (card or {}).get("title"))).lower()
-    return all(word in text for word in q.lower().split())
 
 
 def _local(ts: str | None) -> datetime | None:
@@ -66,17 +59,22 @@ def board(conn, pid: str, seg: str, q: str | None, now: datetime) -> dict:
     count (counts ignore the search, so the segment row stays steady while typing)."""
     if seg not in SEGMENTS:
         raise ValueError(f"seg must be one of {tuple(SEGMENTS)}")
+    outside_jobs.backfill(conn, pid, now)                   # GOAL36 §5.1: outside rows get their job record
     rows = _rows(conn, pid)
     counts = {name: sum(1 for r in rows if r["status"] in statuses) for name, statuses in SEGMENTS.items()}
-    rows = [r for r in rows if r["status"] in SEGMENTS[seg]]
+    found = trackfind.find(conn, pid, q) if (q or "").strip() else None
+    if found is not None:
+        hit = set(found.ids())
+        rows = [r for r in rows if r["id"] in hit]
+    in_seg = [r for r in rows if r["status"] in SEGMENTS[seg]]
+    other = len(rows) - len(in_seg)                 # found, but under another segment
+    rows = in_seg
     feed = api.cards_for(conn, pid, list(dict.fromkeys(r["job_uid"] for r in rows if r["job_uid"])), now)
     today = date.fromisoformat(api.today(now))          # the clock applied_on was written with (Mark applied)
     who = outside_card.person(pid) if any(not r["job_uid"] for r in rows) else None
     cards, seen = [], set()
     for row in rows:
         card = feed.get(row["job_uid"]) if row["job_uid"] else None
-        if not _matches(row, card, (q or "").strip()):
-            continue
         card = dict(card) if card else outside_card.card(conn, who, f"app:{row['id']}", row, now=False)
         if card["uid"] in seen:                     # two rows for one posting: the newest one is the card
             continue
@@ -91,4 +89,5 @@ def board(conn, pid: str, seg: str, q: str | None, now: datetime) -> dict:
     for card in cards:
         card["ap"]["day"] = f"{card['ap']['day']} ({days[card['ap']['day']]})"
     return {"tab": "applied", "view": "cards", "seg": seg, "q": q or "", "jobs": cards, "total": len(cards),
-            "counts": counts, **api.progress(conn, pid, now)}
+            "counts": counts, "terms": list(found.terms) if found else [], "other_segments": other if found else 0,
+            **api.progress(conn, pid, now)}

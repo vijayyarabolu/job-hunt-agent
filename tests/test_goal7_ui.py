@@ -109,7 +109,9 @@ class BrowserUiTest(unittest.TestCase):
 
 
 STATIC = Path(__file__).parents[1] / "job_hunt_agent" / "static"
-JS_BUDGET = 120_000                 # JS ≤ 120 KB, CSS ≤ 40 KB uncompressed, ≤ 2 font files
+JS_BUDGET = 120_000 + 1_000         # JS ≤ 121 KB, CSS ≤ 40 KB uncompressed, ≤ 2 font files
+# +1,000 at startup: the first-run Setup route, the "#settings/setup" return from Google and the product name in
+# app.js / core.js / feed.js, on top of GOAL35's address state (urlstate.js, find.js)
 CSS_BUDGET = 40_000
 FONT_FILES = 2
 # GOAL8 (user decision 2026-10-07 "Lazy-load new parts"): the budget above holds for what loads at startup (app.js and
@@ -143,7 +145,8 @@ FONT_FILES = 2
 # Applied as cards (applied.js, lazy, only on the Applied tab, with its own few styles): +4,500
 # the three who-to-contact cards in finder.js and the contact's kind in rowedit.js (both lazy): +2,500
 JS_TOTAL_BUDGET = 185_000 + 58_200 + 4_000 + 11_000 + 2_000 + 1_000 + 1_000 + 1_000 + 1_000 + 1_000 + 1_000 + 2_500 + 11_800 \
-    + 5_000 + 21_000 + 11_000 + 1_000 + 4_500 + 2_500 + 6_400 + 1_000 + 4_200 + 1_400 + 2_500 + 1_500
+    + 5_000 + 21_000 + 11_000 + 1_000 + 4_500 + 2_500 + 6_400 + 1_000 + 4_200 + 1_400 + 2_500 + 1_500 + 20_000 + 1_500 + 1_000 \
+    + 1_500 + 1_000
 # the Offer check panel and the job page's Application questions box (offer.js, appq.js, both lazy): +6,400
 # the Resumes tab's empty-view words and the poll's backoff in the lazy rq.js / rg.js: +1,000
 # each list and page keeping its last data, placeholders and Could not load + Retry: +4,200 (tracker.js, 19 KB, now
@@ -152,6 +155,14 @@ JS_TOTAL_BUDGET = 185_000 + 58_200 + 4_000 + 11_000 + 2_000 + 1_000 + 1_000 + 1_
 # live.js's resume-service push, the ring's words, the reload rule, the open job kept for a reload and Saved counting
 # its outside jobs: +2,500
 # the empty views saying what fills them, Clear filters, the follow-up Undo, key 0 and the status shapes: +1,500
+# urlstate.js (every page's filters, sort, tab, search, person and job in the address), find.js (the page's twin of
+# the shared search + highlighting), the feed / Answers search boxes, the ⌘K box's server search, the Tracker's
+# found-by-status line and empty states: +20,000
+# the W2 / vague repost / "via" tags, the not-W2 footer count and Settings > Job sources: +1,500
+# Settings > New jobs (lazy settings.js): +1,000
+# the Tracker's "N more where only the JD mentions it: show" toggle, ⌘K's job-list order and its "No open X jobs"
+# line, and the grid's column sort / filters kept in the address (lazy tracker.js, palette.js, gridmenu.js): +1,500
+# the public build's startup +1,000 (see JS_BUDGET) counts here too: +1,000
 LAZY_CSS_BUDGET = 8_000 + 1_000 + 1_300         # GOAL25 §1/§3: answers.css (Learned, company answers, Stats bars)
 # +1,300 for offer.css (Offer check grades, Application questions) and rg.css's "Mirrored from JD" tags
 # ds.css holds the tokens and shared parts (buttons, chips, tags, menus, dialogs, toasts) and is byte-identical

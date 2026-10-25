@@ -265,6 +265,8 @@ try {
   await until("document.querySelector('.pickbar').hidden");
   await sleep(400);                                                       // the tap's synthesized mouse events are done
   await key("Escape");                                                    // and any tip they armed is gone
+  await js("document.querySelector('#list .rgc.rg-needs-you').scrollIntoView({ block: 'center' }); return 1");   // GOAL35: the feed's search box sits above the list
+  await sleep(200);
   const t = await centre("#list .rgc.rg-needs-you");                      // a control: Chrome snaps a touch to the nearest clickable element
   await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: t[0], y: t[1] }] });
   await sleep(650);

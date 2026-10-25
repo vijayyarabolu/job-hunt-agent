@@ -348,8 +348,10 @@ class OutsideJobTest(Goal8Case):
         self.assertEqual((app["status"], app["job_url"]), ("saved", "https://example.com/post"))
         self.assertIn("Kubernetes", app["jd_text"])
         self.assertEqual(rgjobs.statuses(self.conn, PID)["apps"][rows[0]["id"]]["chip"], "ready")
-        saved = api.jobs(self.conn, PID, "saved", NOW)
-        self.assertEqual([o["company"] for o in saved["outside"]], ["Recruiter Co"])
+        saved = api.jobs(self.conn, PID, "saved", NOW)              # GOAL36 §5.1: its job record's card, tagged
+        self.assertEqual([(c["company"], c.get("outside_job")) for c in saved["jobs"] if c.get("outside_job")],
+                         [("Recruiter Co", True)])
+        self.assertEqual((saved["outside"], saved["outside_cards"]), ([], 1))
 
     def test_a_pasted_jd_for_a_role_already_tracked_links_to_that_row(self):
         app_id = trackapi.create(self.conn, PID, {"company": "Acme", "role_title": "MLE", "status": "saved"})["id"]

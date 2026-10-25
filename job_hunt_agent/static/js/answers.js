@@ -1,10 +1,11 @@
-// /§7: the Answers page. What the Autofill extension fills into job forms, per person: "Needs you" first
-// (each question once, its choices as buttons), then the addresses per city, the work history Workday's My Experience
-// gets, and every saved answer, editable. what it learned from the user's own filling (Undo), company-only answers,
-// saved long answers, fill stats (afmore.js); choice answers are dropdowns; education is a list of degrees; the start
-// date setting is a weeks box. Lazy: loaded on first open.
-import { $, B, S, api, fail, get, h, loadError, placeholder, refreshFailed, toast } from "./core.js";
+// GOAL23 §4/§7: the Answers page, per person: "Needs you" first (each question once, choices as buttons), addresses
+// per city, the work history for Workday's My Experience, every saved answer editable. GOAL25: what it learned (Undo),
+// company-only answers, long answers, fill stats (afmore.js); choices are dropdowns; education is a list of degrees.
+// GOAL30 §1.5: the start date setting is a weeks box. Lazy: loaded on first open.
+import { $, $$, B, S, api, fail, get, h, loadError, placeholder, refreshFailed, toast } from "./core.js";
 import { companies, learned, snippets, stats, typoNote } from "./afmore.js";
+import { match, words } from "./find.js";
+import { syncUrl } from "./urlstate.js";
 
 const LEGAL_TIP = "Legal / government / EEO: filled only with the answer you save here, never guessed";
 let data = null;
@@ -168,7 +169,8 @@ function render() {
   const cats = data.categories.filter(([c]) => c !== "history");
   const view = $("#view");
   view.replaceChildren(h("div", "af",
-    h("header", "t-head", h("h1", {}, "Answers"), h("p", "muted small", "What the Autofill extension puts into job forms. Answer a question once: it fills everywhere after.")),
+    h("header", "t-head", h("h1", {}, "Answers"), h("p", "muted small", "What the Autofill extension puts into job forms. Answer a question once: it fills everywhere after."),
+      searchBox(), h("p", { class: "af-found muted small", role: "status" })),
     h("section", "af-sec", h("h2", {}, `Needs you (${data.needs.length})`),
       data.needs.length ? h("ul", "af-list", data.needs.map(needCard)) : h("p", "hint", "Nothing waiting. Questions a form asks that have no saved answer show up here.")),
     typoNote(data.fixed), learned(data, post), addresses(),
@@ -178,6 +180,33 @@ function render() {
       return rows.length ? h("section", "af-sec", h("h2", {}, title), h("div", "set-group", rows.map(field))) : null;
     }),
     companies(data, post), snippets(data, post), history(), stats(data.stats), setup()));
+  applySearch();
+}
+
+// GOAL35 §5.2: the Answers search: the question text and the answer text (what the boxes hold), the shared rules
+const ITEMS = ".af-list > li, .af-row, .af-sec li, .set-field";
+const textOf = (el) => [el.textContent, ...[...el.querySelectorAll("input, textarea, select")].map((x) => x.value)].join(" ");
+function searchBox() {
+  const box = h("input", { type: "search", class: "f-search af-search", value: S.afq || "", placeholder: "Search questions and answers",
+    "aria-label": "Search questions and answers", title: "Search the questions and your answers (/)" });
+  box.addEventListener("input", () => { S.afq = box.value.trim(); syncUrl(); applySearch(); });
+  return box;
+}
+function applySearch() {
+  const ws = words(S.afq || "");
+  const items = $$(ITEMS, $("#view .af"));
+  let shown = 0;
+  for (const el of items) {
+    const hide = ws.length > 0 && !el.querySelector(ITEMS) && !match(ws, textOf(el));
+    el.hidden = hide;
+    if (!hide && !el.querySelector(ITEMS)) shown += 1;
+  }
+  for (const sec of $$("#view .af-sec")) sec.hidden = ws.length > 0 && !$$(ITEMS, sec).some((el) => !el.hidden && !el.querySelector(ITEMS));
+  const note = $("#view .af-found");
+  if (note) {
+    note.replaceChildren(!ws.length ? "" : shown ? `${shown} found for “${S.afq}”` : `Nothing matches “${S.afq}”. Searched every question and answer. `,
+      ws.length && !shown ? B({ class: "linklike", onclick: () => { S.afq = ""; syncUrl(); render(); } }, "Clear search") : "");
+  }
 }
 
 export async function loadAnswers() {

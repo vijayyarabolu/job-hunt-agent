@@ -22,8 +22,8 @@ from . import atomic, config
 from .net import HttpError, get_range, remote_size
 
 BASE = "https://data.commoncrawl.org/"
-# Newest three crawls (skeptic minor 6) + the two the design measured for Lever's long tail.
-CRAWLS = ("CC-MAIN-2026-39", "CC-MAIN-2026-34", "CC-MAIN-2026-30", "CC-MAIN-2025-08", "CC-MAIN-2024-10")
+# Newest four crawls (skeptic minor 6; GOAL35 §2 added 2026-43) + the two the design measured for Lever's long tail.
+CRAWLS = ("CC-MAIN-2026-43", "CC-MAIN-2026-39", "CC-MAIN-2026-34", "CC-MAIN-2026-30", "CC-MAIN-2025-08", "CC-MAIN-2024-10")
 PREFIXES = {                        # SURT host prefixes per ATS (SmartRecruiters dropped: robots Disallow: /)
     "greenhouse": ("io,greenhouse,boards)/", "io,greenhouse,job-boards)/"),
     "lever": ("co,lever,jobs)/",),

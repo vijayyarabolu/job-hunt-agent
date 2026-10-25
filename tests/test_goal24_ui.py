@@ -148,7 +148,8 @@ class Goal24BrowserTest(unittest.TestCase):
                            "No sponsorship is shown, ranked last", "Sponsored before comes after the unknowns of its day",
                            "the switch shows counts", "No sponsorship lists only those",
                            "Sponsor-friendly lists Sponsors, Cap-exempt and Sponsored before (no Unknown)",
-                           "the switch is remembered", "a reload shows All again"])
+                           "the switch is remembered", "the address names the switch", "a reload keeps Sponsor-friendly",
+                           "a link without the switch shows All"])
 
     def test_panel_tracker_answers_and_phone(self):
         self.assert_group(["the job panel shows the badge and its evidence", "a Tracker row shows its company's badge, icon and word",

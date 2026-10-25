@@ -133,8 +133,17 @@ def statuses(conn, pid: str, rescore=None, now=None) -> dict:
     jobs = [{**j, "status": "cancelled"} if j["id"] in gone else j for j in jobs]
     links = outside.links(conn, pid)
     by_app = {links[j["id"]]: chip(j) for j in sorted(jobs, key=lambda j: j["id"]) if j["id"] in links and chip(j)}
-    return {"online": True, "jobs": _latest(jobs, "source_job_id"), "apps": by_app, "outside_new": new,
+    return {"online": True, "jobs": {**_latest(jobs, "source_job_id"), **_record_chips(conn, pid, by_app)},
+            "apps": by_app, "outside_new": new,
             "active": sum(1 for j in jobs if j.get("status") in ACTIVE), "scores": scores(conn, pid), **extra}
+
+
+def _record_chips(conn, pid: str, by_app: dict) -> dict:
+    """GOAL36 §5.1: an outside job's card is its job record's, so its resume chip is keyed by the record's uid too."""
+    if not by_app:
+        return {}
+    rows = conn.execute("SELECT id, job_uid FROM applications WHERE profile = ? AND job_uid LIKE 'outside:%'", (pid,))
+    return {r["job_uid"]: by_app[r["id"]] for r in rows if r["id"] in by_app}
 
 
 def jd_for(conn, pid: str, uid: str) -> str:

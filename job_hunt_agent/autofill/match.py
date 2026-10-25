@@ -10,7 +10,8 @@ import re
 from datetime import timedelta
 from urllib.parse import parse_qsl, urlsplit
 
-from .. import db, jobfetch, outside, rgclient, rgjobs
+from .. import db, jobfetch, outside, outside_jobs, rgclient, rgjobs
+from ..text import norm
 
 RECENT_DAYS = 14
 MAX_RECENT = 60
@@ -116,11 +117,12 @@ def _app_view(conn, pid: str, app_id: int, how: str) -> dict | None:
                        "profile = ?", (app_id, pid)).fetchone()
     if row is None:
         return None
-    if row["job_uid"]:
+    if row["job_uid"] and not outside_jobs.is_outside(row["job_uid"]):
         found = _job_view(conn, row["job_uid"], how)
         if found:
             return found
-    return {"uid": None, "app": row["id"], "company": row["company"], "title": row["role_title"],
+    # an outside job keeps its tracker row (its tailored resume is linked to the row, rg_links), plus its GOAL36 record
+    return {"uid": row["job_uid"], "app": row["id"], "company": row["company"], "title": row["role_title"],
             "url": row["job_url"], "source": "outside", "how": how}
 
 
@@ -176,10 +178,103 @@ def listing(conn, pid: str) -> list[dict] | None:
 _UNSET = object()
 
 
-def find(conn, pid: str, url: str, frames=(), jobs=_UNSET) -> dict:
+_SUFFIX = re.compile(r"\b(inc|llc|ltd|corp|corporation|co|company|plc|group|holdings|technologies|usa|us)\b\.?", re.I)
+_TITLE_NOISE = re.compile(r"^(job application for|apply for|apply to|application for)\s+|\s*[|·].*$|\s+(at|@)\s+.+$|"
+                          r"\s+[-–]\s+[^-–]*(careers?|jobs?|hiring|recruiting)[^-–]*$", re.I)
+NAME_MIN = 0.75                 # share of title words two titles need in common to be one job
+MAX_NAME_ROWS = 400
+MAX_FOUND = 20
+
+
+def company_key(name: str | None) -> str:
+    return " ".join(_SUFFIX.sub(" ", norm(name)).split())
+
+
+def clean_title(title: str | None) -> str:
+    """The page's title without the site's words: 'Job Application for ML Engineer at Acme' -> 'ML Engineer'."""
+    text = " ".join(str(title or "").split())[:200]
+    for _ in range(3):
+        text = _TITLE_NOISE.sub("", text).strip()
+    return text
+
+
+def _title_words(title: str) -> set:
+    return set(norm(title).split())
+
+
+def _same_title(a: str, b: str) -> bool:
+    x, y = _title_words(a), _title_words(b)
+    return bool(x and y) and len(x & y) / max(len(x), len(y)) >= NAME_MIN
+
+
+def _company_names(conn, company: str) -> list[str]:
+    """The spellings of this company in the boards we fetch (job rows carry the board's name)."""
+    want = company_key(company)
+    if not want:
+        return []
+    names = {company.strip()}
+    for r in conn.execute("SELECT DISTINCT company FROM boards WHERE company IS NOT NULL"):
+        if company_key(r["company"]) == want:
+            names.add(r["company"])
+    return sorted(names)
+
+
+def by_name(conn, pid: str, company: str | None, title: str | None) -> dict:
+    """GOAL36 §5.2: a page whose URL is unknown, matched by the company and job title it shows. {'job': ...} for one
+    clear answer (a tracker row first, then an open feed job), else {'candidates': [...]} for the picker."""
+    title = clean_title(title)
+    want = company_key(company)
+    if not want or not title:
+        return {"candidates": []}
+    rows = [r for r in conn.execute("SELECT id, company, role_title FROM applications WHERE profile = ? "
+                                    "ORDER BY id DESC LIMIT ?", (pid, MAX_TRACKER_ROWS))
+            if company_key(r["company"]) == want and _same_title(r["role_title"] or "", title)]
+    if len(rows) == 1:
+        return {"job": _app_view(conn, pid, rows[0]["id"], "name")}
+    names = _company_names(conn, company)
+    jobs = [dict(r) for r in conn.execute(
+        f"SELECT uid FROM jobs WHERE company IN ({','.join('?' * len(names))}) AND closed_at IS NULL "
+        f"ORDER BY first_seen DESC LIMIT ?", [*names, MAX_NAME_ROWS])] if names else []
+    views = [_job_view(conn, j["uid"], "name") for j in jobs]
+    same = [v for v in views if v and _same_title(v["title"] or "", title)]
+    exact = [v for v in same if norm(v["title"]) == norm(title)]
+    if len(exact) == 1 or (len(same) == 1 and not rows):
+        return {"job": (exact or same)[0]}
+    picks = [_app_view(conn, pid, r["id"], "name") for r in rows] + same
+    return {"candidates": [v for v in picks if v][:MAX_FOUND]}
+
+
+def search(conn, pid: str, q: str) -> list[dict]:
+    """GOAL36 §5.2 "Link to a job": the person's tracker rows and the open feed jobs whose company or title holds
+    every word typed, newest first."""
+    words = norm(q).split()
+    if not words or len(" ".join(words)) < 2:
+        return []
+    hit = lambda *texts: all(w in norm(" ".join(t or "" for t in texts)) for w in words)    # noqa: E731
+    out = [_app_view(conn, pid, r["id"], "search") for r in conn.execute(
+        "SELECT id, company, role_title FROM applications WHERE profile = ? ORDER BY id DESC LIMIT ?",
+        (pid, MAX_TRACKER_ROWS)) if hit(r["company"], r["role_title"])]
+    names = [r["company"] for r in conn.execute("SELECT DISTINCT company FROM boards WHERE company IS NOT NULL")
+             if any(w in norm(r["company"]) for w in words)][:50]
+    if names:
+        for r in conn.execute(f"SELECT uid, company, title FROM jobs WHERE company IN ({','.join('?' * len(names))}) "
+                              f"AND closed_at IS NULL ORDER BY first_seen DESC LIMIT ?", [*names, MAX_NAME_ROWS]):
+            if hit(r["company"], r["title"]):
+                out.append(_job_view(conn, r["uid"], "search"))
+    seen, uniq = set(), []
+    for v in out:
+        key = v and (v["uid"] or f"app:{v['app']}")
+        if v and key not in seen:
+            seen.add(key)
+            uniq.append(v)
+    return uniq[:MAX_FOUND]
+
+
+def find(conn, pid: str, url: str, frames=(), jobs=_UNSET, shows: dict | None = None) -> dict:
     """{'job': {...} | None, 'recent': [...] when none was found, 'resumegen': online?}. `frames`: the addresses
     of application forms embedded in the page (a Greenhouse iframe on a company site); `jobs`: resumegen's list
-    when the caller already has it (None: offline)."""
+    when the caller already has it (None: offline); `shows`: the company and title the page shows (GOAL36 §5.2:
+    tried after every address way, with 'candidates' when more than one job fits)."""
     pages = [_check(url)] + [str(f) for f in list(frames or [])[:MAX_FRAMES]
                              if str(f).startswith(("http://", "https://")) and len(str(f)) <= MAX_URL]
     for page in pages:
@@ -195,7 +290,11 @@ def find(conn, pid: str, url: str, frames=(), jobs=_UNSET) -> dict:
         found = (_from_resumegen(conn, pid, page, jobs) if jobs else None) or _from_tracker(conn, pid, page)
         if found:
             return {"job": found, "resumegen": jobs is not None}
-    return {"job": None, "recent": recent(conn, pid, jobs), "resumegen": jobs is not None}
+    named = by_name(conn, pid, shows.get("company"), shows.get("title")) if shows else {}
+    if named.get("job"):
+        return {"job": named["job"], "resumegen": jobs is not None}
+    return {"job": None, "recent": recent(conn, pid, jobs), "resumegen": jobs is not None,
+            "candidates": named.get("candidates") or []}
 
 
 def recent(conn, pid: str, jobs: list[dict] | None) -> list[dict]:

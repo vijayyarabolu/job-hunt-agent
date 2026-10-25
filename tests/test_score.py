@@ -9,7 +9,8 @@ from job_hunt_agent import applied, fits, lexicon, score
 from job_hunt_agent.resume import ats
 
 NOW = datetime(2026, 10, 2, 12, 0, tzinfo=timezone.utc)
-CTX = score.Ctx(now=NOW, profile_id="alex", years=4, known=frozenset({"Python"}), has_baseline=True)
+CTX = score.Ctx(now=NOW, profile_id="alex", years=4, known=frozenset({"Python"}), has_baseline=True,
+                families=("ml_engineer",))           # GOAL36 §1: the title family vouches for these jobs
 
 
 def iso(hours_ago: float) -> str:
@@ -28,7 +29,8 @@ def job(**over) -> dict:
            "location": "San Francisco, CA", "is_us": 1, "req_id": None, "has_team": 1, "salary_min": 190000,
            "salary_max": 240000, "min_years": 5, "is_talent_pool": 0, "precision": "exact",
            "posted_at": iso(5), "first_posted_at": iso(5), "first_seen": iso(4), "seed": 0, "bumped_at": None,
-           "chain_origin": None, "chain_n": 0, "repost_count": 0, "closed_at": None, "stale": 0}
+           "chain_origin": None, "chain_n": 0, "repost_count": 0, "closed_at": None, "stale": 0,
+           "families": ",ml_engineer,"}
     return {**row, **over}
 
 

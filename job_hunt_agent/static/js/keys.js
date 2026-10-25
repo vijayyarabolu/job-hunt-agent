@@ -50,7 +50,8 @@ function onKey(e) {
   if ((e.key === "Enter" || e.key === " ") && e.target.closest("button, a, summary, [contenteditable], td.editable")) return;
   const global = {
     "?": () => $("#help").showModal(),
-    "/": () => (TABLE_TABS.includes(S.tab) ? import("./tracker.js").then((m) => m.focusSearch()) : openPalette()),
+    "/": () => (TABLE_TABS.includes(S.tab) ? import("./tracker.js").then((m) => m.focusSearch())     // GOAL35: the page's own box
+      : $("#pane-list:not([hidden]) .f-search, #pane-list:not([hidden]) .ap-search, #view:not([hidden]) .af-search")?.focus() ?? openPalette()),
     t: () => app.toggleTheme(), n: () => openAddJob(), u: () => undoLastEdit(), ",": () => app.openSettings(),
   };
   if (global[e.key]) { e.preventDefault(); global[e.key](); return; }

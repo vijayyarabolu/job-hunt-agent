@@ -26,8 +26,10 @@ try {
     await until("document.querySelector('#list .row')", 10000);
     await sleep(2500);                                        // the live stream (after the first paint) is open
     await js("document.querySelector('#tabs [data-tab=resumes]').click()");
-    await until("document.querySelector('#list-head button')", 5000);
+    // the segment buttons draw with the Resumes data (GOAL36: outside jobs are full cards now, a little slower)
+    await until("[...document.querySelectorAll('#list-head button')].some((x) => x.textContent.startsWith('Queue'))", 5000);
     await view("Queue");
+    await until("/rq=queue/.test(location.hash)", 3000);
     await sleep(600);
     const company = `ZZ_TEST Live ${pid}`;
     let id;
@@ -44,8 +46,9 @@ try {
     }
     check(`${pid}: the page was never reloaded`, await js("return performance.getEntriesByType('navigation')[0].type !== 'reload'"));
     await js("document.querySelector('#tabs [data-tab=saved]').click()");      // §3d: the outside job counts in Saved
+    // GOAL36 §5.1: the outside job is a card in the list (its job record's), with the "outside job" tag
     const saved = await until(`/^Saved [1-9]/.test(document.querySelector('#lh-title')?.textContent || '') &&
-      document.querySelector('#list-more .section-head') && !/Nothing saved yet/.test(document.body.innerText)`, 8000);
+      document.querySelector('#list .row .outside-tag') && !/Nothing saved yet/.test(document.body.innerText)`, 8000);
     check(`${pid}: Saved counts its outside jobs and never says Nothing saved yet`, saved,
       await js("return document.querySelector('#list-head')?.innerText + ' | ' + document.querySelector('#list-pane, main')?.innerText.slice(0, 200)"));
     await js("document.activeElement?.blur(); document.dispatchEvent(new KeyboardEvent('keydown', { key: '0', bubbles: true }))");

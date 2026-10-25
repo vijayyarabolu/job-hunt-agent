@@ -94,7 +94,7 @@ class Goal21BrowserTest(unittest.TestCase):
 
     def test_status_and_settings(self):
         self.assert_group(["status: a dot and a word, labelled", "status: a click opens its popover", "status: Esc closes it",
-                           "Settings: the gear opens the page", "Settings: the seven sections", "Settings: every section shows its content",
+                           "Settings: the gear opens the page", "Settings: the eight sections", "Settings: every section shows its content",
                            "Settings: the resume generator section links to resumegen",
                            "Settings: the view title and no active menu item", "Settings: Back returns to the list",
                            "Settings: the , key opens it", "Settings: Esc closes it", "type: body text is at least 14 px"])

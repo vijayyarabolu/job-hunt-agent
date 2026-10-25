@@ -155,6 +155,8 @@ def match_page(conn, pid: str, args: dict) -> dict:
     recent: the picker's list."""
     jobs = _listing(conn, pid)
     uid, app_id = _job_args(args)
+    if args.get("find"):                                # GOAL36 §5.2 "Link to a job": a search of the user's jobs
+        return {"job": None, "found": match.search(conn, pid, str(args.get("find"))[:200])}
     if args.get("recent"):                              # "Not this job?": the picker, whatever the page matched
         found = {"job": None, "recent": match.recent(conn, pid, jobs), "resumegen": jobs is not None}
     elif uid or app_id:                                 # the job this tab came from (its posting matched)
@@ -163,7 +165,9 @@ def match_page(conn, pid: str, args: dict) -> dict:
             raise KeyError(uid or app_id)
         found = {"job": view, "resumegen": jobs is not None}
     else:
-        found = match.find(conn, pid, str(args.get("url") or ""), _frames(args.get("frames")), jobs=jobs)
+        shows = {k: str(args.get(k) or "")[:200] for k in ("company", "title")}
+        found = match.find(conn, pid, str(args.get("url") or ""), _frames(args.get("frames")), jobs=jobs,
+                           shows=shows if any(shows.values()) else None)
     job = found.get("job")
     choice = place = badge = None
     if job:

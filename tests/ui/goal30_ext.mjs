@@ -239,12 +239,12 @@ try {
   check("§2 the user's saved answer fills the open question", await t.until("/Globex/.test(document.querySelector('[data-automation-id=\"formField-op1\"] textarea')?.value || '')", 15000));
   check("§2 the panel says whose job it was written for", await panelHas("Written for Globex"), await t.panelText());
   check("§2 ... and flags that it names Globex", await panelHas("▲Names Globex") || await panelHas("▲ Names Globex"), await t.panelText());
-  check("§2 Regenerate for this job is offered", await panelHas("Regenerate for this job"), await t.panelText());
+  check("§2 Regenerate for this job is offered", await panelHas("Generate for this job"), await t.panelText());   // GOAL36 §5.4 names it "Generate for this job"
   await shot("ux30-regenerate");
   const writing = await timeTo("Writing");
   if (process.env.JH_PROFILE) { await t.send("Profiler.enable"); await t.send("Profiler.setSamplingInterval", { interval: 100 }); await t.send("Profiler.start"); }
   t0 = Date.now();
-  await click("Regenerate for this job");
+  await click("Generate for this job");
   if (process.env.JH_PROFILE) writeFileSync(process.env.JH_PROFILE, JSON.stringify((await t.send("Profiler.stop")).profile));
   check("§5 Regenerate shows Writing at once", await panelHas("Writing", 5000), await t.panelText());
   timings.generate_to_writing_ms = await writing();
@@ -303,6 +303,7 @@ try {
 
   // §4: ✎ on a radio group (Ashby's survey), everywhere
   await board("ashby", "document.querySelector('input[name=veteranStatus]:checked')");
+  await sleep(1500);            // GOAL36: the page settles after Autofill (a click mid-scroll never reached the button)
   check("§4 ✎ on a radio group", await clickTitled("Edit Gender"));
   await panelSet("New answer for Gender", "Decline To Self Identify");
   await click("Fill it");

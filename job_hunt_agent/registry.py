@@ -1,5 +1,6 @@
 """The board registry the fetcher uses: curated config/companies.yaml + generated config/companies.discovered.yaml
-(decision 005 B1 step 4). The curated file wins on every conflict and v1 boards are never double-counted.
+(decision 005 B1 step 4) + the employers' own boards found from the state job banks (data/employer_boards.yaml,
+GOAL36 §2). The curated file wins on every conflict and v1 boards are never double-counted.
 
 build() turns verified discover_probes rows into the discovered file:
 - admitted = live (hit=1) with >= 1 US posting in the last 60 days, on a fetchable ATS, robots-allowed
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import yaml
 
-from . import company_names, config, db, past_employers, segments, seedlists
+from . import company_names, config, db, employer_boards, jobbanks, past_employers, segments, seedlists
 from .ats import ADAPTERS, KEY_FIELDS, board_key
 
 DISCOVERED = "companies.discovered.yaml"
@@ -30,6 +31,8 @@ FETCHABLE = ("greenhouse", "lever", "ashby", "workday",    # Workable deferred (
 GOAL16_ATS = ("bamboohr", "rippling", "gem", "recruitee", "breezy", "pinpoint", "hibob", "jobscore",
               "adp", "paylocity", "dayforce", "cornerstone", "jazzhr")
 log = logging.getLogger(__name__)
+JOBBANK_BOARD = {"board": "careeronestop:us", "ats": "careeronestop", "key": "us", "company": "State job banks",
+                 "tier": None, "review": False, "segment": None, "source": "jobbank", "website": None}
 
 
 def discovered_path() -> Path:
@@ -70,6 +73,17 @@ def boards() -> list[dict]:
         if board["board"] not in seen:
             seen.add(board["board"])
             out.append(board)
+    for entry in employer_boards.learned_raw():     # GOAL36 §2: employers' own boards found from the job banks
+        try:
+            board = _board(entry, employer_boards.SOURCE)
+        except config.ConfigError as err:
+            log.warning("skipping learned employer board: %s", err)
+            continue
+        if board["board"] not in seen and entry.get("ats") in ADAPTERS:
+            seen.add(board["board"])
+            out.append(board)
+    if jobbanks.enabled():                     # GOAL35 §4.2: the state job banks (Settings switch + a key)
+        out.append(JOBBANK_BOARD)
     return _without_past_employers(out)
 
 

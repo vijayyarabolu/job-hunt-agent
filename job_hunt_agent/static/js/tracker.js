@@ -5,6 +5,8 @@ import { cellDisplay, makeEditable, setInlineHooks, syncBadge, undoLastEdit, wat
 import { openApplyDialog, pickResumeFile, removeApp, resumeBtns, xBtn } from "./dialogs.js";
 import { openAddJob, openRowEditor, openVendors, refreshEditor, refreshFollowups } from "./editor.js";
 import { sponsorBadge } from "./sponsor.js";
+import { syncUrl } from "./urlstate.js";
+import { marked } from "./find.js";
 
 const GROUPS = { applied: "applied", interviewing: "interviewing", tracker: "" };
 const GROUP_STATUSES = { applied: ["applied"], interviewing: ["screen", "interview", "offer"] };
@@ -12,7 +14,11 @@ const LIMIT = 2000;
 const SEARCH_DEBOUNCE_MS = 300;
 const MARK_TIP = "Mark applied (asks for the resume)";
 const UPLOAD_TIP = "Upload the resume you sent (PDF/DOCX)";
-export const T = { rows: [], layout: null, look: null, counts: {}, total: 0, q: "", status: "", sheetName: "", gone: {} };
+// GOAL35 §1: the search, status and sheet tab start from the address (S.urlT) and go back into it on every load
+const fromUrl = () => ({ q: S.urlT?.q || "", status: S.urlT?.status || "", sheetName: S.urlT?.sheetName || "", wide: !!S.urlT?.wide,
+  gsort: S.urlT?.gsort || "", gf: S.urlT?.gf || "" });
+export const T = { rows: [], layout: null, look: null, counts: {}, total: 0, ...fromUrl(), gone: {} };
+S.T = T;
 let loadToken = 0;
 let searchTimer = 0;
 let grid = null;
@@ -29,7 +35,7 @@ export const shownTab = () => T.layout.tabs.find((t) => t.name === T.sheetName) 
 const shownStatuses = () => (GROUPS[S.tab] === "" ? (T.status ? [T.status] : null) : GROUP_STATUSES[S.tab]);
 const fits = (row) => !shownStatuses() || shownStatuses().includes(row.status);
 
-export function resetTracker() { Object.assign(T, { q: "", status: "", sheetName: "", rows: [], layout: null, gone: {} }); }
+export function resetTracker() { Object.assign(T, { ...fromUrl(), rows: [], layout: null, gone: {}, found: null }); }
 export const focusSearch = () => $("#t-search")?.focus();
 
 // GOAL31 §3: each table's last rows, drawn at once on the way back; the same rows again redraw nothing
@@ -39,8 +45,9 @@ let shownSig = "";
 export async function loadTracker({ quiet = false } = {}) {
   const token = ++loadToken;
   const tab = S.tab;
+  syncUrl();
   const status = GROUPS[tab] === "" ? T.status : GROUPS[tab];
-  const memo = `${S.profile}|${tab}|${status}|${T.q}|${T.sheetName}`;
+  const memo = `${S.profile}|${tab}|${status}|${T.q}|${T.wide ? 1 : 0}|${T.sheetName}`;
   const hit = !quiet && lastRows.get(memo);
   if (hit) { S.mail = null; Object.assign(T, hit.data, { gone: {} }); draw(); shownSig = hit.sig; }
   else if (!quiet) { S.mail = null; shownSig = ""; view().replaceChildren(toolbar(), h("div", "t-wrap", placeholder())); }
@@ -48,16 +55,16 @@ export async function loadTracker({ quiet = false } = {}) {
     const sheetTab = T.layout?.tabs.find((x) => x.name === T.sheetName);
     if (sheetTab?.kind === "vendors") return await loadVendors(sheetTab, quiet);
     const sheet = sheetTab?.kind === "apps" ? sheetTab.index : "";
-    const data = await get("/api/tracker", { status, q: T.q, limit: LIMIT, compact: "1", sheet });
+    const data = await get("/api/tracker", { status, q: T.q, limit: LIMIT, compact: "1", sheet, ...(T.wide ? { wide: "1" } : {}) });
     if (token !== loadToken || tab !== S.tab) return;
     const sig = JSON.stringify(data);
-    const got = { rows: data.rows, layout: data.layout, look: data.look, counts: data.counts || {}, total: data.total };
+    const got = { rows: data.rows, layout: data.layout, look: data.look, counts: data.counts || {}, total: data.total, found: data.found || null };
     lastRows.set(memo, { data: got, sig });
     if (sig === shownSig) return;
     shownSig = sig;
     const same = (quiet || hit) && gridOn() && data.layout && T.layout && sheet === (sheetTab?.kind === "apps" ? sheetTab.index : "");
     Object.assign(T, got, { gone: {} });
-    if (same) { paintCounts(); grid.refresh(); return; }
+    if (same) { paintCounts(); paintFound(); grid.refresh(); return; }
     draw();
   } catch (err) {
     if (token !== loadToken) return;
@@ -82,7 +89,7 @@ function searchBox() {
   search.value = T.q;
   search.addEventListener("input", () => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => { T.q = search.value.trim(); loadTracker({ quiet: true }); }, SEARCH_DEBOUNCE_MS);
+    searchTimer = setTimeout(() => { T.q = search.value.trim(); T.wide = false; loadTracker({ quiet: true }); }, SEARCH_DEBOUNCE_MS);
   });
   return search;
 }
@@ -128,8 +135,46 @@ function toolbar() {
   const head = h("div", "t-head", h("h1", { id: "t-h" }, tabName(S.tab), muted(` ${T.total ?? ""}`, "muted n")),
     searchBox(), acts, h("div", "t-sync", syncChip(), S.google?.sheet_url ? extLink(S.google.sheet_url, "Open my sheet ↗", "lnk", "Open my Google Sheet") : null));
   const grid = cardsMode() ? [] : [h("div", { id: "g-state", class: "g-state" }), h("span", { id: "g-saved", class: "g-saved", role: "status" })];
-  return h("div", "t-top", head, h("div", "t-row2", statusChips(), sheetTabs(), ...grid));
+  return h("div", "t-top", head, h("div", "t-row2", statusChips(), sheetTabs(), ...grid), foundLine());
 }
+
+// a search typed into the grid's page redraws only the counts and rows: its found line follows
+function paintFound() {
+  const top = view().querySelector(".t-top");
+  if (!top) return;
+  const next = foundLine();
+  const was = top.querySelector(".t-found");
+  if (was && next) was.replaceWith(next);
+  else if (was) was.remove();
+  else if (next) top.append(next);
+}
+
+// GOAL35 §5.2: what a search found, by status (each one click away), and the way out of a filter that hides it
+const SEARCHED = "company, title, city, status, notes, contacts, resume file name and JD text, any date";
+const allStatuses = () => { T.status = ""; if (S.tab === "tracker") loadTracker({ quiet: true }); else S.switchTab("tracker"); };
+const clearSearch = () => { T.q = ""; T.wide = false; loadTracker({ quiet: true }); };
+function foundLine() {
+  const f = T.found;
+  if (!f) return null;
+  const order = ["saved", "applied", "screen", "interview", "offer", "rejected", "ghosted"].filter((k) => f.counts[k]);
+  const hidden = f.total - (T.total ?? 0);
+  return h("p", { class: "t-found small", role: "status" }, h("b", {}, `${f.total} found`), muted(` for “${f.q}”: `),
+    order.map((k, i) => [i ? muted(" · ") : null, B({ class: "lnk", "aria-pressed": String(T.status === k), title: `Show only the ${STATUS_LABELS[k]} ones`,
+      onclick: () => { T.status = k; if (S.tab === "tracker") loadTracker({ quiet: true }); else S.switchTab("tracker"); } }, `${STATUS_LABELS[k]} ${f.counts[k]}`)]),
+    hidden > 0 ? [muted(" · "), B({ class: "lnk", title: "The rest are under another status: show every status", onclick: allStatuses }, `${hidden} more in other statuses: show all`)] : null,
+    f.jd_only > 0 ? [muted(" · "), B({ class: "lnk", "aria-pressed": String(!!T.wide), title: "Rows whose JD mentions it but whose company, title and notes do not",
+      onclick: () => { T.wide = !T.wide; loadTracker({ quiet: true }); } }, T.wide ? `Hide the ${f.jd_only} found only in the JD` : `${f.jd_only} more where only the JD mentions it: show`)] : null);
+}
+
+// the empty Tracker: what it searched, and one click to search wider or start over
+export function emptyEls() {
+  if (!T.q) return [EMPTY_TRACKER[S.tab] || "Nothing here yet."];
+  const narrowed = T.status || S.tab !== "tracker";
+  return [`Nothing matches “${T.q}”${T.status ? ` in ${STATUS_LABELS[T.status]}` : S.tab !== "tracker" ? ` in ${tabName(S.tab)}` : ""}. Searched ${SEARCHED}. `,
+    narrowed ? B({ class: "lnk", title: "Search every status, any age", onclick: allStatuses }, "Search all statuses") : null,
+    narrowed ? " · " : null, B({ class: "lnk", title: "Clear the search", onclick: clearSearch }, "Clear search")];
+}
+const hl = (text) => (T.found ? marked(text, T.found.terms) : [text]);
 
 function statusChip(row) {
   const label = STATUS_LABELS[row.status] || row.status;
@@ -199,10 +244,11 @@ export function patchRow(row, field, value) {
 function card(row) {
   return h("li", { class: `t-card${overdue(row) ? " overdue" : ""}`, "data-app": String(row.id) },
     h("div", "tc-top", B({ class: "tc-open", title: OPEN_TIP, onclick: () => openRowEditor(row.id) },
-      h("b", {}, row.company || "(company)", " ", sponsorBadge(row.sponsor, { compact: true })), h("span", "tc-role", row.role_title || "(role)")), statusChip(row),
+      h("b", {}, ...hl(row.company || "(company)"), " ", sponsorBadge(row.sponsor, { compact: true })), h("span", "tc-role", ...hl(row.role_title || "(role)"))), statusChip(row),
       xBtn(`${row.company} · ${row.role_title}`, () => removeApp(row, () => { dropIds([row.id]); $(`#view .t-cards [data-app="${row.id}"]`)?.remove(); },
         () => loadTracker({ quiet: true })))),
     row.dup_of ? h("p", { class: "tag warn", title: "Same company, role and place as a newer row: × removes this one" }, `Duplicate of ${row.dup_of.label}`) : null,
+    foundIn(row),
     h("p", "tc-meta muted", row.applied_on ? `Applied ${shortDate(row.applied_on)}` : "Not applied yet",
       dueBadge(row.fu1, 1), dueBadge(row.fu2, 2), ...resumeBits(row, "Remove resume"), fullJd({ app: row.id })),
     preApply(row) ? btn("", MARK_TIP, () => moveTo(row, "applied"), sm("check"), "Mark applied") : null,
@@ -212,12 +258,18 @@ function card(row) {
 // GOAL33 §3d: an empty view says what fills it
 export const EMPTY_TRACKER = { interviewing: "Nothing here yet: a row moves here when its status becomes Screen, Interview or Offer (an email can do it).",
   tracker: "Nothing here yet: press n to add a job, or mark one applied." };
-const emptyNote = () => (T.q ? `Nothing matches “${T.q}”: clear the search to see every row.` : EMPTY_TRACKER[S.tab] || "Nothing here yet.");
+// a row found only by its JD, notes or contacts says so (the words are not on the card)
+export function foundIn(row) {
+  const where = T.found?.where?.[String(row.id)];
+  if (!where || where.some((w) => ["company", "title", "city", "status"].includes(w))) return null;
+  const names = { jd: "the JD", notes: "notes", contacts: "contacts", resume: "the resume file name", link: "the posting link" };
+  return h("p", "t-in muted small", `Found in ${where.map((w) => names[w] || w).join(", ")}`);
+}
 
 function bodyEls() {
   if (!T.layout) return [h("p", "pad muted", "No tracker layout for this profile.")];
   if (cardsMode()) {
-    return [h("ul", { class: "t-cards", "aria-label": "Applications" }, T.rows.length ? T.rows.map(card) : h("li", "empty", emptyNote()))];
+    return [h("ul", { class: "t-cards", "aria-label": "Applications" }, T.rows.length ? T.rows.map(card) : h("li", "empty", ...emptyEls()))];
   }
   const host = h("div", { "data-fk": "wrap" }, h("p", "pad muted", "Loading…"));
   import("./grid.js").then((m) => { grid = m; if (host.isConnected) m.mount(host); return import("./gridmenu.js"); })

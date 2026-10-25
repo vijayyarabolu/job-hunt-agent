@@ -22,7 +22,7 @@ WORKDAY_IN_FLIGHT = 3
 EWMA_ALPHA = 0.5
 EWMA_SAMPLES = 5
 ALERT_SHARE = 0.6
-DEFAULT_COST_S = {"greenhouse": 0.6, "ashby": 0.8, "lever": 2.0, "workday": 4.0, "amazon": 15.0,
+DEFAULT_COST_S = {"greenhouse": 0.6, "ashby": 0.8, "lever": 2.0, "workday": 4.0, "amazon": 15.0, "careeronestop": 15.0,
                   "smartrecruiters": 3.0, "workable": 1.0,
                   "eightfold": 20.0, "phenom": 10.0, "icims": 50.0,     # icims: 9 terms x robots crawl-delay 5 s
                   "oracle_recruiting": 15.0, "taleo": 25.0, "successfactors": 25.0,   # 11 terms, 1 s gap

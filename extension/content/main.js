@@ -104,6 +104,7 @@ var JH = globalThis.JH || (globalThis.JH = {});
       value: f.kind === "checkbox" ? (f.value ? "Yes" : "") : String(f.value || "").slice(0, 300), status: JH.learn.status(f),
       options: (f.options || []).slice(0, 60), key: (f.cls && !f.cls.group && f.cls.key) || null, group: (f.cls && f.cls.group) || null,
       hints: (f.hints || []).slice(0, 6), required: Boolean(f.required), origin: f.origin || null,
+      saved: Boolean(f.saved || (f.cls && f.cls.server) || f.origin),             // GOAL36 §5.4: the user's saved answer filled it
       max: f.el && f.el.maxLength > 0 ? f.el.maxLength : null }));             // GOAL29 §5: an open question's limit
   }
 
@@ -122,11 +123,13 @@ var JH = globalThis.JH || (globalThis.JH = {});
     const got0 = await JH.send({ type: "session:get" });   // the tab's job, once this page's own job is known (no Autofill click needed)
     const s = got0 && got0.ok ? got0.data : null;
     const job = s && s.job && s.jobHost && s.jobHost === hostOf(s.tabUrl) ? s.job : null;
-    if (!(await applicationPage(b, job))) return;
+    const sendRows = (n) => { if (JH.panel && (JH.isTop || n)) JH.send({ type: "toTop", message: { type: "rows", rows: rowsNow(b) } }); };
+    // GOAL36 §5.2: the panel's rows on every page it shows on (a page whose job is unknown too); learning keeps its gate
+    if (!(await applicationPage(b, job))) { sendRows(fieldsNow(b).length); return; }
     const { account } = await JH.store(["account"]);
     const fields = fieldsNow(b);
     const got = JH.learn.batch(fields, b, (account && account.password) || "");
-    if (JH.panel && (JH.isTop || fields.length)) JH.send({ type: "toTop", message: { type: "rows", rows: rowsNow(b) } });
+    sendRows(fields.length);                               // after learning: each row's status is the learned one
     if (!got.items.length && !got.hand) return;            // without a job: global answers only (no company to keep one for)
     await JH.send({ type: "learn:stage", key: `${location.href.split("#")[0]}|${stepOf(b)}`, batch: { ...got, uid: job && job.uid,
       app: job && job.app, board: b.id, company: (job && job.company) || "", step: stepOf(b), stage: kindOf(b) } });
@@ -297,9 +300,37 @@ var JH = globalThis.JH || (globalThis.JH = {});
     await fillFrame({ job: s.job || null, auto: true });
   }
 
+  // GOAL36 §5.2: a form that renders late, inside a shadow root or inside a frame. Every frame looks again when the
+  // page changes (a MutationObserver) and on a backing-off retry (a shadow root's changes reach no observer), for
+  // FORM_WATCH_MS; the first time one holds an application form it tells the top frame, which shows the panel. A new
+  // step (the fields' signature changes) sends its rows again, so each step of a multi-step form is scanned.
+  const FORM_WATCH_MS = 60000;
+  const RETRY_MS = [500, 1000, 2000, 4000, 8000, 15000, 30000];
+  const watchStart = Date.now();
+  let formSent = false, lastSig = "";
+  function formOf(fields) {
+    const email = fields.some((f) => (f.cls && f.cls.key === "email") || f.type === "email");
+    return { n: fields.length, file: fields.some((f) => f.kind === "file"), email };
+  }
+  function scanForm() {
+    let b, fields;
+    try { b = board(); fields = JH.fields.collect(b.root ? b.root() : document); } catch { return; }
+    const form = formOf(fields);
+    if (!formSent && form.n >= 2 && (form.file || form.email)) {
+      formSent = true;
+      JH.send({ type: "toTop", message: { type: "frameForm", form } });
+    }
+    const sig = signature();
+    if (lastSig && sig !== lastSig && fields.length) stageSoon();
+    lastSig = sig;
+  }
+  RETRY_MS.forEach((ms) => setTimeout(() => { if (!formSent) scanForm(); }, ms));
+
   let stepTimer = null;
-  new MutationObserver(() => { clearTimeout(stepTimer); stepTimer = setTimeout(watchStep, AUTO_MS); })
-    .observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver(() => {
+    clearTimeout(stepTimer);
+    stepTimer = setTimeout(() => { watchStep(); if (formSent || Date.now() - watchStart < FORM_WATCH_MS) scanForm(); }, AUTO_MS);
+  }).observe(document.documentElement, { childList: true, subtree: true });
   setTimeout(watchStep, AUTO_MS);
 
   document.addEventListener("click", (e) => {
@@ -342,12 +373,25 @@ var JH = globalThis.JH || (globalThis.JH = {});
   const P = (patch) => JH.panel.set(patch);
   const jobQuery = () => ({ uid: job && job.uid, app: job && job.app });
 
+  // GOAL36 §5.2: inside shadow roots too, and a frame of any address that found a form (formFrames)
+  const formFrames = new Map();
+  const careersPage = () => CAREERS.test(location.hostname + location.pathname);
   function appLike() {
     const b = board();
     if (b.id !== "generic") return true;
-    if ([...document.querySelectorAll("iframe")].some((f) => KNOWN_FRAMES.test(f.src || ""))) return true;
-    if (document.querySelector("input[type=password]") && CAREERS.test(location.hostname + location.pathname)) return true;   // a careers site's Sign In
-    return Boolean(document.querySelector("input[type=file]") && document.querySelector("input[type=email], input[name*=email i], input[autocomplete=email]"));
+    if ([...formFrames.values()].some((f) => f.file || careersPage())) return true;
+    if (JH.all("iframe").some((f) => KNOWN_FRAMES.test(f.src || ""))) return true;
+    if (JH.one("input[type=password]") && careersPage()) return true;   // a careers site's Sign In
+    return Boolean(JH.one("input[type=file]") && JH.one("input[type=email], input[name*=email i], input[autocomplete=email]"));
+  }
+  let shownForForm = false;
+  function frameForm(frameUrl, form) {          // a frame (or this page, late) found a form: the panel shows for it
+    formFrames.set(frameUrl || location.href, form || {});
+    if (shownForForm || JH.panel.shown() || !appLike()) return;
+    shownForForm = true;
+    JH.panel.show();
+    healthy();
+    refresh();
   }
 
   // GOAL30 §5: one match call per page address (the panel's first render, a frame's result and the toolbar button all
@@ -364,7 +408,8 @@ var JH = globalThis.JH || (globalThis.JH = {});
   }
   async function refresh() {
     const frames = [...document.querySelectorAll("iframe")].map((f) => f.src).filter((s) => KNOWN_FRAMES.test(s || "")).slice(0, 6);
-    const got = await matchOnce({ url: location.href, frames: JSON.stringify(frames) });
+    const page = pageJob();
+    const got = await matchOnce({ url: location.href, frames: JSON.stringify(frames), company: page.company, title: page.title });
     if (!got || !got.ok) return P({ loaded: true, error: (got && got.error) || "Job Hunt Agent did not answer" });
     job = got.data.job;
     if (!job && !dropped) {                               // an apply page reached from the posting matched in this tab
@@ -373,8 +418,10 @@ var JH = globalThis.JH || (globalThis.JH = {});
       if (s && s.job && Date.now() - (s.jobAt || 0) < TAB_JOB_MS) return pick({ uid: s.job.uid, app: s.job.app }, false);
     }
     P({ loaded: true, error: null, job, recent: got.data.recent || [], resume: got.data.resume, address: got.data.address,
-        sponsor: got.data.sponsor || null, openNeeds: got.data.needs, location: got.data.location || null });
+        sponsor: got.data.sponsor || null, openNeeds: got.data.needs, location: got.data.location || null,
+        candidates: got.data.candidates || [], matchedBy: job ? job.how : null, picking: !job && dropped });
     JH.send({ type: "broadcast", message: { type: "rowsPlease" } });
+    scanCheck();
     if (job) await ownJob(job);
     pollAddress();
     matchScore();
@@ -417,6 +464,7 @@ var JH = globalThis.JH || (globalThis.JH = {});
         counts: { filled: sum("filled"), needs: needs.length + sum("held"), skipped: sum("skipped"), review: sum("review"),
                   notes: sum("held") ? `${sum("held")} address field(s) wait for the address above` : null },
         needs, rows: allRows() });
+    if (!allRows().length && !sum("filled")) P({ scan: { why: whyEmpty() } });   // GOAL36 §5.2: never a silent nothing
     lookUpAnswers();                                   // GOAL30 §2: the open questions it just filled hold text now
     JH.api("GET", "/api/autofill/count").then((r) => { if (r && r.ok) P({ openNeeds: r.data.open }); });
   }
@@ -475,9 +523,13 @@ var JH = globalThis.JH || (globalThis.JH = {});
         const formFrames = [...document.querySelectorAll("iframe")].some((f) => KNOWN_FRAMES.test(f.src || ""));
         if (!JH.panel.get().busy || (msg.frameUrl === location.href && !formFrames)) finishCollect();   // no other form will answer
       } else if (msg.type === "rows") {
+        const was = JSON.stringify(frameRows.get(msg.frameUrl || "") || null);
         frameRows.set(msg.frameUrl || "", msg.rows || []);
-        if (!JH.panel.get().busy) P({ rows: allRows() });
+        // the same rows again (each step is scanned again now): no redraw, so a click in the panel is never lost to one
+        if (!JH.panel.get().busy && was !== JSON.stringify(msg.rows || [])) P({ rows: allRows(), ...(allRows().length ? { scan: null } : {}) });
         lookUpAnswers();
+      } else if (msg.type === "frameForm") {
+        frameForm(msg.frameUrl, msg.form);
       } else if (msg.type === "learned") {
         P({ learned: [...(JH.panel.get().learned || []), ...(msg.entries || [])].slice(-12) });
       } else if (msg.type === "confirmed") {
@@ -505,18 +557,28 @@ var JH = globalThis.JH || (globalThis.JH = {});
     const got = await JH.api("POST", "/api/autofill/answer/lookup", { body: { ...jobQuery(), company: job.company || "", questions, filled } });
     if (!got || !got.ok) return;
     if (got.data.filled && Object.keys(got.data.filled).length) P({ filled: { ...(JH.panel.get().filled || {}), ...got.data.filled } });
-    for (const [q, view] of Object.entries(got.data.answers || {})) { setAnswer(q, view); pollAnswer(q, view); }
+    for (const [q, view] of Object.entries(got.data.answers || {})) {
+      if (!view || (view.state === "ready" && !String(view.text || "").trim())) continue;   // GOAL36 §5.3: never an empty hit
+      setAnswer(q, view); pollAnswer(q, view);
+    }
   }
-  function pollAnswer(q, view, n = 0) {
-    const wait = JH.answers.waitFor(view);
-    if (!wait || n >= JH.answers.MAX_POLLS) return;
+  // GOAL36 §5.3: polling ends in words, never in a spinner: 5 missed polls in a row, or 20 minutes still waiting
+  const MISSES = 5;
+  function pollAnswer(q, view, n = 0, missed = 0) {
+    const wait = JH.answers.waitFor(view, n);
+    if (!wait) return;
+    if (n >= JH.answers.MAX_POLLS) return setAnswer(q, { ...view, state: "failed", label: "No answer", error: JH.answers.GIVE_UP });
     setTimeout(async () => {
       const mine = (JH.panel.get().answers || {})[q];
       if (!mine || mine.id !== view.id) return;             // Regenerate / Shorter started a newer one
       const got = await JH.api("GET", "/api/autofill/answer/status", { query: { id: view.id } });
-      const next = got && got.ok ? got.data.answer : view;
-      if (got && got.ok) setAnswer(q, next);
-      pollAnswer(q, next, n + 1);
+      if (!got || !got.ok) {
+        if (missed + 1 >= MISSES) return setAnswer(q, { ...view, state: "failed", label: "No answer", error: `job-hunt-agent stopped answering while Claude wrote (${(got && got.error) || "no reply"}). Retry asks again` });
+        return pollAnswer(q, view, n + 1, missed + 1);
+      }
+      const next = JH.answers.settle(got.data.answer, q);
+      setAnswer(q, next);
+      pollAnswer(q, next, n + 1, 0);
     }, wait);
   }
 
@@ -531,6 +593,8 @@ var JH = globalThis.JH || (globalThis.JH = {});
     P({ loaded: true, error: null, job: job && { ...job, how: "tab" }, resume: got.data.resume, address: got.data.address,
         sponsor: got.data.sponsor || null, openNeeds: got.data.needs, location: got.data.location || null });
     pollAddress();                                       // shown only: it fills when the user clicks Autofill on this page
+    JH.send({ type: "broadcast", message: { type: "rowsPlease" } });
+    scanCheck();                                         // GOAL36 §5.2: the tab's job, and still no field: say why
   }
 
   JH.panel.on({
@@ -540,10 +604,13 @@ var JH = globalThis.JH || (globalThis.JH = {});
       job = null;
       await JH.send({ type: "session:set", patch: { job: null, jobHost: null } });
       const got = await JH.api("GET", "/api/autofill/match", { query: { url: location.href, recent: 1 } });
-      P({ job: null, resume: null, address: null, recent: (got && got.ok && got.data.recent) || [] });
+      P({ job: null, resume: null, address: null, candidates: [], picking: true, recent: (got && got.ok && got.data.recent) || [] });
     },
     auto: (on) => { JH.save({ auto: on }); JH.send({ type: "session:set", patch: { auto: on } }); P({ auto: on }); },
-    pick: (r) => { dropped = false; return pick(r, true); },
+    pick: (r) => { dropped = false; P({ found: [], linking: false, picking: false }); return pick(r, true); },
+    scan: () => scanAgain(),                                // GOAL36 §5.2
+    findJobs: (q) => findJobs(q),
+    linkJob: () => P({ linking: true }),
     async address(action, data) {
       const got = await JH.api("POST", `/api/autofill/address/${action}`, { body: { ...jobQuery(), ...data } });   // the job's tracker row too
       if (!got || !got.ok) return P({ message: (got && got.error) || "Could not save the address" });
@@ -556,13 +623,20 @@ var JH = globalThis.JH || (globalThis.JH = {});
     applied: () => markApplied(false),
     snapshot: () => JH.send({ type: "broadcast", message: { type: "snapshot" } }),
     async generate(r, variant) {                            // GOAL29 §5: only on the user's click
-      if (!job) return P({ message: "Pick the job first, then Generate" });
-      const previous = variant ? ((JH.panel.get().answers || {})[r.label] || {}).text || r.value || undefined : undefined;   // GOAL30 §2: the text in the box
-      setAnswer(r.label, { state: "writing", label: "Writing with Claude…", question: r.label });
-      const got = await JH.api("POST", "/api/autofill/answer/generate", { body: { ...jobQuery(), question: r.label, max_chars: r.max, variant, previous } });
-      if (!got || !got.ok) return setAnswer(r.label, { state: "failed", label: "No answer", error: (got && got.error) || "Job Hunt Agent did not answer" });
-      setAnswer(r.label, got.data.answer);
-      pollAnswer(r.label, got.data.answer);
+      const fail = (error, more = {}) => setAnswer(r.label, { state: "failed", label: "No answer", error, question: r.label, ...more });
+      // GOAL36 §5.3: a page with no job says so under the question, with Link to a job (not a note at the top)
+      if (!job) return fail("this page is not linked to a job yet, so Claude has no JD to write from: link it, then Retry", { unlinked: true });
+      try {
+        const previous = variant ? ((JH.panel.get().answers || {})[r.label] || {}).text || r.value || undefined : undefined;   // GOAL30 §2: the text in the box
+        setAnswer(r.label, { state: "writing", label: "Writing with Claude…", question: r.label });
+        const got = await JH.api("POST", "/api/autofill/answer/generate", { body: { ...jobQuery(), question: r.label, max_chars: r.max, variant, previous } });
+        if (!got || !got.ok) return fail((got && got.error) || "Job Hunt Agent did not answer (is it running?)");
+        const view = JH.answers.settle(got.data && got.data.answer, r.label);
+        setAnswer(r.label, view);
+        pollAnswer(r.label, view);
+      } catch (err) {
+        fail(`Autofill hit a problem asking for it (${String((err && err.message) || err).slice(0, 160)})`);
+      }
     },
     fillAnswer(r, text) {                                   // into the page's box, shaded as Claude's: never Next / Submit
       JH.send({ type: "broadcast", message: { type: "setDraft", id: r.id, text } });
@@ -653,12 +727,54 @@ var JH = globalThis.JH || (globalThis.JH = {});
   };
 
   // the page's own words for the job (title, company, location, its text) when Job Hunt Agent does not know it
+  // GOAL36 §5.2: a posting's JSON-LD (JobPosting: title, hiringOrganization) names both exactly, when the page has it
+  function ldJob() {
+    for (const node of document.querySelectorAll('script[type="application/ld+json"]')) {
+      let data;
+      try { data = JSON.parse(node.textContent || ""); } catch { continue; }
+      const list = [].concat(data).flatMap((x) => [x, ...((x && x["@graph"]) || [])]);
+      const p = list.find((x) => x && /JobPosting/.test([].concat(x["@type"] || "").join(" ")));
+      if (p) {
+        const org = p.hiringOrganization;
+        return { title: String(p.title || ""), company: String((org && (typeof org === "string" ? org : org.name)) || "") };
+      }
+    }
+    return null;
+  }
   function pageJob() {
     const meta = (n) => (document.querySelector(`meta[property="${n}"], meta[name="${n}"]`) || {}).content || "";
     const h1 = JH.text(document.querySelector("h1"));
-    const title = meta("og:title") || h1 || document.title;
-    const company = meta("og:site_name") || (/ at ([^|\-–]+)/.exec(document.title) || [])[1] || "";
+    const ld = ldJob() || {};
+    const title = ld.title || meta("og:title") || h1 || document.title;
+    const company = ld.company || meta("og:site_name") || (/ at ([^|\-–]+)/.exec(document.title) || [])[1] || "";
     return { title: title.slice(0, 200), company: company.trim().slice(0, 200), text: JH.text(document.body).slice(0, 60000) };
+  }
+
+  // GOAL36 §5.2: why the scan found no field, in words (the panel shows it with Scan again)
+  const APPLY_TEXT = /^(apply( now| for this job| here)?|start (your )?application|i'?m interested|easy apply)$/i;
+  function whyEmpty() {
+    if (JH.captcha() === "challenge") return "A human check is on screen: solve it, then Scan again";
+    const big = [...document.querySelectorAll("iframe")].filter((f) => JH.visible(f) && f.getBoundingClientRect().height > 150);
+    if (big.length && !formFrames.size) return "The form may sit in a frame that has not loaded or does not let Autofill in: wait for it, then Scan again";
+    if (JH.one("input[type=password]")) return "This is a sign in page: sign in or create the account yourself, then Scan again";
+    if (JH.all("a, button").some((x) => APPLY_TEXT.test((JH.text(x) || "").trim()))) return "This page shows the job, not the form: click Apply yourself, then Scan again";
+    return "No form fields found yet: the form may still be loading. Scan again when you see it";
+  }
+  const SCAN_WAIT_MS = 3000;
+  let scanTimer = null;
+  function scanCheck() {                       // the rows asked for on refresh: none from any frame by then says why
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => { if (!allRows().length && !JH.panel.get().busy) P({ scan: { why: whyEmpty() } }); }, SCAN_WAIT_MS);
+  }
+  async function scanAgain() {
+    P({ scan: { why: "Scanning the page again…", busy: true } });
+    matchMemo = null;
+    JH.send({ type: "broadcast", message: { type: "rowsPlease" } });
+    if (!job) await refresh(); else scanCheck();
+  }
+  async function findJobs(q) {
+    const got = await JH.api("GET", "/api/autofill/match", { query: { find: q } });
+    P({ found: got && got.ok ? got.data.found || [] : [], foundFor: q, message: got && got.ok ? null : `Search failed: ${(got && got.error) || "job-hunt-agent did not answer"}` });
   }
 
   // GOAL27 §6: match % and missing keywords on any job page (the matched job's JD, else this page's text)

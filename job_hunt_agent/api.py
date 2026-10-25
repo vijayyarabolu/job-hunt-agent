@@ -11,9 +11,11 @@ from collections import Counter
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
-from . import (applied, clones, config, dupes, feedback, feedcache, filters, fits, fresh, genai, gsync, health, jd_doc, jdsnap, match,
-               outside, profile_settings, ranking, removal, resumes, rgclient, score, signals, tailored, tracker,
-               vendor_model)
+from . import (applied, clones, config, dupes, feedback, feedcache, feedfind, filters, fits, fresh, genai, gsync, health, jd_doc, jdsnap, match,
+               outside, outside_jobs, profile_settings, ranking, removal, resumes, rgclient, score, signals, tailored,
+               tracker,
+               vendor_model, workterms)
+from .ats import careeronestop
 from .db import iso, tx, unpack
 from .h1b import feed as h1b_feed
 
@@ -35,7 +37,7 @@ _INDUSTRY: dict[str, str | None] = {}       # uid -> detected industry (JDs rare
 _INDUSTRY_LOCK = threading.Lock()
 MAX_EARLIER = 5
 TRIAGE_STATES = ("saved", "dismissed", "restored")
-FEED_STATES = ("ok", "pending", "filtered", "too_senior")
+FEED_STATES = ("ok", "pending", "filtered", "too_senior", "low_match")     # low_match: GOAL36 §1, counted, not listed
 CONTACT_FIELDS = ("target_name", "target_role", "linkedin_request", "email_address", "email_sent", "follow_up_1",
                   "follow_up_2", "status_ar")
 
@@ -84,6 +86,17 @@ def _flags(s) -> list[str]:
     return pipeline + list(s.mults) + stale
 
 
+def work_view(row: dict) -> dict | None:
+    """GOAL35 §4.3: {w2, vague, via} for the card's tags; None when there is nothing to show."""
+    kinds = workterms.kinds(row.get("work_terms"))
+    via = careeronestop.via(row.get("location")) if row.get("ats") == careeronestop.ATS else None
+    if not (kinds & {workterms.W2, workterms.VAGUE} or via):
+        return None
+    w2 = workterms.W2 in kinds
+    return {"w2": w2, "contract": w2 and workterms.contract(row.get("employment_type"), row.get("company")),   # GOAL36 §3
+            "vague": workterms.VAGUE in kinds, "via": via}
+
+
 def card(row: dict, s, triage_state: str | None = None, app: dict | None = None, now: datetime | None = None,
          who: match.Who | None = None, industry: str | None = None, liked: bool = False, memo: dict | None = None,
          with_resumes: bool = True, tailored_score: dict | None = None, sponsor: dict | None = None) -> dict:
@@ -93,9 +106,11 @@ def card(row: dict, s, triage_state: str | None = None, app: dict | None = None,
            "band": s.band, "employment": s.employment, "size": row.get("segment"),
            "employment_label": signals.EMPLOYMENT_LABELS.get(s.employment) if s.employment else None,
            "chips": list(s.chips), "state": s.state, "triage": triage_state, "app": app, "liked": liked,
-           "asks_years": row.get("min_years"),                  # "Asks N yrs" / "years not stated"
-           "req_id": row.get("req_id"),                         # copied with Apply
-           "ghost": getattr(s, "ghost", None),                  # "Possible ghost job: ..." (never hidden)
+           "asks_years": row.get("min_years"),                  # GOAL8 §4: "Asks N yrs" / "years not stated"
+           "req_id": row.get("req_id"),                         # GOAL13 §2b: copied with Apply
+           "ghost": getattr(s, "ghost", None),                  # GOAL29 §3: "Possible ghost job: ..." (never hidden)
+           "work": work_view(row),                              # GOAL35 §4.3: the W2 tag, a vague repost, "via ..."
+           "outside_job": outside_jobs.is_outside(row["uid"]),  # GOAL36 §5.1: the small "outside job" tag
            "also": [{"uid": uid, "location": loc} for uid, loc in row.get("also", ())]}
     moment, exact = fresh.feed_moment(row)
     out = {**out, "posted_ts": iso(moment) if moment else None, "posted_exact": exact, "posted_label": fresh.age_word(row),
@@ -203,7 +218,7 @@ def _pool(tab: str, ranked: list, states: dict, apps: dict) -> list:
                 or apps.get(r["uid"], {}).get("status") in PRE_APPLY)]
     if tab == "archived":
         return [(r, s) for r, s in ranked if states.get(r["uid"]) == "dismissed"]
-    return [(r, s) for r, s in ranked if s.state != "filtered" and states.get(r["uid"]) != "dismissed"]
+    return [(r, s) for r, s in ranked if s.state not in ("filtered", score.LOW_MATCH) and states.get(r["uid"]) != "dismissed"]
 
 
 def jobs(conn, pid: str, tab: str, now: datetime, flt: filters.Filters | None = None, wait: bool = False) -> dict:
@@ -228,6 +243,9 @@ def jobs(conn, pid: str, tab: str, now: datetime, flt: filters.Filters | None = 
     group_of = feedcache.groups(conn, kept)                    # one role posted once per city is one card
     states, apps = _spread(states, group_of), _spread(apps, group_of)
     pool = _pool(tab, ranked, states, apps)
+    hits = feedfind.find(conn, pid, kept, flt.q) if flt.q else None       # GOAL35 §5.2: the feed's search
+    if hits is not None:
+        pool = [(r, s) for r, s in pool if r["uid"] in hits.uids]
     floor = feed_floor(profile) if tab == "recommended" else 0
     flt = replace(flt, min_match=max(flt.min_match, floor))
     needs_pct = bool(flt.min_match or flt.sort == "match")     # else only the cards shown need an industry
@@ -239,6 +257,7 @@ def jobs(conn, pid: str, tab: str, now: datetime, flt: filters.Filters | None = 
         if filters.keep(flt, r, s.state, s.employment, _is_applied(apps.get(r["uid"]), labels_applied), pct, now):
             keep.append((r, s))
             pcts[r["uid"]] = pct
+    q_outside = feedfind.outside(pool, keep, group_of) if hits is not None else 0
     keep = ranking.fold(order(keep, flt.sort, pcts), group_of, clones.preferences(profile))
     needs = bool(profile.get("needs_sponsorship"))
     found = h1b_feed.badges(conn, keep) if needs else {}                     # every job's badge
@@ -263,19 +282,36 @@ def jobs(conn, pid: str, tab: str, now: datetime, flt: filters.Filters | None = 
                   with_resumes=i < RESUME_CARDS, tailored_score=scores.get(r["uid"]), sponsor=views.get(r["uid"]))
              for i, (r, s) in enumerate(page, start)]
     twins = _mark_dupes(cards, listed if flt.dupes_only else [r for r, _ in keep])
-    out = {"tab": tab, "jobs": cards, "total": len(keep), "offset": start, "dupes": twins, "boards": boards, "sort": flt.sort, "min_match_floor": floor, "filtered": sum(1 for _, s in ranked if s.state == "filtered" and not genai.is_gate_verdict(s.dealbreaker)),
+    out = {"tab": tab, "jobs": cards, "total": len(keep), "offset": start, "dupes": twins, "boards": boards, "sort": flt.sort, "min_match_floor": floor, "filtered": sum(1 for _, s in ranked if s.state == "filtered" and not genai.is_gate_verdict(s.dealbreaker)
+                    and not workterms.is_verdict(s.dealbreaker)),
+           "not_w2": sum(1 for _, s in ranked if s.state == "filtered" and workterms.is_verdict(s.dealbreaker)),
            "jd_gate": sum(1 for _, s in ranked if s.state == "filtered" and genai.is_gate_verdict(s.dealbreaker)),
+           "low_match": sum(1 for _, s in ranked if s.state == score.LOW_MATCH),    # GOAL36 §1
            "too_senior": sum(1 for _, s in ranked if s.state == "too_senior"), "today": today,
-           "spons": spons, "spons_view": flt.spons if spons else None}
+           "new_days": profile_settings.new_days(profile),
+           "spons": spons, "spons_view": flt.spons if spons else None,
+           "q": flt.q, "terms": list(hits.terms) if hits else [], "q_outside": q_outside}
     if tab == "archived":
         out["applications"] = _applications(conn, pid, ARCHIVED_STATUSES)
         for c in cards:                                        # the reason shown on the Archived row
             c["pass_reason"] = feedback.reason_text(latest.get(c["uid"]))
-    if tab == "saved":                                         # outside jobs (pasted JDs in resumegen)
-        out["outside"] = outside.saved_rows(conn, pid)
-    if tab == "recommended" and pid in config.profile_ids():  # in the first paint of the head
+    if tab == "saved":                                         # GOAL8 §3: outside jobs (pasted JDs in resumegen)
+        out |= _saved_outside(conn, pid, now, cards, start == 0 and not flt.q)
+    if tab == "recommended" and pid in config.profile_ids():  # GOAL13 §2d: in the first paint of the head
         out["progress"] = progress(conn, pid, now)
     return out
+
+
+def _saved_outside(conn, pid: str, now: datetime, cards: list[dict], first_page: bool) -> dict:
+    """GOAL36 §5.1: the Saved tab's outside jobs as the same cards as inside ones (their job record's card, with the
+    "outside job" tag), after the feed's own; a row with no record yet (no JD to score) keeps its small card."""
+    outside_jobs.backfill(conn, pid, now)
+    rows = outside.saved_rows(conn, pid)
+    uids = [outside_jobs.uid_of(pid, r["id"]) for r in rows]
+    have = cards_for(conn, pid, uids, now) if uids else {}
+    extra = [have[u] for u in uids if u in have] if first_page else []
+    return {"jobs": cards + extra, "outside": [r for r, u in zip(rows, uids) if u not in have],
+            "outside_cards": len(have)}
 
 
 def _mark_dupes(cards: list[dict], rows: list[dict]) -> int:
@@ -314,8 +350,8 @@ def cards_for(conn, pid: str, uids: list[str], now: datetime) -> dict[str, dict]
     if not uids:
         return {}
     profile = config.profile(pid)
-    ranked = ranking.rank(conn, profile, now, states=("ok", "pending", "filtered", "too_senior", "non_us"),
-                          uids=list(uids))
+    ranked = ranking.rank(conn, profile, now, states=("ok", "pending", "filtered", "too_senior", "non_us", score.LOW_MATCH),
+                          uids=list(uids))       # GOAL36 §1: a job the person picked keeps its card under 40 %
     states, apps, scores = _triage(conn, pid), _apps_by_uid(conn, pid), tailored.load(conn, pid)
     likes = {uid for uid, f in feedback.latest(conn, pid).items() if f["kind"] == "like"}
     who, inds = _who(profile), _industries(conn, [r for r, _ in ranked])
@@ -375,8 +411,9 @@ def order(pairs: list, sort: str, pcts: dict[str, int | None]) -> list:
 
 def daily_count(ranked: list, states: dict, profile: dict, now: datetime) -> dict:
     """GOAL3 banner: matches first posted in the last 24 hours (shown in the feed, not dismissed), by role family.
-    GOAL21 W7: was "since local midnight", which said "0 new matches today" at 2 AM next to 54 jobs under a day old."""
-    since = iso(now - timedelta(hours=24))
+    GOAL21 W7: was "since local midnight", which said "0 new matches today" at 2 AM next to 54 jobs under a day old.
+    GOAL36 §1: the window is the person's "new" setting (1, 3 or 7 days)."""
+    since = iso(now - fresh.window(profile))
     by_family: dict[str, int] = {}
     total = 0
     for r, s in ranked:
@@ -407,7 +444,8 @@ def job_detail(conn, pid: str, uid: str, now: datetime | None = None) -> dict:
     if pid not in config.profile_ids():                     # tests / a profile folder that is gone: plain detail
         return detail
     profile, now = config.profile(pid), now or datetime.now(timezone.utc)
-    ranked = ranking.rank(conn, profile, now, states=("ok", "pending", "filtered", "too_senior", "non_us"), uid=uid)
+    ranked = ranking.rank(conn, profile, now, states=("ok", "pending", "filtered", "too_senior", "non_us", "low_match"),
+                          uid=uid)
     if ranked:
         r, s = ranked[0]
         who = _who(profile)
@@ -447,8 +485,13 @@ def warm(now: datetime, first: bool = False) -> None:
         for pid in config.profile_ids():        # then every matched JD's industry, for Best match and a floor
             profile = config.profile(pid)
             _industries(conn, [r for r, _ in feedcache.ranked(conn, profile, now, False, FEED_STATES).ranked])
-        health.summary(conn, now)               # the header's first ask after a restart answers at once
-        from . import stats                     # Stats opens at once too (its slow part is kept per run)
+        health.summary(conn, now)               # GOAL20: the header's first ask after a restart answers at once
+        from . import trackfind                 # GOAL35 §5: the Tracker search index, built before the first search
+        for pid in config.profile_ids():
+            trackfind.index(conn, pid)
+        from . import searchapi                 # and the ⌘K box's company index
+        searchapi.warm(conn)
+        from . import stats                     # GOAL21: Stats opens at once too (its slow part is kept per run)
         for pid in config.profile_ids():
             stats.report(conn, pid)
         if first:

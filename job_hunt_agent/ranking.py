@@ -7,7 +7,7 @@ import zlib
 from array import array
 from datetime import datetime, timedelta
 
-from . import applied, clones, config, feedback, fits, fresh, ghost, past_employers, score, text
+from . import applied, clones, config, feedback, fits, fresh, ghost, outside_jobs, past_employers, score, text, workterms
 from .db import iso, unpack
 from .fits import family_filter
 
@@ -22,7 +22,7 @@ MIN_JD_WORDS = 40            # below this many distinct words two JDs must be wo
 _JOB_COLUMNS = ("j.uid, j.board, b.ats, j.company, j.title, j.location, j.is_us, j.workplace, j.url, j.apply_url, "
                 "j.req_id, j.has_team, j.salary_min, j.salary_max, j.min_years, j.is_talent_pool, j.posted_at, "
                 "j.first_posted_at, j.precision, j.bumped_at, j.seed, j.chain_origin, j.chain_n, j.repost_count, "
-                "j.first_seen, j.closed_at, j.stale, j.employment_type, j.staffing, j.sponsorship, j.families, "
+                "j.first_seen, j.closed_at, j.stale, j.employment_type, j.staffing, j.sponsorship, j.work_terms, j.families, "
                 "b.segment")
 
 
@@ -86,7 +86,8 @@ def context(conn, profile: dict, now: datetime, companies: tuple[str, ...] | Non
                      sponsorship_label=bool(profile.get("needs_sponsorship")),
                      prefs=feedback.load(conn, profile["id"]), families=tuple(profile["families"]),
                      dealbreakers=inp.dealbreakers, n_resumes=len(inp.resumes),
-                     past=past_employers.profile_keys(profile), ghost=ghost.load(conn))
+                     past=past_employers.profile_keys(profile), ghost=ghost.load(conn),
+                     work_rule=profile.get("work_terms") or workterms.RULE_W2, fresh_window=fresh.window(profile))
 
 
 def rank(conn, profile: dict, now: datetime, fresh_only: bool = False,
@@ -104,8 +105,8 @@ def rank(conn, profile: dict, now: datetime, fresh_only: bool = False,
     for r in _rows(conn, profile, uid, uids):  # both people rank mostly the same jobs: one copy of each string (GOAL7 §4 memory)
         row = {k: sys.intern(v) if type(v) is str else v for k, v in zip(r.keys(), r)}
         fit = {k: row.pop(k) for k in ("jd_state", "terms", "dealbreaker")}
-        row["fit_terms"], row["jd_state"] = fit["terms"], fit["jd_state"]      # match.breakdown
-        if fresh_only and not fresh.is_fresh(row, now):
+        row["fit_terms"], row["jd_state"] = fit["terms"], fit["jd_state"]      # match.breakdown (GOAL2 G)
+        if fresh_only and not fresh.is_fresh(row, now, ctx.fresh_window):
             continue
         result = score.final(row, fit if fit["jd_state"] else None, ctx)
         if result.state in states:
@@ -118,6 +119,8 @@ def _rows(conn, profile: dict, uid: str | None, uids: list[str] | None) -> list:
     rowids), then read by rowid: one pass over the whole table read every JD and took ~10 s cold."""
     head = (f"SELECT {_JOB_COLUMNS}, f.jd_state, f.terms, f.dealbreaker, f.genai FROM jobs j "
             "JOIN boards b ON b.board = j.board LEFT JOIN fits f ON f.profile = ? AND f.uid = j.uid ")
+    if uid is not None and outside_jobs.is_outside(uid):      # GOAL36 §5.1: a person's own job, read by its uid
+        uids = [uid]
     if uids is not None:
         return conn.execute(head + f"WHERE j.uid IN ({','.join('?' * len(uids))})", [profile["id"], *uids]).fetchall()
     where, params = family_filter(tuple(profile["families"]))

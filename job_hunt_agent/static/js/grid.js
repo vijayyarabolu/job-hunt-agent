@@ -1,6 +1,7 @@
 // Tracker grid: Sheets-like cells over the tracker rows; loaded with a table tab, desktop only.
 import { B, FAMILY_LABELS, S, STATUS_LABELS, EMPLOYMENTS, WORKPLACES, h, sm, store, still } from "./core.js";
-import { EMPTY_TRACKER, T, dueText, resumeBits, shownTab } from "./tracker.js";
+import { T, dueText, emptyEls, resumeBits, shownTab } from "./tracker.js";
+import { marked } from "./find.js";
 import { css } from "./gridcss.js";
 import { sponsorBadge } from "./sponsor.js";
 import { editKey, editing, startEdit } from "./gridedit.js";
@@ -113,6 +114,8 @@ function conflictOf(row, c, t) {
     : `Changed here and in your Sheet: your edit was newer and won. The Sheet had: ${f.sheet || "(empty)"}`;
 }
 
+const hl = (t) => (T.found && t ? marked(t, T.found.terms) : [t]);     // GOAL35 §5.4: what the search matched
+
 function cellEl(row, c) {
   const t = text(row, c);
   const td = h("td", { role: "gridcell", class: `k-${c.kind}${c.fz ? " fz" : ""}` });
@@ -124,8 +127,8 @@ function cellEl(row, c) {
     td.append(t && row.has_upload ? h("span", { class: "g-file", title: `${t} (⌘-click opens it in Drive)` }, sm("open"), t) : t, ...resumeBits(row));
   }
   else if (c.kind === "link" && t) td.append(h("span", { class: "g-link", title: `${t} (⌘-click opens it)` }, t));
-  else if (c.field === "company" && row.sponsor) td.append(h("div", "g-co", h("span", {}, t), sponsorBadge(row.sponsor, { compact: true })));
-   else td.append(t);
+  else if (c.field === "company" && row.sponsor) td.append(h("div", "g-co", h("span", {}, ...hl(t)), sponsorBadge(row.sponsor, { compact: true })));   // GOAL24 §3
+  else td.append(...hl(t));
   const rule = ruled(c, t);
   if (rule) { if (rule.bg) td.style.background = rule.bg; if (rule.fg) td.style.color = rule.fg; if (rule.bold) td.style.fontWeight = "700"; }
   const cf = conflictOf(row, c, t);
@@ -235,7 +238,7 @@ export function build() {
   const keep = [G.wrap.scrollTop, G.wrap.scrollLeft];          // a rebuild (a column hidden, a row gone) keeps the place
   // the trailing text node is load-bearing: with no text in the grid Chrome sends a real ⌘V nowhere (it printed "null")
   G.wrap.replaceChildren(table, h("div", { class: "g-fh", title: "Drag down to fill", onpointerdown: (e) => fillDrag(e) }),
-    G.view.length ? CLIP_TEXT : h("p", "pad muted g-empty", T.q || Object.keys(G.filters).length ? "Nothing matches: clear the search or the column filters." : EMPTY_TRACKER[S.tab] || "Nothing here yet."));
+    G.view.length ? CLIP_TEXT : h("p", "pad muted g-empty", !T.q && Object.keys(G.filters).length ? "Nothing matches: clear the column filters." : emptyEls()));
   stateLine();
   G.body.lastChild.style.height = `${G.view.length * ROW_H}px`;       // full height first, so the old place still exists
   [G.wrap.scrollTop, G.wrap.scrollLeft] = keep;

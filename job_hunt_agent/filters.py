@@ -19,13 +19,14 @@ SIZES = ("big", "startup", "other", "public_sector")
 MAX_SALARY_FLOOR = 1_000_000
 TRUE = ("1", "true", "on", "yes")
 MAX_OFFSET = 1_000_000
+MAX_QUERY = 200
 # GOAL11 §8 "Job board": one option per board prefix found in the DB ("workday:acme" -> workday); names as the
 # vendors write them, an unknown prefix is title-cased (a new system shows up with no code)
 BOARD_PREFIX = re.compile(r"^[a-z0-9_]{1,40}$")
 BOARD_LABELS = {"workday": "Workday", "greenhouse": "Greenhouse", "ashby": "Ashby", "lever": "Lever",
                 "oracle_recruiting": "Oracle Recruiting", "taleo": "Taleo", "icims_classic": "iCIMS classic",
                 "icims": "iCIMS / Jibe", "successfactors": "SuccessFactors", "jobvite": "Jobvite",
-                "eightfold": "Eightfold", "phenom": "Phenom", "smartrecruiters": "SmartRecruiters", "amazon": "Amazon",
+                "eightfold": "Eightfold", "phenom": "Phenom", "smartrecruiters": "SmartRecruiters", "amazon": "Amazon", "careeronestop": "State job banks",
                 "workable": "Workable",
                 # GOAL16
                 "bamboohr": "BambooHR", "rippling": "Rippling", "gem": "Gem", "adp": "ADP Workforce Now",
@@ -61,7 +62,8 @@ class Filters:
     boards: tuple[str, ...] = ()            # any of these board prefixes; () = every board
     offset: int = 0                         # with a board picked, the page starts here
     dupes_only: bool = False                # GOAL21 W9: only the older copies of a job posted twice
-    spons: str | None = None                # Recommended's sponsorship switch (friendly | no; None = All)
+    spons: str | None = None                # GOAL24 §4: Recommended's sponsorship switch (friendly | no; None = All)
+    q: str = ""                             # GOAL35 §5.2: the feed's search (textsearch: company, title, place, role)
 
 
 def _choice(args: dict, key: str, allowed) -> str | None:
@@ -107,7 +109,8 @@ def parse(args: dict) -> Filters:
                    dupes_only=(args.get("dupes") or "").lower() in TRUE,
                    employment=_choice(args, "employment", EMPLOYMENT), size=_choice(args, "size", SIZES),
                    sort=_choice(args, "sort", SORTS) or "newest", boards=_boards(args),
-                   offset=_int(args, "offset", 0, MAX_OFFSET), spons=_choice(args, "spons", SPONS))
+                   offset=_int(args, "offset", 0, MAX_OFFSET), spons=_choice(args, "spons", SPONS),
+                   q=(args.get("q") or "").strip()[:MAX_QUERY])
 
 
 def _employment_ok(f: Filters, kind: str | None) -> bool:

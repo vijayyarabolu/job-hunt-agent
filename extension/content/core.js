@@ -6,6 +6,36 @@ var JH = globalThis.JH || (globalThis.JH = {});
 
 JH.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 JH.norm = (s) => String(s == null ? "" : s).toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9+]+/g, " ").trim();
+// GOAL35 §5.3: the job-hunt-agent search rules for the panel's box: every word must match, any order, punctuation and
+// slashes ignored ("AI/ML" = "AI ML", "AIML" finds "AI ML"), a word of 5+ letters may be one edit off (9+: two), a
+// word of 1-2 letters matches whole words only ("ai" is not "airline"); the page's find.js twin
+JH.edits = (a, b, limit) => {
+  if (Math.abs(a.length - b.length) > limit) return limit + 1;
+  let prev2 = null, prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] !== b[j - 1]));
+      if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], prev2[j - 2] + 1);
+    }
+    [prev2, prev] = [prev, cur];
+  }
+  return prev[b.length];
+};
+JH.findNorm = (s) => String(s == null ? "" : s).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+  .replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+JH.find = (q, text) => {
+  const ws = JH.findNorm(q).split(" ").filter(Boolean), tw = JH.findNorm(text).split(" ").filter(Boolean);
+  const lead = new Map(), toks = [];
+  tw.forEach((w, k) => {
+    const two = w + (tw[k + 1] || ""), three = two + (tw[k + 2] || "");
+    toks.push(w, two, three);
+    lead.set(two, w).set(three, w);
+  });
+  const typo = (w) => (w.length >= 9 ? 2 : w.length >= 5 ? 1 : 0);
+  return ws.every((w) => toks.some((t) => t.startsWith(w) && (w.length > 2 || t === w || lead.get(t) === w))
+    || (typo(w) > 0 && toks.some((t) => JH.edits(w, t, typo(w)) <= typo(w))));
+};
 JH.text = (el) => String((el && (el.innerText || el.textContent)) || "").replace(/\s+/g, " ").trim();
 JH.isTop = window.top === window;
 

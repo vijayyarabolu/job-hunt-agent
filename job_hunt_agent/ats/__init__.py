@@ -2,7 +2,7 @@
 import re
 from urllib.parse import parse_qs, urlsplit
 
-from . import (adp, amazon, ashby, bamboohr, breezy, cornerstone, dayforce, eightfold, gem, greenhouse, hibob, ibm,
+from . import (adp, amazon, ashby, bamboohr, breezy, careeronestop, cornerstone, dayforce, eightfold, gem, greenhouse, hibob, ibm,
                icims, icims_classic, jazzhr, jobscore, jobvite, lever, oracle_recruiting, paylocity, phenom, pinpoint,
                recruitee, rippling, smartrecruiters, successfactors, taleo, workable, workday)
 from .common import Ctx, FetchResult
@@ -37,6 +37,7 @@ ADAPTERS = {
     "cornerstone": cornerstone.fetch,
     "jazzhr": jazzhr.fetch,
     "ibm": ibm.fetch,                # GOAL16 Tier C: a big employer's own career search
+    "careeronestop": careeronestop.fetch,   # GOAL35 §4.2: state job banks (off until a key is approved)
 }
 KEY_FIELDS = {"workday": ("wd", "site"), "eightfold": ("domain", "api"), "phenom": ("ref", "page", "site"),
               "oracle_recruiting": ("site",), "taleo": ("section",),

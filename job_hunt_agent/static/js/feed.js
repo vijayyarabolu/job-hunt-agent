@@ -7,6 +7,8 @@ import { filterParams, setBoards, setFilters } from "./filters.js";
 import { REMOVE_UNDO_MS, openApplyDialog, removeApp, xBtn } from "./dialogs.js";
 import { openRowEditor } from "./editor.js";
 import { sponsSwitch, sponsView, sponsorBadge } from "./sponsor.js";
+import { syncUrl } from "./urlstate.js";
+import { marked } from "./find.js";
 
 const REASONS = [["too_senior", "Too senior"], ["wrong_role", "Wrong role"], ["location", "Location"], ["company", "Company"]];
 const SKELETON_ROWS = 9;
@@ -25,7 +27,7 @@ function skeleton() {
   $("#list-more").replaceChildren();
   $("#list").setAttribute("aria-busy", "true");
   const count = $("#lh-title .muted"), name = $("#lh-title")?.firstChild;
-  if (name?.nodeType === 3) name.textContent = `${tabName(S.tab)} `;   // GOAL30-app: the new tab's name at once
+  if (name?.nodeType === 3) name.textContent = `${tabName(S.tab)} `;   // GOAL30-app
   if (count) count.textContent = "updating…";
   if (S.tab !== "recommended") $$("#list-head .lh-hold").forEach((el) => el.remove());
 }
@@ -37,15 +39,17 @@ function show(data, back) {
   fresh = [];
   if (data.progress) S.prog = data.progress;
   S.items = data.jobs || [];
+  S.listTab = S.tab;
   const at = back?.uid ? S.items.findIndex((j) => j.uid === back.uid) : -1;
   S.cur = at >= 0 ? at : Math.min(S.cur, Math.max(0, S.items.length - 1));
   renderAll();
+  syncUrl();
   if (back) { $("#list-wrap").scrollTop = back.top; paintSel(); }
   if (!phone.matches && S.items.length && !S.detail?.panel) openCard(cur(), { quiet: true });
   if (!S.items.length) closeDetail();
 }
 
-// GOAL31 §3: each list's last data, shown at once on the way back while it refreshes; nothing new redraws nothing
+// GOAL31 §3: each list's last data, shown at once on the way back
 const LAST_MAX = 16;
 const last = new Map();
 let shown = { memo: "", sig: "" };
@@ -53,9 +57,11 @@ const remember = (memo, data) => { last.delete(memo); last.set(memo, data); if (
 // the list as it is now (saved, removed since), for the way back
 export function keepList() { if (shown.memo) remember(shown.memo, { ...meta, jobs: S.items }); }
 
-export async function loadFeed({ quiet = false } = {}) {
+// redraw: draw the same data again (the Resume module has just loaded)
+export async function loadFeed({ quiet = false, redraw = false } = {}) {
   const token = ++loadToken;
   const tab = S.tab;
+  syncUrl();
   const key = tab === "resumes" && `${S.profile} ${S.rq}`;
   const back = S.place[tab] || (quiet && { uid: cur()?.uid, top: $("#list-wrap").scrollTop });
   S.place[tab] = null;
@@ -74,7 +80,7 @@ export async function loadFeed({ quiet = false } = {}) {
     remember(memo, data);
     if (key) store.set(`jh.rq.${key}`, JSON.stringify(boards[key] = data));
     const sig = JSON.stringify(data);
-    if (shown.memo === memo && shown.sig === sig) return;
+    if (shown.memo === memo && shown.sig === sig && !redraw) return;
     shown = { memo, sig };
     show(data, hit || quiet ? { uid: cur()?.uid, top: $("#list-wrap").scrollTop } : back);
   } catch (err) {
@@ -98,22 +104,54 @@ function renderHead() {
   const t = meta.today;
   const parts = t ? Object.entries(t.by_family).map(([f, n]) => `${FAMILY_LABELS[f] || f} ${n}`) : [];
   const pill = fresh.length ? B({ class: "pill-new", title: "Show them at the top of the list", onclick: insertFresh }, `${fresh.length} new job${fresh.length === 1 ? "" : "s"}`) : null;
-  const extra = S.tab === "saved" ? meta.outside?.length || 0 : 0;   // GOAL33: Saved counts its outside jobs
-  const total = (meta.total ?? S.items.length) + extra, n = S.items.length + extra;
+  const extra = S.tab === "saved" ? meta.outside?.length || 0 : 0;   // GOAL33
+  const cards = S.tab === "saved" ? meta.outside_cards || 0 : 0;    // GOAL36 §5.1
+  const total = (meta.total ?? S.items.length) + extra + cards, n = S.items.length + extra;
   const shown = n < total ? `${n} of ${total}` : String(total);
   $("#list-head").replaceChildren(...[h("div", "lh-top", h("h1", { id: "lh-title" }, tabName(S.tab), " ",
     muted(`${shown} · ${S.filters.sort === "match" ? "best match first" : "newest first"}`)), pill),
   S.tab === "recommended" && t ? h("p", "daily", h("b", {}, `${t.total} new in the last 24 h`),
     muted(parts.length ? ` · ${parts.join(" · ")}` : ""), t.total ? bestBtn() : null, prog()) : null,
   S.tab === "recommended" ? sponsSwitch(meta.spons, sponsView(), () => loadFeed()) : null,
+  searchBox(), outsideLine(),
   dupesBtn(),
   meta.min_match_floor ? h("p", "floor muted", `Showing ${meta.min_match_floor}%+ matches (your floor)`) : null].filter(Boolean));
   S.g8?.paintHead();
 }
 
-// W7 / W9: one click to the best new jobs and to the duplicates
-const bestBtn = () => [muted(" · "), B({ class: "lnk", title: "Posted in the last 24 h, best match first",
-  onclick: () => setFilters({ ...S.filters, posted: "24h", sort: "match" }) }, "Show the best first")];
+// GOAL35 §5.2: the job lists' search, kept in the address like a filter
+const SEARCH_MS = 300;
+const SEARCHED = "company, title, place and role";
+let fsearch = null, ftimer = 0;
+function searchBox() {
+  fsearch ||= h("input", { type: "search", class: "f-search", placeholder: "Search company, title, place, role", "aria-label": "Search these jobs",
+    title: "Search these jobs: any word order, typos and “AI/ML” spelled any way", oninput: (e) => {
+      clearTimeout(ftimer);
+      const v = e.target.value.trim();
+      ftimer = setTimeout(() => setFilters({ ...S.filters, q: v }), SEARCH_MS);
+    } });
+  if (document.activeElement !== fsearch && fsearch.value.trim() !== (S.filters.q || "")) fsearch.value = S.filters.q || "";
+  return fsearch;
+}
+const showOutside = () => setFilters({ q: S.filters.q, sort: S.filters.sort, senior: "1" }, "Showing every job that matches the search");
+function outsideLine() {
+  const n = meta.q && meta.q_outside;
+  return n ? h("p", "f-found small", muted(`${n} more job${n === 1 ? "" : "s"} match “${meta.q}” outside your filters · `),
+    B({ class: "lnk", title: "Clear the other filters (and show too-senior jobs) for this search", onclick: showOutside }, "Show them")) : null;
+}
+const hl = (text) => (meta.terms?.length ? marked(text, meta.terms) : [text]);
+function searchEmpty() {
+  const others = Object.keys(S.filters).some((k) => !["sort", "q"].includes(k));
+  return [`Nothing matches “${S.filters.q}”${others ? " with these filters" : ""}. Searched ${SEARCHED}. `,
+    meta.q_outside ? B({ class: "linklike", onclick: showOutside }, `Show the ${meta.q_outside} outside your filters`) : null,
+    meta.q_outside ? " · " : null, B({ class: "linklike", title: "Clear the search", onclick: () => setFilters({ ...S.filters, q: "" }) }, "Clear search")];
+}
+
+// GOAL21 W7 / W9: the best new jobs, the duplicates; GOAL36 §1: Settings › New jobs
+const NEW_POSTED = { 1: "24h", 3: "3d", 7: "7d" };
+const newWindow = () => NEW_POSTED[meta.new_days] || "24h";
+const bestBtn = () => [muted(" · "), B({ class: "lnk", title: `Posted in the last ${newWindow()}, best match first`,
+  onclick: () => setFilters({ ...S.filters, posted: newWindow(), sort: "match" }) }, "Show the best first")];
 function dupesBtn() {
   const n = meta.dupes;
   if (!n && !S.filters.dupes) return null;
@@ -128,6 +166,8 @@ export const prog = (lead = " · ", p = S.prog) => (p?.goal ? h("span", { class:
 function renderFoot() {
   const bits = [meta.filtered ? `${meta.filtered} hidden by dealbreakers (security clearance)` : "",
     meta.jd_gate ? `${meta.jd_gate} hidden: no GenAI work in the JD` : "",
+    meta.not_w2 ? `${meta.not_w2} hidden: not W2 (C2C or 1099 only, citizens only, no OPT, no sponsorship ever)` : "",
+    meta.low_match ? `${meta.low_match} hidden: under ${RESUME_MIN}% match to your resume` : "",
     meta.too_senior && !S.filters.senior ? `${meta.too_senior} too senior (More → Show too senior)` : ""];
   $("#foot").textContent = bits.filter(Boolean).join(" · ");
 }
@@ -139,6 +179,10 @@ function tags(job) {
     lab.applied_before && !applied(job) ? h("span", { class: "tag warn", title: `${lab.applied_before}: this role at this company is on your tracker` }, "Applied before") : null,
     lab.too_senior ? h("span", { class: "tag warn", title: "Too senior: asks more years than your cap" }, "Too senior") : null,
     job.ghost ? h("span", { class: "tag warn", title: "Flagged, never hidden: Priority a few points lower" }, icon("ghost", "ic sm"), job.ghost) : null,
+    job.work?.w2 ? h("span", { class: "tag ok", title: job.work.contract ? "W2 contract (a contract or a staffing firm): kept" : "The JD offers W2" },
+      icon("check", "ic sm"), job.work.contract ? "W2 contract" : "W2") : null,
+    job.work?.vague ? h("span", { class: "tag warn", title: "Third-party repost: no client named, a personal email or pay DOE with C2C. Flagged, never hidden" }, icon("qmark", "ic sm"), "Vague repost") : null,
+    job.work?.via ? h("span", { class: "tag soft", title: "Found on a state job bank; Apply opens the company's own posting when we have it" }, job.work.via) : null,
     h("span", { class: "tag soft yrs", title: "Years of experience read from the JD" }, job.asks_years == null ? "years not stated" : `Asks ${job.asks_years} yr${job.asks_years === 1 ? "" : "s"}`)];
 }
 function heart() {
@@ -147,6 +191,7 @@ function heart() {
   return ic;
 }
 
+const RESUME_MIN = 40;       // resumematch.MIN_PCT
 export const RG_ON_KEY = "jh.rg.on";
 function chipSlot(uid) {
   const on = store.get(RG_ON_KEY, "1") === "1";
@@ -154,16 +199,16 @@ function chipSlot(uid) {
     : h("span", { class: "rgc", "data-uid": uid });
 }
 function rowEl(job, i) {
-  const title = h("div", { class: "row-title", title: job.title }, job.liked ? heart() : null, h("span", {}, job.title));
+  const title = h("div", { class: "row-title", title: job.title }, job.liked ? heart() : null, h("span", {}, ...hl(job.title)));
   return h("li", { role: "option", id: `job-${i}`, class: `row${job.triage === "dismissed" && S.tab !== "archived" ? " dim" : ""}`,
     "aria-selected": String(i === S.cur), "data-i": i, "aria-checked": S.rg?.on ? String(S.rg.picks.has(job.uid)) : null,
     title: "Open (Enter) · o opens the posting",
     onclick: (e) => { if (e.shiftKey && S.g8) return S.g8.pick(i, e); select(i, { open: false }); openCard(job, { sheet: true }); } },
   h("span", { class: "pick", "aria-hidden": "true", onclick: (e) => { e.stopPropagation(); S.g8?.pick(i, e); } }),
   miniRing(job.match, "", tailoredLine(job), job.no_jd ? "nojd" : job.scoring ? "scoring" : null),
-  h("div", "row-main", title, h("div", "row-meta", h("span", "co", job.company), sponsorBadge(job.sponsor), job.location ? locSpan(job.location, "loc") : null, tags(job),
+  h("div", "row-main", title, h("div", "row-meta", h("span", "co", ...hl(job.company)), sponsorBadge(job.sponsor), job.location ? locSpan(job.location, "loc") : null, tags(job),
     job.tailored ? h("span", { class: "tag soft", title: tailoredLine(job) }, `${job.match_base}% → ${job.match}% tailored`) : null,
-    also(job), job.pass_reason ? h("span", { class: "tag soft", title: "Why you passed on it" }, job.pass_reason) : null, dupTag(job), job.outside || job.ap ? null : chipSlot(job.uid)), S.g8?.row(job)),
+    also(job), job.pass_reason ? h("span", { class: "tag soft", title: "Why you passed on it" }, job.pass_reason) : null, dupTag(job), outsideTag(job), job.outside || job.ap ? null : chipSlot(job.uid)), S.g8?.row(job)),
   job.ap ? S.apMod.side(job) : h("div", "row-side", job.outside ? null : xBtn(`${job.company} · ${job.title}`, () => removeJob(job)),
     job.posted_ts ? h("time", { class: job.posted_found ? "found" : null, datetime: job.posted_ts, "data-ts": job.posted_ts, "data-exact": job.posted_exact ? "1" : "",
       "data-found": job.posted_found || "", "data-day": job.posted_day || "",
@@ -174,6 +219,9 @@ function rowEl(job, i) {
         job.worth == null ? "scoring" : ["Priority ", h("b", {}, job.worth)])));
 }
 
+// GOAL36 §5.1
+export const outsideTag = (job) => (job.outside_job ? h("span", { class: "tag soft outside-tag", title: OUTSIDE_TIP }, "outside job") : null);
+const OUTSIDE_TIP = "Pasted in the Resume app or added by link";
 const dupTag = (job) => (job.dup_of ? h("span", { class: "tag warn dup-tag", title: `The same posting as the newer ${job.dup_of.label} (same company, role and place, or the same posting link): × removes this copy` },
   `Duplicate of ${job.dup_of.label}`) : null);
 const also = (job) => (job.also?.length ? h("span", { class: "tag soft", title: job.also.map((a) => a.location).join("\n") },
@@ -207,7 +255,8 @@ export function rescore(scores = {}) {
 
 function renderList() {
   const empty = S.items.length || (S.tab === "saved" && meta.outside?.length) ? null : h("p", "empty", S.tab === "saved" ? "Nothing saved yet: press s on a job to keep it here."
-    : S.tab === "resumes" ? S.g8?.rqEmpty(meta) : S.tab === "applied" ? S.apMod.empty() : Object.keys(S.filters || {}).some((k) => k !== "sort")
+    : S.tab === "resumes" ? S.g8?.rqEmpty(meta) : S.tab === "applied" ? S.apMod.empty(meta, loadFeed) : S.filters?.q ? searchEmpty()
+      : Object.keys(S.filters || {}).some((k) => k !== "sort")
       ? ["Nothing here with these filters. ", B({ class: "linklike", title: "Remove every filter", onclick: () => setFilters({ sort: S.filters.sort }, "Cleared all filters") }, "Clear filters")]
       : S.tab === "archived" ? "Nothing archived yet: jobs you mark Not interested come here." : "Nothing here yet: new jobs come in with each fetch.");
   const dayOf = (j) => (j?.rq || j?.ap)?.day;   // GOAL18 §3
@@ -253,6 +302,7 @@ function paintSel() {
   const bar = $("#sel-bar");
   bar.hidden = !row;
   if (!row) return;
+  syncUrl();
   $("#list").setAttribute("aria-activedescendant", row.id);
   bar.style.transform = `translateY(${row.offsetTop}px)`;
   bar.style.height = `${row.offsetHeight}px`;
@@ -278,6 +328,9 @@ function redraw(job) {
 function drop(job) {
   const i = S.items.indexOf(job);
   if (i < 0) return () => {};
+  // GOAL35: a list load in flight was answered before this change: it would put the row back
+  loadToken++;
+  $("#list").removeAttribute("aria-busy");
   const row = $(`#job-${i}`);
   const count = (n) => { if (meta.total != null) meta = { ...meta, total: meta.total + n }; };
   let timer = 0;

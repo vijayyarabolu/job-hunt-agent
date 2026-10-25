@@ -15,7 +15,7 @@ from pathlib import Path
 
 from . import atomic, config
 
-SCHEMA_VERSION = 37
+SCHEMA_VERSION = 39
 # Repost chain (decision 002): priors on the same repost_key that ended (closed, or went stale) within 90 days
 # before this job was first seen, or that were still open with the same specific req_id (has a digit; not
 # 'MULTI'). Shared by the v4 backfill and store._write_item.
@@ -175,6 +175,9 @@ MIGRATIONS[33] = ["ALTER TABLE fits ADD COLUMN genai TEXT",
 # older user_version); earlier migrations keep failing on it, which is how a raced upgrade is noticed (_upgrade)
 # GOAL33 (version 36): outside_fits (schema.sql): the match of a tracker row's pasted JD, kept
 # GOAL33 (version 37): app_events_app (schema.sql), the index application_events lost in the rebuilds of 9 and 24
+# GOAL35 (version 38): jobs.work_terms, the JD's employment terms (workterms.label: w2, c2c_only, citizens_only, vague...)
+MIGRATIONS[38] = ["ALTER TABLE jobs ADD COLUMN work_terms TEXT"]
+# GOAL36 (version 39): title_denials (schema.sql, new table only): the deny list's drops per day and reason
 IDEMPOTENT_FROM = 33
 _ADD_COLUMN = re.compile(r"^ALTER TABLE (\w+) ADD COLUMN (\w+)", re.I)
 BUSY_TIMEOUT_MS = 10_000

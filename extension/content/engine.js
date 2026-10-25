@@ -284,7 +284,8 @@ var JH = globalThis.JH || (globalThis.JH = {});
         f.el.removeAttribute("data-jh-hold");
         if (ans.status === "skip") { run.note(f, "skipped"); continue; }
         if (ans.status === "hold") { out.held++; f.el.setAttribute("data-jh-hold", ""); run.results.set(f.id, { f, status: "needs", why: "waits for the address" }); continue; }
-        if (ans.key || ans.origin) JH.fields.note(f.el, { key: ans.key || null, origin: ans.origin || null });   // the panel's row
+        const saved = ans.status === "fill" && ["saved", "job", "company"].includes(ans.source);   // GOAL36 §5.4: the user's saved answer
+        if (ans.key || ans.origin || saved) JH.fields.note(f.el, { key: ans.key || null, origin: ans.origin || null, saved });   // the panel's row
         if (ans.status === "needs") { unanswered.push({ f, ans }); continue; }
         // GOAL30 §1: Claude read the wording as a known field / saved question: filled, marked ? review
         await fillAnswer(run, f, ans, ans.review ? { review: true, why: ans.why || "Claude read this question: check it" } : {});

@@ -2,10 +2,11 @@
 becomes a Saved tracker row here: company, role, posting link and the JD text. It is an ordinary app-made row (source
 'manual', status 'saved'), recognised as outside by rg_links, so Mark applied works the same way and the Sheet gets
 the row when it is applied (saved rows are not written to the Sheet). A pasted JD for a role saved in the tracker
-(not applied yet) links to that row instead of adding a second one; GOAL33 §1: one the user applied to earlier gets a new row."""
+(not applied yet) links to that row instead of adding a second one; GOAL33 §1: one the user applied to earlier gets a new row.
+GOAL36 §5.1: each such row gets a real job record (outside_jobs), so its card and detail are an inside job's."""
 import threading
 
-from . import daygroups, db, jdsnap, rgclient, tracker
+from . import daygroups, db, jdsnap, outside_jobs, rgclient, tracker
 from .google import state as gstate
 
 PRE_APPLY = ("saved", "tailored")
@@ -90,6 +91,7 @@ def _adopt(conn, pid: str, job: dict) -> int | None:
     with db.tx(conn):
         conn.execute("INSERT OR IGNORE INTO rg_links(rg_id, profile, app_id, created_at) VALUES (?,?,?,?)",
                      (int(job["id"]), pid, app_id, db.iso(db.utcnow())))
+    outside_jobs.ensure(conn, pid, app_id)                # GOAL36 §5.1: its own job record (card, detail, ring)
     return app_id
 
 
@@ -101,7 +103,9 @@ def sync(conn, pid: str, jobs: list[dict]) -> int:
                and j.get("status") != "cancelled"]
         for job in _stale_links(conn, pid, [j for j in jobs if j.get("profile") == pid]):
             _relink(conn, pid, job)
-        return sum(1 for job in new if _adopt(conn, pid, job) is not None)
+        added = sum(1 for job in new if _adopt(conn, pid, job) is not None)
+        outside_jobs.backfill(conn, pid)                  # GOAL36 §5.1: rows made before job records existed
+        return added
 
 
 def saved_rows(conn, pid: str) -> list[dict]:

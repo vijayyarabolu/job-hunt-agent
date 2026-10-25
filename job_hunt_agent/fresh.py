@@ -85,20 +85,26 @@ def _local_today(now: datetime) -> date:
     return now.astimezone().date()
 
 
-def is_fresh(row: dict, now: datetime) -> bool:
+def window(profile: dict | None) -> timedelta:
+    """GOAL36 §1: the person's "new" window (Settings: 1, 3 or 7 days; 1 = FRESH_WINDOW, the default)."""
+    days = int((profile or {}).get("new_within_days") or 1)
+    return timedelta(days=days) if days in (1, 3, 7) else FRESH_WINDOW
+
+
+def is_fresh(row: dict, now: datetime, within: timedelta = FRESH_WINDOW) -> bool:
     if row.get("closed_at") or row.get("stale") or row.get("bumped_at") or row.get("seed") or row.get("chain_origin"):
         return False                                  # chain_origin: a repost of a recently closed req (decision 002)
     first_seen = parse(row.get("first_seen"))
     first_posted = row.get("first_posted_at")
     precision = row.get("precision")
     if precision == "exact":
-        return bool(first_posted) and now - parse(first_posted) <= FRESH_WINDOW
+        return bool(first_posted) and now - parse(first_posted) <= within
     if precision == "day":
         if not first_posted or not first_seen:
             return False
         yesterday = _local_today(now) - timedelta(days=1)
-        return date.fromisoformat(first_posted[:10]) >= yesterday and now - first_seen <= FRESH_WINDOW
-    return bool(first_seen) and now - first_seen <= FRESH_WINDOW and not row.get("repost_count")
+        return date.fromisoformat(first_posted[:10]) >= yesterday - (within - FRESH_WINDOW) and now - first_seen <= within
+    return bool(first_seen) and now - first_seen <= within and not row.get("repost_count")
 
 
 def age_hours(row: dict, now: datetime) -> float | None:

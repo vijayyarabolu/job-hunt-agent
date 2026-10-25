@@ -17,7 +17,7 @@ try {
   const toasts = () => t.js(`return document.getElementById("toasts").textContent`);
   const sec = (h2) => `[...document.querySelectorAll(".af-sec")].find((s) => s.querySelector("h2")?.textContent.startsWith(${S(h2)}))`;
   const secText = (h2) => t.js(`return (${sec(h2)})?.textContent || ""`);
-  await t.send("Page.navigate", { url: `${BASE}/?token=${TOKEN}#answers:tester` });
+  await t.send("Page.navigate", { url: `${BASE}/?token=${TOKEN}#recommended?p=tester` });   // GOAL35 §1: a link opens its page; this opens job-hunt-agent, then Answers
 
   // ---- when job-hunt-agent opens ----------------------------------------------------------------------------------------
   check("opening job-hunt-agent shows the nightly check's drop", await toastHas("Autofill's nightly check:") && await toastHas("greenhouse: apply page filled 4 of 12, down from 10 of 12"), await toasts());

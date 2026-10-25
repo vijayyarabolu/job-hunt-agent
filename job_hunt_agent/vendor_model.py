@@ -145,6 +145,8 @@ def vendor_of(row: dict, known: dict[str, Model]) -> str:
     return ats_profile.ats_of(row.get("board"))
 
 
+OUTSIDE = "outside"           # = outside_jobs.ATS (not imported: outside_jobs needs this module's callers)
+
 # ---------- scoring ----------
 
 @dataclass(frozen=True)
@@ -333,7 +335,9 @@ def score(row: dict, resumes, profile_years=None, known: dict[str, Model] | None
     vendor = vendor_of(row, known)
     model = known.get(vendor)
     prof = ats_profile.profiles().get(vendor) if model is None else None
-    vendor_label = model.label if model else str((prof or {}).get("label") or vendor or "this ATS")
+    # GOAL36 §5.1: an outside job's record (board outside:<person>) on an unknown ATS is "this ATS", like any other
+    vendor_label = model.label if model else str((prof or {}).get("label") or (vendor if vendor != OUTSIDE else "")
+                                                 or "this ATS")
     ignore = set(lexicon.settings()["display_ignore"])
     terms = tuple(t for t in keywords.unpack_full(row.get("fit_terms")) if t[0].name not in ignore)
     pairs = [(t, m) for t, m, _ in terms]
